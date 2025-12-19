@@ -1,0 +1,134 @@
+<Window x:Class="AsmrDownloader.Client.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:AsmrDownloader.Client"
+        mc:Ignorable="d"
+        Title="ASMR Downloader"
+        Height="600"
+        Width="900">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Vertical"
+                    Grid.Row="0"
+                    Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal">
+                <TextBox Width="420"
+                         Text=""
+                         x:Name="SearchBox"
+                         VerticalAlignment="Center"/>
+                <Button Content="Search"
+                        Margin="8,0,0,0"
+                        Width="80"
+                        Command="{Binding SearchCommand}"
+                        CommandParameter="{Binding Text, ElementName=SearchBox}"/>
+                <Button Content="Download"
+                        Margin="8,0,0,0"
+                        Width="100"
+                        Command="{Binding DownloadCommand}"/>
+                <Button Content="Sync"
+                        Margin="8,0,0,0"
+                        Width="80"
+                        Command="{Binding SyncCommand}"/>
+                <Button Content="Start WebUI"
+                        Margin="8,0,0,0"
+                        Width="120"
+                        Command="{Binding StartWebUICommand}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal"
+                        Margin="0,6,0,0"
+                        VerticalAlignment="Center">
+                <ProgressBar Width="520"
+                             Height="18"
+                             Minimum="0"
+                             Maximum="100"
+                             Value="{Binding Progress}"/>
+                <TextBlock Text=" "
+                           Width="8"/>
+                <TextBlock Text="{Binding Status}"
+                           VerticalAlignment="Center"/>
+            </StackPanel>
+        </StackPanel>
+
+        <ListView Grid.Row="1"
+                  ItemsSource="{Binding Items}"
+                  SelectedItem="{Binding SelectedItem}">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Title"
+                                    Width="420"
+                                    DisplayMemberBinding="{Binding Title}"/>
+                    <GridViewColumn Header="Date"
+                                    Width="100"
+                                    DisplayMemberBinding="{Binding Date}"/>
+                    <GridViewColumn Header="HasSubtitles"
+                                    Width="100"
+                                    DisplayMemberBinding="{Binding HasSubtitles}"/>
+                    <GridViewColumn Header="Path"
+                                    Width="200"
+                                    DisplayMemberBinding="{Binding BaseDir}"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="360"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBox Grid.Column="0"
+                     Height="120"
+                     IsReadOnly="True"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     Text="{Binding Log}"/>
+
+            <ListView Grid.Column="1"
+                    ItemsSource="{Binding Queue}"
+                    Margin="8,0,0,0">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Border BorderBrush="Gray"
+                                BorderThickness="0,0,0,1"
+                                Padding="4">
+                            <StackPanel Orientation="Vertical">
+                                <StackPanel Orientation="Horizontal"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Title}"
+                                            Width="160"
+                                            TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding MediaId}"
+                                            Width="80"
+                                            Margin="6,0,0,0"/>
+                                    <TextBlock Text="{Binding Status}"
+                                            Width="80"
+                                            Margin="6,0,0,0"/>
+                                    <ProgressBar Width="60"
+                                            Height="12"
+                                            Minimum="0"
+                                            Maximum="100"
+                                            Value="{Binding Progress}"
+                                            Margin="6,0,0,0"/>
+                                    <Button Content="Cancel"
+                                            Margin="6,0,0,0"
+                                            Command="{Binding DataContext.CancelDownloadCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding MediaId}"/>
+                                    <Button Content="Retry"
+                                            Margin="6,0,0,0"
+                                            Command="{Binding DataContext.RetryDownloadCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding MediaId}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Grid>
+    </Grid>
+</Window>

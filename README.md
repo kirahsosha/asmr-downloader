@@ -90,7 +90,11 @@ go build -o asmroner
 # 下载热门作品
 ./asmroner download hot100 -n 10
 
-# 启动Web界面
+# 启动 Web 界面（推荐） —— 使用 C# 后端提供完整 Web UI 与下载服务：
+cd backend/asmroner
+dotnet run --project asmroner.csproj -- listen -p 9999
+
+# 兼容：旧的 Go `listen` 命令仍可运行，但下载功能已迁移到 C# 后端：
 ./asmroner listen
 ```
 
@@ -188,17 +192,18 @@ go build -o asmroner
 ### 🎨 listen - Web界面
 
 ```bash
-# 启动Web界面
-./asmroner listen -p 8080
+# 启动 C# 后端以提供 Web 界面和下载服务（推荐）
+cd backend/asmroner
+dotnet run --project asmroner.csproj -- listen -p 9999
 
-# 指定数据目录
-./asmroner listen -p 8080 ./syncdata
+# 启动旧的 Go listen（已废弃，仅用于兼容）：
+./asmroner listen -p 8080
 ```
 
-#### 选项说明：
-- `-p, --port`：服务器端口（默认9999）
+#### 说明
+- 推荐使用 C# 后端（`backend/asmroner`）来托管 Web UI、处理下载任务以及代理远程 API。Go 的 `listen` 命令保留为兼容提示但不再承担下载责任。
 
-启动后访问：`http://localhost:9999`
+访问：`http://localhost:9999`
 
 ### 📊 version - 版本信息
 

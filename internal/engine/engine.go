@@ -3,7 +3,7 @@ package engine
 import (
 	"asmroner/internal/consts"
 	"asmroner/internal/database"
-	"asmroner/internal/logger"
+
 	"asmroner/internal/model"
 	"asmroner/internal/utils"
 	"context"
@@ -13,7 +13,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 
 	"strings"
@@ -184,111 +183,22 @@ func buildRestyClient(config *model.Config) (*resty.Client, error) {
 
 // AuthLogin 登录获取JWT Token
 func (m *EngineManager) AuthLogin() error {
-	headers := defaultHeaders
-	user := struct {
-		Name     string `json:"name"`
-		Password string `json:"password"`
-	}{
-		Name:     m.Config.User.Account,
-		Password: m.Config.User.Password,
-	}
-	result := make(map[string]interface{})
-
-	response, err2 := m.Client.R().
-		SetHeaders(headers).
-		SetResult(&result).
-		SetBody(&user).
-		Post(m.ApiUrl + consts.AsmrApiPath.LoginPath)
-	//fmt.Println(string(response.Body()))
-	if !response.IsSuccess() {
-		return errors.New("auth login error: " + response.Status())
-	}
-
-	if err2 != nil {
-		return errors.New("auth login error: " + err2.Error())
-	}
-	// 检查响应是否包含 token
-	token, ok := result["token"].(string)
-	if !ok || token == "" {
-		return errors.New("auth login error: token not found in response")
-	}
-	m.JWTToken = "Bearer " + token
+	// Auth moved to the C# backend proxy. Keep this method as a no-op
+	// to preserve compatibility for code that calls it.
+	// If you still need engine-level authentication against remote ASMR site,
+	// implement it in the C# backend or re-enable logic here.
+	m.JWTToken = ""
 	return nil
 }
 
 // SimpleDownload 简单下载 可传入RJId 或者RJID列表
 func (m *EngineManager) SimpleDownload(ids []string, storeBaseDir string) error {
-	pool := *m.WorkerPool
-	group := pool.NewGroup()
-	for _, id := range ids {
-		// 提交任务到 Worker Pool
-		group.SubmitErr(func() error {
-			return m.DownloadOne(id, storeBaseDir)
-		})
-	}
-	err := group.Wait()
-	return err
+	// Download functionality migrated to C# backend. Keep stub for compatibility.
+	return errors.New("download moved to C# backend; use backend/asmroner /api/download")
 }
 
 func (m *EngineManager) DownloadOne(id string, storeBaseDir string) error {
-	//检查是否是合格的id
-	valid, prefix, number, err := utils.IsValidDlsiteID(id)
-	if err != nil || !valid {
-		return err
-	}
-	//获取作品信息
-	workInfo, err := m.GetWorkInfo(number)
-	if err != nil {
-		return err
-	}
-	log.Printf("Get WorkInfo  %s...\n", workInfo.Title)
-	//获取所有的tracks
-	tracks, err := m.GetVoiceTracks(number)
-	if err != nil {
-		return err
-	}
-	log.Printf("Get TracksInfo list,size: %d...\n", len(tracks))
-	hasSubtitle := ""
-	if workInfo.HasSubtitle {
-		hasSubtitle = "sub"
-	} else {
-		hasSubtitle = "nosub"
-	}
-
-	//新建下载目录名
-	folderName := fmt.Sprintf(
-		"%s%s-%s-%s-%s",
-		strings.ToUpper(prefix),
-		number,
-		strings.ReplaceAll(workInfo.Release, "-", ""),
-		hasSubtitle,
-		//修正标题 移除目录不支持的特殊字符
-		utils.NormalDirPathStr(strings.ReplaceAll(workInfo.Title, "/", "")),
-	)
-	//正式多协程下载 到目录RJID-date-title
-	log.Println("Download folderName:", folderName)
-	//根据配置需求下载tracks  比如只要mp3格式的
-	storeFileDir := filepath.Join(storeBaseDir, folderName)
-	needDownloadUrls, err := m.ensureDirExists(tracks, storeFileDir)
-	if err != nil {
-		return err
-	}
-	//过滤掉不需要的格式
-	needDownloadUrls = m.filterTargetAudioFormate(needDownloadUrls)
-	//并行下载
-	pool := *m.WorkerPool
-	group := pool.NewGroup()
-	for _, url := range needDownloadUrls {
-		//log.Println("Download file:", url[2])
-		group.SubmitErr(func() error {
-			return m.downloadFile(url[0], url[1], url[2])
-			//return nil
-		})
-	}
-	err = group.Wait()
-	//递归的移除空目录
-	utils.RemoveEmptyDirs(folderName)
-	return err
+	return errors.New("DownloadOne moved to C# backend; use /api/download")
 }
 
 func (m *EngineManager) filterTargetAudioFormate(urls [][]string) [][]string {
@@ -376,6 +286,10 @@ func (m *EngineManager) ensureDirExists(tracks []model.Track, storeBaseDir strin
 		}
 	}
 	return needDownloadUrls, nil
+}
+
+func (m *EngineManager) downloadFile(url string, path string, fileName string) error {
+	return errors.New("download moved to C# backend; no-op in Go engine")
 }
 
 func (m *EngineManager) GetVoiceTracks(id string) ([]model.Track, error) {
@@ -612,24 +526,7 @@ func (m *EngineManager) SyncRetryFaild() error {
 	return nil
 }
 
-func (m *EngineManager) downloadFile(url string, path string, fileName string) error {
-	// 使用 resty 或 http.Get 下载文件
-	var filePathToStore = path
-	var fileUrl = url
-	var storePath = filepath.Join(filePathToStore, fileName)
-	//使用 resty 下载文件
-	resp, err := m.Client.R().
-		SetOutput(storePath).
-		Get(fileUrl)
-	if err != nil {
-		log.Println("下载文件失败: ", err.Error())
-		return err
-	}
-	if !resp.IsSuccess() {
-		return errors.New("Request error,status code: " + string(resp.StatusCode()))
-	}
-	return nil
-}
+// original download implementation removed; downloads are handled by C# backend now.
 
 func (m *EngineManager) SearchForCountResult(asmrOneQueryStr string, count int) (model.SearchResult, error) {
 	url := m.ApiUrl + consts.AsmrApiPath.SearchPath + asmrOneQueryStr
@@ -691,52 +588,11 @@ func (m *EngineManager) SearchForCountResult(asmrOneQueryStr string, count int) 
 }
 
 func (m *EngineManager) DownloadBatchMedias(works []model.SearchResultView, storePathDir string) error {
-	var ids []string
-	for _, work := range works {
-		id := work.SourceID
-		ids = append(ids, id)
-	}
-	pool := *m.WorkerPool
-	group := pool.NewGroup()
-	for _, id := range ids {
-		// 提交任务到 Worker Pool
-		group.SubmitErr(func() error {
-			return m.DownloadOne(id, storePathDir)
-		})
-	}
-	err := group.Wait()
-	if err != nil {
-		log.Println("下载作品失败: ", err.Error())
-		return err
-	}
-	return nil
+	return errors.New("DownloadBatchMedias moved to C# backend; use /api/download to start downloads")
 }
 
 func (m *EngineManager) DownloadMediaByBatchIds(worksId []string, storePathDir string) error {
-	if len(worksId) <= 0 {
-		return nil
-	}
-	//使用限流器下载
-	ctx := context.Background()
-
-	for _, id := range worksId {
-		// 等待令牌
-		if err := m.DownLimiter.Wait(ctx); err != nil {
-			log.Println("等待下载限流器令牌失败: ", err.Error())
-			return err
-		}
-		err := m.DownloadOne(id, storePathDir)
-		//err := func() error {
-		//	log.Println("正在下载作品: ", id)
-		//	time.Sleep(5 * time.Second)
-		//	return nil
-		//}()
-		if err != nil {
-			log.Println("下载作品失败: ", err.Error())
-			return err
-		}
-	}
-	return nil
+	return errors.New("DownloadMediaByBatchIds moved to C# backend; use /api/download to start downloads")
 }
 
 // 打印同步元数据统计信息
@@ -786,49 +642,5 @@ func (m *EngineManager) printSyncMetadataStatics(result *model.MetadataWorkRespo
 
 // 按照指定数量下载热门100作品
 func (m *EngineManager) DownloadHot100(count int, dir string) error {
-	url := m.ApiUrl + consts.AsmrApiPath.HotPath
-	headers := defaultHeaders
-
-	var result = model.MetadataWorkResponse{}
-	body := map[string]interface{}{
-		"keyword":             "",
-		"page":                1,
-		"pageSize":            100,
-		"subtitle":            0,
-		"localSubtitledWorks": []interface{}{},
-		"withPlaylistStatus":  []interface{}{},
-	}
-
-	resp, err := m.Client.R().
-		SetHeader("Authorization", m.JWTToken).
-		SetBody(body).
-		SetHeaders(headers).
-		SetResult(&result).
-		Post(url)
-
-	if err != nil {
-		log.Println("获取作品信息失败: ", err.Error())
-		logger.RecordFailure("DownloadHot100"+" ", url, err.Error())
-		return err
-	}
-	if !resp.IsSuccess() {
-		logger.RecordFailure("DownloadHot100"+" ", url, resp.Status())
-		return errors.New("Request error,status code: " + string(resp.StatusCode()))
-	}
-	if count <= 0 {
-		return errors.New("下载数量选择必须大于0")
-	}
-	metadataWork := result.BuildMetadataWork()
-	works := metadataWork[:count]
-	var sourceIds []string
-	for _, work := range works {
-		sourceIds = append(sourceIds, work.SourceID)
-	}
-	// 下载热门100作品
-	err = m.DownloadMediaByBatchIds(sourceIds, dir)
-	if err != nil {
-		log.Println("下载热门100作品失败: ", err.Error())
-		return err
-	}
-	return nil
+	return errors.New("DownloadHot100 moved to C# backend; use /api/download for individual works")
 }

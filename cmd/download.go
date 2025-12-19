@@ -1,3 +1,8 @@
+// NOTE: Download implementations have been migrated to the C# backend (backend/asmroner).
+// This command now forwards download requests to the local C# backend when the Go engine
+// indicates the functionality has been migrated. The Go in-process downloader is deprecated
+// and kept only for compatibility.
+
 package cmd
 
 import (
@@ -91,6 +96,18 @@ download 命令用于下载音声资源，支持单个 RJID、多项 RJID 批量
 
 		err := engineManager.SimpleDownload(rjIds, hotDownloadDir)
 		if err != nil {
+			// 如果已迁移到 C# 后端，则逐个请求 C# /api/download
+			if strings.Contains(err.Error(), "moved to C# backend") {
+				for _, id := range rjIds {
+					ok, derr := callCSharpDownload(id)
+					if derr != nil || !ok {
+						log.Printf("❌ 通过 C# 后端下载 %s 失败: %v", id, derr)
+						continue
+					}
+					log.Printf("✅ 已向 C# 后端提交下载任务: %s", id)
+				}
+				return
+			}
 			log.Printf("❌资源下载失败: %v\n", err)
 			return
 		}
@@ -104,3 +121,5 @@ func init() {
 	downloadCmd.Flags().StringVarP(&hotDownloadDir, "dir", "d", "./", "文件保存目录（默认当前目录）")
 	downloadCmd.Flags().IntVarP(&hotCount, "number", "n", 1, "下载热门作品数量（当输入hot100 时生效）")
 }
+
+
