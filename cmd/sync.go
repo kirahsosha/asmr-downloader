@@ -1,7 +1,3 @@
-// NOTE: Sync/download worker logic has been migrated to the C# backend (`backend/asmroner`).
-// The Go sync commands now forward download tasks to the C# backend when applicable.
-// Keep this code for CLI orchestration and DB updates; download implementation is deprecated.
-
 package cmd
 
 import (
@@ -259,26 +255,11 @@ func doBatchSyncDownload(downDir string, batchSize int, batchCount int, download
 					// 模拟下载延迟
 					downError := manager.DownloadOne(syncInfo.SourceId, downDir)
 					if downError != nil {
-						// 如果下载已迁移到 C# 后端，转发到本地 C# /api/download
-						if strings.Contains(downError.Error(), "moved to C# backend") {
-							ok, err := callCSharpDownload(syncInfo.SourceId)
-							if err != nil || !ok {
-								log.Printf("❌ 通过 C# 后端下载作品 %s 失败: %v", syncInfo.SourceId, err)
-								syncInfo.Status = "FAILED"
-								syncInfo.FailReason = fmt.Sprintf("csharp download error: %v", err)
-								syncInfo.FailedAt = time.Now()
-								continue
-							}
-							// 标记为已完成；目录大小需要在 C# 后端完成后由外部工具或手动更新
-							syncInfo.Status = "COMPLETED"
-							syncInfo.DirSize = 0
-						} else {
-							log.Printf("❌ 下载作品 %s 失败: %v", syncInfo.SourceId, downError)
-							syncInfo.Status = "FAILED"
-							syncInfo.FailReason = downError.Error()
-							syncInfo.FailedAt = time.Now()
-							continue
-						}
+						log.Printf("❌ 下载作品 %s 失败: %v", syncInfo.SourceId, downError)
+						syncInfo.Status = "FAILED"
+						syncInfo.FailReason = downError.Error()
+						syncInfo.FailedAt = time.Now()
+						continue
 					} else {
 						syncInfo.Status = "COMPLETED"
 						//计算下载完成的目录的大小
@@ -516,23 +497,6 @@ func doSyncFailedDownload(db *gorm.DB, info model.WorkSyncInfo) error {
 	manager := engine.NewEngineManager()
 	err = manager.DownloadOne(info.SourceId, filepath.Dir(info.FilePath))
 	if err != nil {
-		if strings.Contains(err.Error(), "moved to C# backend") {
-			ok, derr := callCSharpDownload(info.SourceId)
-			if derr != nil || !ok {
-				return fmt.Errorf("csharp download failed: %v", derr)
-			}
-			// mark as completed; size unknown here
-			info.Status = "COMPLETED"
-			info.DirSize = 0
-			info.FailReason = ""
-			info.RetryCount++
-			info.FailedAt = time.Now()
-			tx := db.Table("work_sync_infos").Where("id = ?", info.ID).Updates(info)
-			if tx.Error != nil {
-				return tx.Error
-			}
-			return nil
-		}
 		return err
 	}
 	// 更新数据库状态为 COMPLETED
@@ -546,10 +510,6 @@ func doSyncFailedDownload(db *gorm.DB, info model.WorkSyncInfo) error {
 	}
 	return nil
 }
-
-// callCSharpDownload posts a download request to local C# backend (/api/download).
-// Returns ok=true if backend accepted the request (HTTP 200 or 202).
-
 
 // ------------------------- export 子命令 -------------------------
 var syncExportCmd = &cobra.Command{
