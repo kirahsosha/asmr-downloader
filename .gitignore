@@ -32,3 +32,24 @@ asmroner.exe
 
 # MacOS system files
 .DS_Store
+/.vscode
+/dotnet/tests/Asmroner.Wpf.Tests/obj
+/dotnet/tests/Asmroner.Wpf.Tests/bin
+/dotnet/tests/Asmroner.IntegrationTests/obj
+/dotnet/tests/Asmroner.IntegrationTests/bin
+/dotnet/tests/Asmroner.Infrastructure.Tests/obj
+/dotnet/tests/Asmroner.Infrastructure.Tests/bin
+/dotnet/tests/Asmroner.Core.Tests/obj
+/dotnet/tests/Asmroner.Core.Tests/bin
+/dotnet/tests/Asmroner.Application.Tests/obj
+/dotnet/tests/Asmroner.Application.Tests/bin
+/dotnet/Asmroner.Wpf/Asmroner.Wpf/obj
+/dotnet/Asmroner.Wpf/Asmroner.Wpf/bin
+/dotnet/Asmroner.Backend/Asmroner.Infrastructure/obj
+/dotnet/Asmroner.Backend/Asmroner.Core/obj
+/dotnet/Asmroner.Backend/Asmroner.Core/bin
+/dotnet/Asmroner.Backend/Asmroner.Application/obj
+/dotnet/Asmroner.Backend/Asmroner.Application/bin
+/dotnet/.vs
+docs/prompts.md
+/dotnet/Asmroner.Backend/Asmroner.Infrastructure/bin

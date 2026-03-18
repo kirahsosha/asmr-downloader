@@ -1,0 +1,263 @@
+<UserControl x:Class="Asmroner.Wpf.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="450"
+             d:DesignWidth="800">
+    <UserControl.Resources>
+        <LinearGradientBrush x:Key="ShellBackgroundBrush"
+                             StartPoint="0,0"
+                             EndPoint="1,1">
+            <GradientStop Offset="0"
+                          Color="#FFF5FAFF"/>
+            <GradientStop Offset="1"
+                          Color="#FFEFF6FF"/>
+        </LinearGradientBrush>
+
+        <Style x:Key="CardBorderStyle"
+               TargetType="Border">
+            <Setter Property="Background"
+                    Value="#FFFFFFFF"/>
+            <Setter Property="BorderBrush"
+                    Value="#FFE3ECF7"/>
+            <Setter Property="BorderThickness"
+                    Value="1"/>
+            <Setter Property="CornerRadius"
+                    Value="14"/>
+            <Setter Property="Padding"
+                    Value="14"/>
+            <Setter Property="Margin"
+                    Value="0,0,0,10"/>
+        </Style>
+
+        <Style x:Key="SectionTitleStyle"
+               TargetType="TextBlock">
+            <Setter Property="FontSize"
+                    Value="15"/>
+            <Setter Property="FontWeight"
+                    Value="SemiBold"/>
+            <Setter Property="Foreground"
+                    Value="#FF1E2A3A"/>
+            <Setter Property="Margin"
+                    Value="0,0,0,8"/>
+        </Style>
+
+        <Style x:Key="FieldLabelStyle"
+               TargetType="TextBlock">
+            <Setter Property="FontWeight"
+                    Value="SemiBold"/>
+            <Setter Property="Foreground"
+                    Value="#FF40546C"/>
+            <Setter Property="Margin"
+                    Value="0,2,0,4"/>
+        </Style>
+
+        <Style x:Key="FieldTextBoxStyle"
+               TargetType="TextBox">
+            <Setter Property="Height"
+                    Value="34"/>
+            <Setter Property="Padding"
+                    Value="10,4"/>
+            <Setter Property="BorderBrush"
+                    Value="#FFD6E3F2"/>
+            <Setter Property="BorderThickness"
+                    Value="1"/>
+            <Setter Property="Background"
+                    Value="#FFFFFFFF"/>
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center"/>
+            <Setter Property="Margin"
+                    Value="0,0,0,8"/>
+        </Style>
+
+        <Style x:Key="FieldPasswordBoxStyle"
+               TargetType="PasswordBox">
+            <Setter Property="Height"
+                    Value="34"/>
+            <Setter Property="Padding"
+                    Value="10,4"/>
+            <Setter Property="BorderBrush"
+                    Value="#FFD6E3F2"/>
+            <Setter Property="BorderThickness"
+                    Value="1"/>
+            <Setter Property="Background"
+                    Value="#FFFFFFFF"/>
+            <Setter Property="Margin"
+                    Value="0,0,0,8"/>
+        </Style>
+
+        <Style x:Key="ActionButtonStyle"
+               TargetType="Button">
+            <Setter Property="Padding"
+                    Value="12,5"/>
+            <Setter Property="Height"
+                    Value="34"/>
+            <Setter Property="Margin"
+                    Value="0,0,8,0"/>
+            <Setter Property="FontWeight"
+                    Value="SemiBold"/>
+            <Setter Property="Foreground"
+                    Value="White"/>
+            <Setter Property="Background"
+                    Value="#FF3D8DFF"/>
+            <Setter Property="BorderBrush"
+                    Value="#FF3D8DFF"/>
+        </Style>
+
+        <Style x:Key="LightActionButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource ActionButtonStyle}">
+            <Setter Property="Foreground"
+                    Value="#FF24507A"/>
+            <Setter Property="Background"
+                    Value="#FFE8F2FF"/>
+            <Setter Property="BorderBrush"
+                    Value="#FFD2E5FF"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="12"
+          Background="{StaticResource ShellBackgroundBrush}">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="2,2,2,0">
+                <TextBlock FontSize="24"
+                           FontWeight="SemiBold"
+                           Foreground="#FF1E2A3A"
+                           Text="Settings"/>
+                <TextBlock Margin="0,8,0,12"
+                           Foreground="#FF5A6A80"
+                           Text="可在此验证 API 连通性、最快站点与登录状态。"/>
+
+                <Border Style="{StaticResource CardBorderStyle}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitleStyle}"
+                                   Text="账号与连接"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="账号"/>
+                        <TextBox x:Name="AccountTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="密码"/>
+                        <PasswordBox x:Name="PasswordBox"
+                                     Style="{StaticResource FieldPasswordBoxStyle}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="API 地址（可选）"/>
+                        <TextBox x:Name="ApiUrlTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="代理地址（可选）"/>
+                        <TextBox x:Name="ProxyUrlTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource CardBorderStyle}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitleStyle}"
+                                   Text="运行参数"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="并发工作数"/>
+                        <TextBox x:Name="MaxWorkersTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="重试次数"/>
+                        <TextBox x:Name="MaxRetriesTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="下载目录"/>
+                        <TextBox x:Name="SyncDataFolderTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="同步容量上限"/>
+                        <TextBox x:Name="SyncWantedSizeTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="格式优先级（留空则全部下载）"/>
+                        <TextBox x:Name="PreferFormatsTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"
+                                 ToolTip="示例：mp3,wav,flac,jpg,jpeg,png,gif,webp,mp4,mkv,avi,webm,txt,lrc,ass"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="下载筛选默认规则"/>
+                        <TextBox x:Name="FileFilterTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"
+                                 ToolTip="分号分隔；无前缀或 +前缀：路径必须含该词；-前缀：路径不能含该词。例：+voice;-cover"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="全局搜索规则"/>
+                        <TextBox x:Name="GlobalSearchRuleTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"
+                                 ToolTip="启动时自动填充到 Search 高级筛选；支持空格、分号、逗号分隔。例：tag:舔耳;lang:zh-CN;-age:r15"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource CardBorderStyle}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitleStyle}"
+                                   Text="限流配置"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="同步 QPS"/>
+                        <TextBox x:Name="SyncQpsTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="同步抖动最小值(ms)"/>
+                        <TextBox x:Name="SyncJitterMinTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="同步抖动最大值(ms)"/>
+                        <TextBox x:Name="SyncJitterMaxTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="下载 QPS"/>
+                        <TextBox x:Name="DownloadQpsTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="下载抖动最小值(ms)"/>
+                        <TextBox x:Name="DownloadJitterMinTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="下载抖动最大值(ms)"/>
+                        <TextBox x:Name="DownloadJitterMaxTextBox"
+                                 Margin="0,0,0,12"
+                                 Style="{StaticResource FieldTextBoxStyle}"/>
+
+                        <WrapPanel>
+                            <Button x:Name="SaveButton"
+                                    Width="180"
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    Click="OnSaveAndInitializeClicked"
+                                    Content="保存并重新初始化"/>
+                            <Button x:Name="TestConnectionButton"
+                                    Width="140"
+                                    Style="{StaticResource LightActionButtonStyle}"
+                                    Click="OnTestConnectionClicked"
+                                    Content="测试连接"/>
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock x:Name="StatusTextBlock"
+                           Margin="2,2,0,0"
+                           Foreground="#FF2F4B67"
+                           Text="等待保存配置。"/>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

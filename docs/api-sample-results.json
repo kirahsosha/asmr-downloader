@@ -1,0 +1,102 @@
+﻿{
+    "testedAt":  "2026-03-16 15:29:16",
+    "login":  {
+                  "request":  {
+                                  "password":  "guest",
+                                  "name":  "guest"
+                              },
+                  "response":  {
+                                   "tokenPrefix":  "eyJhbGciOiJIUzI1NiIsInR5",
+                                   "tokenLength":  259
+                               }
+              },
+    "work":  {
+                 "request":  {
+                                 "method":  "GET",
+                                 "url":  "https://api.asmr-300.com/api/work/01426915"
+                             },
+                 "response":  {
+                                  "id":  1426915,
+                                  "title":  "【無声音囁き特化♡全編ハメっぱなし】あま媚び囁きご奉仕猫メイド♪異世界ハメっぱなしスローセックス添い寝ライフ♡【✅豪華12大特典✅】",
+                                  "source_id":  "RJ01426915",
+                                  "has_subtitle":  false,
+                                  "release":  "2025-10-22",
+                                  "mainCoverUrl":  "https://api.asmr-300.com/api/cover/1426915.jpg?type=main"
+                              }
+             },
+    "tracks":  {
+                   "request":  {
+                                   "method":  "GET",
+                                   "url":  "https://api.asmr-300.com/api/tracks/01426915"
+                               },
+                   "response":  {
+                                    "count":  5,
+                                    "first":  {
+                                                  "type":  "folder",
+                                                  "title":  "05_特典",
+                                                  "mediaStreamUrl":  null,
+                                                  "mediaDownloadUrl":  null
+                                              }
+                                }
+               },
+    "search":  {
+                   "request":  {
+                                   "method":  "GET",
+                                   "url":  "https://api.asmr-300.com/api/search/=dl_count\u0026sort=desc\u0026page=1\u0026pageSize=3\u0026subtitle=0\u0026includeTranslationWorks=true"
+                               },
+                   "response":  {
+                                    "totalCount":  0,
+                                    "pageSize":  20,
+                                    "first":  {
+                                                  "id":  null,
+                                                  "title":  null,
+                                                  "source_id":  null,
+                                                  "dl_count":  null
+                                              }
+                                }
+               },
+    "works":  {
+                  "request":  {
+                                  "method":  "GET",
+                                  "url":  "https://api.asmr-300.com/api/works?order=release\u0026sort=desc\u0026page=1\u0026pageSize=3"
+                              },
+                  "response":  {
+                                   "totalCount":  59889,
+                                   "pageSize":  3,
+                                   "first":  {
+                                                 "id":  1551159,
+                                                 "title":  "【4時間超】マイク直接耳舐め特化 耳舐め堕ち♡ 眠りながら身体が反応するASMR",
+                                                 "source_id":  "RJ01551159",
+                                                 "release":  "2026-01-23"
+                                             }
+                               }
+              },
+    "popular":  {
+                    "request":  {
+                                    "method":  "POST",
+                                    "url":  "https://api.asmr-300.com/api/recommender/popular",
+                                    "body":  {
+                                                 "subtitle":  0,
+                                                 "keyword":  "",
+                                                 "localSubtitledWorks":  [
+
+                                                                         ],
+                                                 "withPlaylistStatus":  [
+
+                                                                        ],
+                                                 "page":  1,
+                                                 "pageSize":  5
+                                             }
+                                },
+                    "response":  {
+                                     "totalCount":  100,
+                                     "pageSize":  5,
+                                     "first":  {
+                                                   "id":  1551159,
+                                                   "title":  "【4時間超】マイク直接耳舐め特化 耳舐め堕ち♡ 眠りながら身体が反応するASMR",
+                                                   "source_id":  "RJ01551159",
+                                                   "dl_count":  21333
+                                               }
+                                 }
+                }
+}
