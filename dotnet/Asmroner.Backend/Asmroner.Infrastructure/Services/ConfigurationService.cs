@@ -49,7 +49,10 @@ public sealed class ConfigurationService : IConfigurationService
             },
             Downloader = new DownloaderOptions
             {
-                ApiUrl = GetString(root, "downloader", "api_url"),
+                ApiUrl = GetString(root, "downloader", "api_url", new DownloaderOptions().ApiUrl),
+                ApiCandidateUrls = GetString(root, "downloader", "api_candidate_urls", new DownloaderOptions().ApiCandidateUrls),
+                PublishSourceUrls = GetString(root, "downloader", "publish_source_urls", new DownloaderOptions().PublishSourceUrls),
+                WorkPageUrlTemplate = GetString(root, "downloader", "work_page_url_template", new DownloaderOptions().WorkPageUrlTemplate),
                 ProxyUrl = GetString(root, "downloader", "proxy_url"),
                 MaxWorkers = GetInt(root, "downloader", "max_workers", 4),
                 MaxRetries = GetInt(root, "downloader", "max_retries", 3),
@@ -88,6 +91,9 @@ public sealed class ConfigurationService : IConfigurationService
             string.Empty,
             "[downloader]",
             $"api_url = \"{Escape(config.Downloader.ApiUrl)}\"",
+            $"api_candidate_urls = \"{Escape(config.Downloader.ApiCandidateUrls)}\"",
+            $"publish_source_urls = \"{Escape(config.Downloader.PublishSourceUrls)}\"",
+            $"work_page_url_template = \"{Escape(config.Downloader.WorkPageUrlTemplate)}\"",
             $"proxy_url = \"{Escape(config.Downloader.ProxyUrl)}\"",
             $"max_workers = {config.Downloader.MaxWorkers}",
             $"max_retries = {config.Downloader.MaxRetries}",

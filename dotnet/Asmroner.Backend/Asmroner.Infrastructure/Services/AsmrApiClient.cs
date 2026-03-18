@@ -14,16 +14,16 @@ public sealed class AsmrApiClient : IAsmrApiClient
     private const string ApiResponseEmptyCode = "api_response_empty";
 
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IEndpointDiscoveryService _endpointDiscoveryService;
+    private readonly IApiEndpointUrlService _apiEndpointUrlService;
     private readonly IAuthService _authService;
 
     public AsmrApiClient(
         IHttpClientFactory httpClientFactory,
-        IEndpointDiscoveryService endpointDiscoveryService,
+        IApiEndpointUrlService apiEndpointUrlService,
         IAuthService authService)
     {
         _httpClientFactory = httpClientFactory;
-        _endpointDiscoveryService = endpointDiscoveryService;
+        _apiEndpointUrlService = apiEndpointUrlService;
         _authService = authService;
     }
 
@@ -76,9 +76,9 @@ public sealed class AsmrApiClient : IAsmrApiClient
         await EnsureAuthenticatedAsync(cancellationToken);
         var token = await _authService.GetCurrentTokenAsync(cancellationToken);
 
-        var discoveryResult = await _endpointDiscoveryService.DiscoverAsync(cancellationToken);
+        var currentBaseUrl = await _apiEndpointUrlService.GetCurrentBaseUrlAsync(cancellationToken);
         var client = _httpClientFactory.CreateClient("AsmrApi");
-        var requestUri = BuildRequestUri(discoveryResult.BaseUrl, path);
+        var requestUri = BuildRequestUri(currentBaseUrl, path);
         using var request = CreateRequest(method, requestUri);
         if (token is not null)
         {

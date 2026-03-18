@@ -23,7 +23,7 @@ public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
     {
         var options = await _optionsProvider.GetOptionsAsync(cancellationToken);
         var candidates = new List<string>(options.CandidateBaseUrls);
-        candidates.AddRange(await GetPublishedCandidatesAsync(cancellationToken));
+        candidates.AddRange(await GetPublishedCandidatesAsync(options, cancellationToken));
 
         var uniqueCandidates = candidates
             .Where(static item => !string.IsNullOrWhiteSpace(item))
@@ -59,11 +59,10 @@ public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
         };
     }
 
-    private async Task<IReadOnlyList<string>> GetPublishedCandidatesAsync(CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<string>> GetPublishedCandidatesAsync(AsmrApiOptions options, CancellationToken cancellationToken)
     {
-        var options = await _optionsProvider.GetOptionsAsync(cancellationToken);
         var probeClient = _httpClientFactory.CreateClient("AsmrProbe");
-        foreach (var publishUrl in new[] { AsmrApiPaths.LatestPublishUrl, AsmrApiPaths.LatestPublishProxyUrl })
+        foreach (var publishUrl in options.PublishSourceUrls)
         {
             try
             {

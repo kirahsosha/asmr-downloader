@@ -65,6 +65,10 @@ public class ConfigurationServiceTests
                 },
                 Downloader = new DownloaderOptions
                 {
+                    ApiUrl = "https://api-custom.example.com",
+                    ApiCandidateUrls = "https://api-custom.example.com;https://api-fallback.example.com",
+                    PublishSourceUrls = "https://publish-a.example.com;https://publish-b.example.com",
+                    WorkPageUrlTemplate = "https://example.com/work/{RJID}",
                     SyncDataFolder = Path.Combine(tempRoot, "sync"),
                     MaxWorkers = 8,
                     MaxRetries = 5,
@@ -82,6 +86,10 @@ public class ConfigurationServiceTests
 
             Assert.NotNull(loaded);
             Assert.Equal("tester", loaded!.User.Account);
+            Assert.Equal("https://api-custom.example.com", loaded.Downloader.ApiUrl);
+            Assert.Equal("https://api-custom.example.com;https://api-fallback.example.com", loaded.Downloader.ApiCandidateUrls);
+            Assert.Equal("https://publish-a.example.com;https://publish-b.example.com", loaded.Downloader.PublishSourceUrls);
+            Assert.Equal("https://example.com/work/{RJID}", loaded.Downloader.WorkPageUrlTemplate);
             Assert.Equal(8, loaded.Downloader.MaxWorkers);
             Assert.Equal(5, loaded.Downloader.MaxRetries);
             Assert.Equal("tag:舔耳;lang:zh-CN", loaded.Downloader.GlobalSearchRule);

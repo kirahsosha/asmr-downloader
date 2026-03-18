@@ -77,6 +77,44 @@ internal sealed class StubInfrastructureEndpointDiscoveryService : IEndpointDisc
         });
 }
 
+internal sealed class StubApiEndpointUrlService : IApiEndpointUrlService
+{
+    private readonly string _baseUrl;
+    private readonly bool _throwOnDiscover;
+
+    public int GetCurrentBaseUrlCallCount { get; private set; }
+
+    public int DiscoverAndPersistCallCount { get; private set; }
+
+    public StubApiEndpointUrlService(string baseUrl, bool throwOnDiscover = false)
+    {
+        _baseUrl = baseUrl;
+        _throwOnDiscover = throwOnDiscover;
+    }
+
+    public Task<string> GetCurrentBaseUrlAsync(CancellationToken cancellationToken = default)
+    {
+        GetCurrentBaseUrlCallCount++;
+        return Task.FromResult(_baseUrl);
+    }
+
+    public Task<EndpointDiscoveryResult> DiscoverAndPersistAsync(CancellationToken cancellationToken = default)
+    {
+        DiscoverAndPersistCallCount++;
+        if (_throwOnDiscover)
+        {
+            throw new InvalidOperationException("DiscoverAndPersistAsync should not be called in this test.");
+        }
+
+        return Task.FromResult(new EndpointDiscoveryResult
+        {
+            BaseUrl = _baseUrl,
+            LatencyMs = 1,
+            Candidates = new[] { _baseUrl },
+        });
+    }
+}
+
 internal sealed class StubInfrastructureOptionsProvider : IAsmrApiOptionsProvider
 {
     private readonly AsmrApiOptions _options;

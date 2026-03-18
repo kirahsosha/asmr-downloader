@@ -9,4 +9,6 @@ public sealed class AsmrApiOptions
     public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(10);
 
     public IReadOnlyList<string> CandidateBaseUrls { get; init; } = Array.Empty<string>();
+
+    public IReadOnlyList<string> PublishSourceUrls { get; init; } = Array.Empty<string>();
 }

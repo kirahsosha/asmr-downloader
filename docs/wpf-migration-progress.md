@@ -1,5 +1,7 @@
 # asmr-downloader WPF 项目进度跟踪
 
+AI约束策略：章节1.5.1到1.5.57的文本不加入分析上下文
+
 ## 1. 项目进度跟踪清单
 
 本章节用于在迁移实施过程中持续记录阶段进展，作为团队与 AI 协作的统一进度面板。
@@ -119,6 +121,8 @@
 3. 构建与测试命令结果摘要。
 4. DoD 判定结果（是/否 + 原因）。
 5. 遗留问题与下次计划。
+
+变更策略：`1.5` 节仅追加新的记录，不再修改已有历史记录；如需修正前一次记录的描述或补充证据，将在后续新条目中引用对应条目编号并补充说明。
 
 ### 1.5.1 2026-03-14，阶段 0 复核
 
@@ -291,12 +295,12 @@
 ### 1.5.22 2026-03-16，阶段 4 下载页体验增强（布局/筛选/图片视频格式/目录结构）
 
 1. 变更摘要：对 Download 页面进行六项增强：
-	- **布局调整**：将单个/批量输入拆为独立第一行，文件筛选+热门入队合并为第二行，避免"加入热门下载"按钮超出界面范围；按钮宽度由 120px 缩减至 110px，各间距收紧为 6px。
-	- **文件筛选**：新增 `DownloaderOptions.FileFilter` 配置字段（分号分隔，`+`/无前缀为必含条件，`-`前缀为排除条件），Download 页添加"文件筛选"输入框并在 `Loaded` 时从配置自动填充默认值；执行队列/重试时将当前筛选文本传入服务层，`DownloadService` 新增 `ParseFileFilter` / `MatchesFileFilter` 方法在选文件阶段过滤；`IDownloadService.RunQueuedAsync` / `RetryFailedAsync` 新增可选 `fileFilter` 参数，已有调用方无影响。
-	- **入队立即显示**：点击"加入单个/批量下载"后，`RefreshView()` 将 `ISearchStateStore` 中未进入执行列表的 SourceId 以 `StatusText="未下载"` 的占位 ViewModel 展示在任务列表顶部；TaskId 为 `Guid.Empty` 的占位项不参与 取消/重试 命令的可用性判定。
-	- **Status 中文化**：任务列表 Status 列改绑 `StatusText`，枚举值映射为"等待执行 / 下载中 / 已完成 / 失败 / 已取消 / 未下载（占位）"。
-	- **图片/视频格式**：新增 `DownloaderOptions.PreferImage`（默认空）/ `PreferVideo`（默认空）字段；`DownloadService.ParsePreferExtensions` 合并三组格式扩展名；Settings 页新增对应两个输入框及"下载筛选默认规则"字段输入框。
-	- **目录结构下载**：`FlattenTracksWithPath` 替代原 `FlattenTracks`，递归携带相对路径；下载时按 `targetDirectory / relativePath / fileName` 创建子目录并写文件，`CurrentFile` 同步显示相对路径；文件名去掉原有顺序前缀，直接使用 API 返回的 Title。
+ - **布局调整**：将单个/批量输入拆为独立第一行，文件筛选+热门入队合并为第二行，避免"加入热门下载"按钮超出界面范围；按钮宽度由 120px 缩减至 110px，各间距收紧为 6px。
+ - **文件筛选**：新增 `DownloaderOptions.FileFilter` 配置字段（分号分隔，`+`/无前缀为必含条件，`-`前缀为排除条件），Download 页添加"文件筛选"输入框并在 `Loaded` 时从配置自动填充默认值；执行队列/重试时将当前筛选文本传入服务层，`DownloadService` 新增 `ParseFileFilter` / `MatchesFileFilter` 方法在选文件阶段过滤；`IDownloadService.RunQueuedAsync` / `RetryFailedAsync` 新增可选 `fileFilter` 参数，已有调用方无影响。
+ - **入队立即显示**：点击"加入单个/批量下载"后，`RefreshView()` 将 `ISearchStateStore` 中未进入执行列表的 SourceId 以 `StatusText="未下载"` 的占位 ViewModel 展示在任务列表顶部；TaskId 为 `Guid.Empty` 的占位项不参与 取消/重试 命令的可用性判定。
+ - **Status 中文化**：任务列表 Status 列改绑 `StatusText`，枚举值映射为"等待执行 / 下载中 / 已完成 / 失败 / 已取消 / 未下载（占位）"。
+ - **图片/视频格式**：新增 `DownloaderOptions.PreferImage`（默认空）/ `PreferVideo`（默认空）字段；`DownloadService.ParsePreferExtensions` 合并三组格式扩展名；Settings 页新增对应两个输入框及"下载筛选默认规则"字段输入框。
+ - **目录结构下载**：`FlattenTracksWithPath` 替代原 `FlattenTracks`，递归携带相对路径；下载时按 `targetDirectory / relativePath / fileName` 创建子目录并写文件，`CurrentFile` 同步显示相对路径；文件名去掉原有顺序前缀，直接使用 API 返回的 Title。
 2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Configuration/DownloaderOptions.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IDownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/DownloadService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/DownloadService.cs`（占位）、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml.cs`。
 3. 验证结果：`dotnet build dotnet/Asmroner.sln -c Debug --nologo` 成功（0 错误，0 警告）；`dotnet test dotnet/Asmroner.sln` 通过（总计 43，失败 0，成功 43）。
 4. DoD 判定：是。阶段 4 既有 DoD 持续满足；本次增强均属可用性与功能扩展，不引入回退。
@@ -305,9 +309,9 @@
 ### 1.5.23 2026-03-16，阶段 4 下载配置与入队体验优化（格式整合 + 异步 WorkInfo）
 
 1. 变更摘要：
-	- **Settings 格式配置整合**：将原有"音频格式优先级"、"图片格式"、"视频格式"三个输入框整合为单一输入框，标题统一为"格式优先级（留空则全部下载）"，并在提示中补充常用文本格式（`txt,md,lrc,srt,ass,json,cue`）与常见音频/图片/视频格式示例。
-	- **配置与解析逻辑更新**：新增 `DownloaderOptions.PreferFormats`；`ConfigurationService` 支持 `prefer_formats` 读写，并保留 `prefer_media/prefer_image/prefer_video` 兼容读取；`DownloadService` 统一按 `PreferFormats` 进行扩展名过滤，若留空则不做扩展名限制（全部下载）。
-	- **单个/批量入队前异步刷新 WorkInfo**：`DownloadView` 的"加入单个下载"与"加入批量下载"改为异步流程，先并发拉取 `GetWorkInfoAsync` 再入队并刷新列表，避免 UI 线程阻塞；未开始任务在列表中显示 `Status=未下载` 且可显示已获取的标题。
+ - **Settings 格式配置整合**：将原有"音频格式优先级"、"图片格式"、"视频格式"三个输入框整合为单一输入框，标题统一为"格式优先级（留空则全部下载）"，并在提示中补充常用文本格式（`txt,md,lrc,srt,ass,json,cue`）与常见音频/图片/视频格式示例。
+ - **配置与解析逻辑更新**：新增 `DownloaderOptions.PreferFormats`；`ConfigurationService` 支持 `prefer_formats` 读写，并保留 `prefer_media/prefer_image/prefer_video` 兼容读取；`DownloadService` 统一按 `PreferFormats` 进行扩展名过滤，若留空则不做扩展名限制（全部下载）。
+ - **单个/批量入队前异步刷新 WorkInfo**：`DownloadView` 的"加入单个下载"与"加入批量下载"改为异步流程，先并发拉取 `GetWorkInfoAsync` 再入队并刷新列表，避免 UI 线程阻塞；未开始任务在列表中显示 `Status=未下载` 且可显示已获取的标题。
 2. 关键文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Configuration/DownloaderOptions.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/ConfigurationService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/DownloadService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml.cs`、`dotnet/tests/Asmroner.Core.Tests/UnitTest1.cs`。
 3. 验证结果：`dotnet build dotnet/Asmroner.sln -c Debug --nologo` 通过（0 错误，0 警告）；`dotnet test dotnet/Asmroner.sln` 通过（总计 43，失败 0，成功 43）。
 4. DoD 判定：是。阶段 4 功能与稳定性持续满足，且下载页面交互流畅性提升。
@@ -316,10 +320,10 @@
 ### 1.5.24 2026-03-16，阶段 4 下载链路增强（默认格式、WorkInfo 内存复用、目录命名）
 
 1. 变更摘要：
-	- **默认格式优先级更新**：默认值调整为 `mp3,wav,flac,jpg,jpeg,png,gif,webp,mp4,mkv,avi,webm,txt,lrc,ass`；Settings 页示例同步更新。
-	- **WorkInfo 内存复用**：新增 `IDownloadService.UpsertPrefetchedWorkInfo`，`DownloadView` 在"加入单个/批量下载"时预取 WorkInfo 后写入下载服务内存缓存；下载执行阶段优先命中缓存，不再重复请求 `GetWorkInfoAsync`。
-	- **目录命名调整**：`BuildFolderName` 改为 `[{SourceId}]{Title}`，并保持非法字符清洗规则。
-	- **专项测试补齐**：新增 `RunQueuedAsync_ShouldDownloadAllFormats_WhenPreferFormatsEmpty`（留空全下载）与 `RunQueuedAsync_ShouldUsePrefetchedWorkInfo_WithoutApiWorkInfoCall`（缓存命中不再查 WorkInfo）；同步更新目录命名断言与默认配置断言。
+ - **默认格式优先级更新**：默认值调整为 `mp3,wav,flac,jpg,jpeg,png,gif,webp,mp4,mkv,avi,webm,txt,lrc,ass`；Settings 页示例同步更新。
+ - **WorkInfo 内存复用**：新增 `IDownloadService.UpsertPrefetchedWorkInfo`，`DownloadView` 在"加入单个/批量下载"时预取 WorkInfo 后写入下载服务内存缓存；下载执行阶段优先命中缓存，不再重复请求 `GetWorkInfoAsync`。
+ - **目录命名调整**：`BuildFolderName` 改为 `[{SourceId}]{Title}`，并保持非法字符清洗规则。
+ - **专项测试补齐**：新增 `RunQueuedAsync_ShouldDownloadAllFormats_WhenPreferFormatsEmpty`（留空全下载）与 `RunQueuedAsync_ShouldUsePrefetchedWorkInfo_WithoutApiWorkInfoCall`（缓存命中不再查 WorkInfo）；同步更新目录命名断言与默认配置断言。
 2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IDownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/DownloadService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/DownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Configuration/DownloaderOptions.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/ConfigurationService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml`、`dotnet/tests/Asmroner.Application.Tests/DownloadServiceTests.cs`、`dotnet/tests/Asmroner.Application.Tests/DownloadPathTests.cs`、`dotnet/tests/Asmroner.Application.Tests/DownloadServiceTestDoubles.cs`、`dotnet/tests/Asmroner.Core.Tests/UnitTest1.cs`、`dotnet/tests/Asmroner.Application.Tests/DownloadWorkflowTests.cs`。
 3. 验证结果：`dotnet build dotnet/Asmroner.sln -c Debug --nologo` 通过（0 错误，0 警告）；`dotnet test dotnet/Asmroner.sln` 通过（总计 45，失败 0，成功 45）。
 4. DoD 判定：是。阶段 4 既有 DoD 持续满足，下载链路一致性与性能进一步提升。
@@ -328,12 +332,12 @@
 ### 1.5.25 2026-03-16，阶段 4 下载页交互修复与命名优化（输入/目录/列表/Search）
 
 1. 变更摘要：
-	- **批量输入体验修复**：`BatchSourceIdsTextBox` 取消实时改写，不再在 `TextChanged` 阶段强制归一化；改为点击“加入批量下载”时统一规范化，修复空格/逗号/分号输入与多次粘贴第二个 RJID 失败问题。
-	- **设置页文案调整**：Settings 页“同步目录”改为“下载目录”。
-	- **打开下载目录**：Download 页新增“打开下载目录”按钮，点击后读取当前配置目录（为空则回退默认目录），自动创建并打开系统文件夹。
-	- **表格列优化**：移除 `CurrentFile` 列；`TargetDirectory` 移到 `Error` 前；`Status` 列宽收窄；全部列标题改为中文（作品ID/标题/状态/进度/下载目录/错误信息）。
-	- **取消按钮可用性修复**：允许“未下载占位任务（TaskId=Empty）”参与取消；取消时对占位任务直接从队列移除并刷新按钮状态，修复选中任务后“取消选中任务”按钮不可用问题。
-	- **页面命名**：主 Tab “Dashboard” 更名为 “Search”。
+ - **批量输入体验修复**：`BatchSourceIdsTextBox` 取消实时改写，不再在 `TextChanged` 阶段强制归一化；改为点击“加入批量下载”时统一规范化，修复空格/逗号/分号输入与多次粘贴第二个 RJID 失败问题。
+ - **设置页文案调整**：Settings 页“同步目录”改为“下载目录”。
+ - **打开下载目录**：Download 页新增“打开下载目录”按钮，点击后读取当前配置目录（为空则回退默认目录），自动创建并打开系统文件夹。
+ - **表格列优化**：移除 `CurrentFile` 列；`TargetDirectory` 移到 `Error` 前；`Status` 列宽收窄；全部列标题改为中文（作品ID/标题/状态/进度/下载目录/错误信息）。
+ - **取消按钮可用性修复**：允许“未下载占位任务（TaskId=Empty）”参与取消；取消时对占位任务直接从队列移除并刷新按钮状态，修复选中任务后“取消选中任务”按钮不可用问题。
+ - **页面命名**：主 Tab “Dashboard” 更名为 “Search”。
 2. 关键文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/DownloadInputNormalizer.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/MainWindow.xaml`、`dotnet/tests/Asmroner.Wpf.Tests/DownloadInputNormalizerTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/DownloadCommandAvailabilityTests.cs`。
 3. 验证结果：`dotnet build dotnet/Asmroner.sln -c Debug --nologo` 通过（0 错误，0 警告）；`dotnet test dotnet/Asmroner.sln` 通过（总计 47，失败 0，成功 47）。
 4. DoD 判定：是。阶段 4 功能保持稳定，下载页可用性显著提升。
@@ -342,11 +346,11 @@
 ### 1.5.26 2026-03-16，阶段 4 Search/Download 联动修复与交互收口
 
 1. 变更摘要：
-	- **取消语义统一**：Download 页对“未下载占位任务（TaskId=Empty）”执行取消时，统一在列表中展示为“已取消”，避免与真实任务状态语义不一致。
-	- **Search 入队标题透传修复**：在下载服务新增 `GetPrefetchedWorkInfoSnapshot`，Search 页入队时写入预取 WorkInfo，Download 页刷新时可回填待执行任务标题，修复“Search 入队后 Download 标题为空”问题。
-	- **热门查询入口迁移**：移除 Download 页“热门数量/加入热门下载”，在 Search 页新增“查询热门作品”按钮，并复用现有搜索结果列表展示。
-	- **Search 列与筛选项优化**：结果列顺序调整为“作品ID/封面/标题/字幕/日期/收藏/年龄限制”；排序字段、方向、字幕下拉改为中文显示（内部值通过 `Tag` 透传，不影响 API 参数）。
-	- **构造函数签名修复**：`DashboardView` 默认构造函数参数补齐，匹配新增依赖注入项。
+ - **取消语义统一**：Download 页对“未下载占位任务（TaskId=Empty）”执行取消时，统一在列表中展示为“已取消”，避免与真实任务状态语义不一致。
+ - **Search 入队标题透传修复**：在下载服务新增 `GetPrefetchedWorkInfoSnapshot`，Search 页入队时写入预取 WorkInfo，Download 页刷新时可回填待执行任务标题，修复“Search 入队后 Download 标题为空”问题。
+ - **热门查询入口迁移**：移除 Download 页“热门数量/加入热门下载”，在 Search 页新增“查询热门作品”按钮，并复用现有搜索结果列表展示。
+ - **Search 列与筛选项优化**：结果列顺序调整为“作品ID/封面/标题/字幕/日期/收藏/年龄限制”；排序字段、方向、字幕下拉改为中文显示（内部值通过 `Tag` 透传，不影响 API 参数）。
+ - **构造函数签名修复**：`DashboardView` 默认构造函数参数补齐，匹配新增依赖注入项。
 2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IDownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/DownloadService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/DownloadService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DashboardView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DashboardView.xaml.cs`、`dotnet/tests/Asmroner.Application.Tests/DownloadServiceTests.cs`。
 3. 验证结果：`dotnet build dotnet/Asmroner.sln -c Release --nologo` 通过（9/9 项目成功）；`dotnet test dotnet/Asmroner.sln -c Release --nologo` 通过（总计 48，失败 0，成功 48，含新增测试）。
 4. DoD 判定：是。阶段 4 本轮联动修复已完成并通过全量回归。
@@ -355,11 +359,11 @@
 ### 1.5.27 2026-03-16，阶段 4 Download 交互补强与热门接口 404 修复
 
 1. 变更摘要：
-	- **取消后重加同一行复用**：新增 `DownloadTaskStatus.Pending = 0`（未下载）语义；当已取消占位任务被重新加入时，不再出现重复行，而是同一 `SourceId` 行状态从“已取消”恢复为“未下载”。
-	- **按钮布局与新增操作**：将“执行下载队列”按钮移至“加入批量下载”右侧；在操作区新增“立即下载选中任务”，支持对 `Pending/Failed/Canceled` 选中项直接触发下载。
-	- **单项输入规范化时机调整**：`SingleSourceIdTextBox` 取消 `TextChanged` 实时改写，改为点击“加入单个下载”时再统一规范化，避免输入被打断。
-	- **热门查询 404 修复**：`GetPopularAsync` 改为与 Go 实现一致的 `POST /api/recommender/popular`（携带分页 body），并将返回 `works` 映射为 `HotWorkDto`。
-	- **测试补齐**：新增热门接口 POST 回归测试，更新 Download 命令可用性测试以覆盖 `Pending` 与“立即下载”可用状态。
+ - **取消后重加同一行复用**：新增 `DownloadTaskStatus.Pending = 0`（未下载）语义；当已取消占位任务被重新加入时，不再出现重复行，而是同一 `SourceId` 行状态从“已取消”恢复为“未下载”。
+ - **按钮布局与新增操作**：将“执行下载队列”按钮移至“加入批量下载”右侧；在操作区新增“立即下载选中任务”，支持对 `Pending/Failed/Canceled` 选中项直接触发下载。
+ - **单项输入规范化时机调整**：`SingleSourceIdTextBox` 取消 `TextChanged` 实时改写，改为点击“加入单个下载”时再统一规范化，避免输入被打断。
+ - **热门查询 404 修复**：`GetPopularAsync` 改为与 Go 实现一致的 `POST /api/recommender/popular`（携带分页 body），并将返回 `works` 映射为 `HotWorkDto`。
+ - **测试补齐**：新增热门接口 POST 回归测试，更新 Download 命令可用性测试以覆盖 `Pending` 与“立即下载”可用状态。
 2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Download/DownloadTaskItem.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IDownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/DownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/AsmrApiClient.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/DownloadCommandAvailability.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/AsmrApiClientTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/DownloadViewModelTests.cs`。
 3. 验证结果：`dotnet test dotnet/Asmroner.sln -c Release --nologo` 通过（总计 50，失败 0，成功 50）。
 4. DoD 判定：是。阶段 4 本轮交互与接口修复完成，且全量回归通过。
@@ -368,10 +372,10 @@
 ### 1.5.28 2026-03-16，阶段 4 立即下载复用修复与高级筛选默认值补强
 
 1. 变更摘要：
-	- **立即下载复用当前行**：`IDownloadService.StartAsync` 新增 `preferredTaskId` 参数，Download 页“立即下载选中任务”在选中 `Failed/Canceled` 行时优先复用该行对应任务对象并重置状态后执行，避免创建新行。
-	- **高级筛选无结果修复**：修复搜索链路中 query 的二次 URL 编码问题（`AsmrApiClient.SearchAsync` 不再重复编码），恢复高级筛选条件可用性。
-	- **默认高级筛选 age:general**：在查询解析层缺省注入 `age:general`；Dashboard 页默认将 age 输入设为 `general`，清空后也恢复该默认值。
-	- **测试补齐**：新增“失败任务复用重启”“取消任务复用重启”“默认 age 注入”“Search 不二次编码”回归测试。
+ - **立即下载复用当前行**：`IDownloadService.StartAsync` 新增 `preferredTaskId` 参数，Download 页“立即下载选中任务”在选中 `Failed/Canceled` 行时优先复用该行对应任务对象并重置状态后执行，避免创建新行。
+ - **高级筛选无结果修复**：修复搜索链路中 query 的二次 URL 编码问题（`AsmrApiClient.SearchAsync` 不再重复编码），恢复高级筛选条件可用性。
+ - **默认高级筛选 age:general**：在查询解析层缺省注入 `age:general`；Dashboard 页默认将 age 输入设为 `general`，清空后也恢复该默认值。
+ - **测试补齐**：新增“失败任务复用重启”“取消任务复用重启”“默认 age 注入”“Search 不二次编码”回归测试。
 2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IDownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/DownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/QueryParserService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/AsmrApiClient.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DashboardView.xaml.cs`、`dotnet/tests/Asmroner.Application.Tests/DownloadWorkflowTests.cs`、`dotnet/tests/Asmroner.Application.Tests/QueryParserServiceTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/AsmrApiClientTests.cs`。
 3. 验证结果：`dotnet test dotnet/Asmroner.sln -c Release --nologo` 通过（总计 54，失败 0，成功 54）。
 4. DoD 判定：是。本轮 5 项需求全部完成，且全量回归通过。
@@ -380,9 +384,9 @@
 ### 1.5.29 2026-03-16，阶段 4 立即下载新任务失败后行消失修复
 
 1. 变更摘要：
-	- **根本原因**：`DownloadTaskItem.TaskId` 默认为 `Guid.NewGuid()`，永远不是 `Guid.Empty`，导致 `StartAsync` 中的条件 `if (task.TaskId == Guid.Empty)` 恒为 false，使立即下载未执行过的新任务时，新建的 `DownloadTaskItem` 从未加入 `_tasks`。下载失败后 `GetTasks()` 查不到该任务，UI 刷新后行消失。
-	- **修复**：将 `if (task.TaskId == Guid.Empty)` 改为 `if (!_tasks.Contains(task))`，确保任何新建任务（非复用行）都被加入 `_tasks`，失败后状态正常保留。
-	- **测试补齐**：新增 `StartAsync_ShouldTrackFailedTask_WhenNewTaskFails` 回归测试。
+ - **根本原因**：`DownloadTaskItem.TaskId` 默认为 `Guid.NewGuid()`，永远不是 `Guid.Empty`，导致 `StartAsync` 中的条件 `if (task.TaskId == Guid.Empty)` 恒为 false，使立即下载未执行过的新任务时，新建的 `DownloadTaskItem` 从未加入 `_tasks`。下载失败后 `GetTasks()` 查不到该任务，UI 刷新后行消失。
+ - **修复**：将 `if (task.TaskId == Guid.Empty)` 改为 `if (!_tasks.Contains(task))`，确保任何新建任务（非复用行）都被加入 `_tasks`，失败后状态正常保留。
+ - **测试补齐**：新增 `StartAsync_ShouldTrackFailedTask_WhenNewTaskFails` 回归测试。
 2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Application/Services/DownloadService.cs`、`dotnet/tests/Asmroner.Application.Tests/DownloadWorkflowTests.cs`。
 3. 验证结果：`dotnet test dotnet/Asmroner.sln -c Release --nologo` 通过（总计 55，失败 0，成功 55）。
 4. DoD 判定：是。
@@ -391,9 +395,9 @@
 ### 1.5.30 2026-03-16，阶段 4 Download 页面视觉优化（仅界面）
 
 1. 变更摘要：
-	- **界面美化（不改逻辑）**：仅调整 `DownloadView.xaml` 的视觉层，新增页面背景渐变、卡片容器、按钮统一样式、输入框样式、表格表头/行配色与状态信息区样式。
-	- **布局优化**：将“输入区 / 筛选区 / 操作区 / 任务表格”分区为卡片式结构，优化间距、层次与可读性；保留所有控件 `x:Name` 与事件绑定不变。
-	- **测试补齐**：新增 `DownloadViewXaml_ShouldContainBeautifiedStyleResources_AndCoreControls`，校验 Download 页面 XAML 关键样式资源与核心控件仍存在。
+ - **界面美化（不改逻辑）**：仅调整 `DownloadView.xaml` 的视觉层，新增页面背景渐变、卡片容器、按钮统一样式、输入框样式、表格表头/行配色与状态信息区样式。
+ - **布局优化**：将“输入区 / 筛选区 / 操作区 / 任务表格”分区为卡片式结构，优化间距、层次与可读性；保留所有控件 `x:Name` 与事件绑定不变。
+ - **测试补齐**：新增 `DownloadViewXaml_ShouldContainBeautifiedStyleResources_AndCoreControls`，校验 Download 页面 XAML 关键样式资源与核心控件仍存在。
 2. 关键文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml`、`dotnet/tests/Asmroner.Wpf.Tests/DownloadViewXamlTests.cs`。
 3. 验证结果：`dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj` 通过（总计 6，失败 0，成功 6）；`dotnet test dotnet/Asmroner.sln -c Release --nologo` 通过（总计 56，失败 0，成功 56）。
 4. DoD 判定：是。本轮仅做界面层改造，逻辑与后端行为保持不变。
@@ -402,10 +406,10 @@
 ### 1.5.31 2026-03-16，阶段 4 多页面 UI 统一风格与窗口适配（仅界面）
 
 1. 变更摘要：
-	- **默认窗口尺寸**：`MainWindow` 默认与最小尺寸统一调整为 `1280x720`，提升多区块页面在首屏显示稳定性。
-	- **Download 适配优化（仅 XAML）**：输入与操作区改为可换行布局，避免在新窗口尺寸下控件挤压；任务表格开启水平/垂直滚动条自动显示。
-	- **Search/Settings 风格统一（仅 XAML）**：`DashboardView` 与 `SettingsView` 引入与 Download 一致的卡片化容器、渐变背景、统一按钮/输入框/表头视觉规范；保留全部 `x:Name` 与事件绑定不变。
-	- **测试补齐**：新增 `ShellAndPageXamlTests`，覆盖主窗体尺寸、Search 样式资源与核心控件、Settings 卡片分区与动作按钮存在性。
+ - **默认窗口尺寸**：`MainWindow` 默认与最小尺寸统一调整为 `1280x720`，提升多区块页面在首屏显示稳定性。
+ - **Download 适配优化（仅 XAML）**：输入与操作区改为可换行布局，避免在新窗口尺寸下控件挤压；任务表格开启水平/垂直滚动条自动显示。
+ - **Search/Settings 风格统一（仅 XAML）**：`DashboardView` 与 `SettingsView` 引入与 Download 一致的卡片化容器、渐变背景、统一按钮/输入框/表头视觉规范；保留全部 `x:Name` 与事件绑定不变。
+ - **测试补齐**：新增 `ShellAndPageXamlTests`，覆盖主窗体尺寸、Search 样式资源与核心控件、Settings 卡片分区与动作按钮存在性。
 2. 关键文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/MainWindow.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DashboardView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml`、`dotnet/tests/Asmroner.Wpf.Tests/ShellAndPageXamlTests.cs`。
 3. 验证结果：`dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj -c Release --nologo` 通过（总计 10，失败 0，成功 10）；`dotnet test dotnet/Asmroner.sln -c Release --nologo` 通过（总计 59，失败 0，成功 59）。
 4. DoD 判定：是。本轮严格限制在界面层（XAML）改造，未改动控件逻辑与后端代码。
@@ -414,9 +418,9 @@
 ### 1.5.32 2026-03-16，阶段文案清理与 Search 下拉框对齐修复（仅界面）
 
 1. 变更摘要：
-	- **阶段文案清理**：移除 Download/Search/Settings 页面标题区域中“阶段 X：...”文案前缀，统一为纯功能描述文本。
-	- **Search 下拉框样式修复**：为 `FieldComboBoxStyle` 增加 `VerticalContentAlignment` 与 `HorizontalContentAlignment`；新增 `ComboBoxItem` 样式，统一内容居中与内边距，修复下拉框文本不对齐问题。
-	- **测试补齐**：在 `ShellAndPageXamlTests` 增加“页面不含阶段前缀文案”与“Search 下拉框对齐样式存在性”测试。
+ - **阶段文案清理**：移除 Download/Search/Settings 页面标题区域中“阶段 X：...”文案前缀，统一为纯功能描述文本。
+ - **Search 下拉框样式修复**：为 `FieldComboBoxStyle` 增加 `VerticalContentAlignment` 与 `HorizontalContentAlignment`；新增 `ComboBoxItem` 样式，统一内容居中与内边距，修复下拉框文本不对齐问题。
+ - **测试补齐**：在 `ShellAndPageXamlTests` 增加“页面不含阶段前缀文案”与“Search 下拉框对齐样式存在性”测试。
 2. 关键文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DashboardView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml`、`dotnet/tests/Asmroner.Wpf.Tests/ShellAndPageXamlTests.cs`。
 3. 验证结果：`dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj -c Release --nologo` 通过（总计 12，失败 0，成功 12）；`dotnet test dotnet/Asmroner.sln -c Release --nologo` 通过（总计 61，失败 0，成功 61）。
 4. DoD 判定：是。本轮仅调整 XAML 与 XAML 文本断言测试，未改动任何控件逻辑及后端代码。
@@ -549,8 +553,8 @@
 3. 验证结果：扫描已发现候选文件（见上）；尚未实施拆分/重命名改动，当前测试基线保持不变。
 4. DoD 判定：进行中。阶段 5 最终 DoD 为：所有跨目标或命名不当的测试文件已拆分/重命名并通过对应项目回归测试。
 5. 下次计划：
-	- 按待改动清单逐个拆分/重命名测试文件并运行受影响测试项目；
-	- 每完成一项改动即在 `1.5` 节追加新的变更记录（遵守下述变更策略）。
+ - 按待改动清单逐个拆分/重命名测试文件并运行受影响测试项目；
+ - 每完成一项改动即在 `1.5` 节追加新的变更记录（遵守下述变更策略）。
 
 变更策略：自本条起，`1.5` 节仅追加新的记录，不再修改已有历史记录；如需修正前一次记录的描述或补充证据，将在后续新条目中引用对应条目编号并补充说明。
 
@@ -613,44 +617,67 @@
 ### 1.5.56 2026-03-17，阶段 3/4 Search/Download 缺陷修复（二次入队状态回流 + 全局规则防重 + Pending 标题保留）
 
 1. 变更摘要：按顺序完成三项缺陷修复：
-	- 修复 Search 加入下载队列时，同 SourceId 已存在且状态为 `Canceled` 的任务应复用并回流为待执行状态，避免重复创建任务行。
-	- 修复 Search 页面往返切换后“全局搜索规则”重复追加到高级筛选的问题，新增筛选值防重合并策略。
-	- 修复 Download 执行队列后刷新列表时 Pending 任务标题丢失的问题：刷新缓存对齐不再清理活跃任务标题缓存，并在任务行组装时增加标题兜底。
+ - 修复 Search 加入下载队列时，同 SourceId 已存在且状态为 `Canceled` 的任务应复用并回流为待执行状态，避免重复创建任务行。
+ - 修复 Search 页面往返切换后“全局搜索规则”重复追加到高级筛选的问题，新增筛选值防重合并策略。
+ - 修复 Download 执行队列后刷新列表时 Pending 任务标题丢失的问题：刷新缓存对齐不再清理活跃任务标题缓存，并在任务行组装时增加标题兜底。
 2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Application/Services/DownloadService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DashboardView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/SearchFilterValuePolicy.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/DownloadQueueCachePolicy.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/DownloadTaskListComposer.cs`、`dotnet/tests/Asmroner.Application.Tests/DownloadServiceTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/SearchFilterValuePolicyTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/DownloadQueueCachePolicyTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/DownloadTaskListComposerTests.cs`。
 3. 验证结果：`dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj -c Release --nologo` 通过（总计 31，失败 0，成功 31）；`dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj -c Release --nologo` 通过（总计 55，失败 0，成功 55）；`dotnet test dotnet/Asmroner.sln -c Release --nologo` 通过（总计 111，失败 0，成功 111）。
 4. DoD 判定：是。本轮 3 项缺陷均完成修复并通过解决方案级回归。
 5. 下次计划：进入后续功能迁移时继续沿用“先修复行为、再补测试、最后同步文档与整解回归”的同批闭环流程。
+
 ### 1.5.57 2026-03-17，阶段 4 Search/Download 增强优化（全局规则启动加载 + Canceled 状态同步 + 窗体自动增高 + 状态排序与标签 Attribute 化）
 
 1. 变更摘要：按顺序完成 8 项增强优化：
-	- **需求 1**：全局搜索规则仅在启动时加载一次，防止在 Search/Download 页面中间切换时重复注入。
-	- **需求 2**：修复 Canceled 任务从 Search 侧重新入队后，Download 列表仍显示"已取消"而非"未下载"的问题，通过在缓存协调时清除已重新入队的 Canceled 覆盖标记。
-	- **需求 3**：Search 页高级筛选展开时，自动计算内容超出量并增高主窗体高度；不在折叠时缩小；增高上限为屏幕可用高度的 90%。
-	- **需求 4**：在 `DownloadTaskStatus` 枚举值上新增自定义 `[Order]` 属性，指定排序优先级（Completed→Running→Queued→Pending→Failed→Canceled）。
-	- **需求 5**：在 `DownloadTaskStatus` 枚举值上新增 `[Display]` 属性，指定中文标签（已完成/下载中/待下载/未下载/已失败/已取消）；替换 `DownloadTaskRowViewModel` 等处硬编码 switch 语句。
-	- **需求 6**：在 `DownloadTaskListComposer.ComposeRows` 返回前新增统一排序：首先按状态正序（Attribute 驱动），其次按 SourceId 正序，确保首次加载与刷新走同一排序路径。
-	- **需求 7**：为排序行为、状态标签读取、Canceled 状态同步补齐单元测试，共新增 14 个测试用例。
-	- **需求 8**：本条目本身（1.5.57）及同步测试清单（2.1）。
-
+ - **需求 1**：全局搜索规则仅在启动时加载一次，防止在 Search/Download 页面中间切换时重复注入。
+ - **需求 2**：修复 Canceled 任务从 Search 侧重新入队后，Download 列表仍显示"已取消"而非"未下载"的问题，通过在缓存协调时清除已重新入队的 Canceled 覆盖标记。
+ - **需求 3**：Search 页高级筛选展开时，自动计算内容超出量并增高主窗体高度；不在折叠时缩小；增高上限为屏幕可用高度的 90%。
+ - **需求 4**：在 `DownloadTaskStatus` 枚举值上新增自定义 `[Order]` 属性，指定排序优先级（Completed→Running→Queued→Pending→Failed→Canceled）。
+ - **需求 5**：在 `DownloadTaskStatus` 枚举值上新增 `[Display]` 属性，指定中文标签（已完成/下载中/待下载/未下载/已失败/已取消）；替换 `DownloadTaskRowViewModel` 等处硬编码 switch 语句。
+ - **需求 6**：在 `DownloadTaskListComposer.ComposeRows` 返回前新增统一排序：首先按状态正序（Attribute 驱动），其次按 SourceId 正序，确保首次加载与刷新走同一排序路径。
+ - **需求 7**：为排序行为、状态标签读取、Canceled 状态同步补齐单元测试，共新增 14 个测试用例。
+ - **需求 8**：本条目本身（1.5.57）及同步测试清单（2.1）。
 2. 关键文件：
-	- `dotnet/Asmroner.Backend/Asmroner.Core/Download/DownloadTaskItem.cs`（新增 Attribute、中文标签）
-	- `dotnet/Asmroner.Backend/Asmroner.Core/Download/DownloadTaskStatusExtensions.cs`（新增扩展方法读取 Attribute）
-	- `dotnet/Asmroner.Backend/Asmroner.Core/OrderAttribute.cs`（新建自定义 Order 属性）
-	- `dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DashboardView.xaml`（新增 Expander.Expanded 事件）
-	- `dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DashboardView.xaml.cs`（新增一次性启动标记、窗体自动增高事件处理）
-	- `dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/DownloadTaskRowViewModel.cs`（改用 GetDisplayName() 替代 switch）
-	- `dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/DownloadQueueCachePolicy.cs`（新增 ReconcileWithQueuedSourceIds 方法）
-	- `dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/DownloadTaskListComposer.cs`（新增排序逻辑）
-	- `dotnet/tests/Asmroner.Wpf.Tests/DownloadTaskListComposerTests.cs`（新增排序与状态同步测试）
-	- `dotnet/tests/Asmroner.Wpf.Tests/DownloadTaskStatusExtensionsTests.cs`（新建，验证 Attribute 读取）
-
+ - `dotnet/Asmroner.Backend/Asmroner.Core/Download/DownloadTaskItem.cs`（新增 Attribute、中文标签）
+ - `dotnet/Asmroner.Backend/Asmroner.Core/Download/DownloadTaskStatusExtensions.cs`（新增扩展方法读取 Attribute）
+ - `dotnet/Asmroner.Backend/Asmroner.Core/OrderAttribute.cs`（新建自定义 Order 属性）
+ - `dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DashboardView.xaml`（新增 Expander.Expanded 事件）
+ - `dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DashboardView.xaml.cs`（新增一次性启动标记、窗体自动增高事件处理）
+ - `dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/DownloadTaskRowViewModel.cs`（改用 GetDisplayName() 替代 switch）
+ - `dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/DownloadQueueCachePolicy.cs`（新增 ReconcileWithQueuedSourceIds 方法）
+ - `dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/DownloadTaskListComposer.cs`（新增排序逻辑）
+ - `dotnet/tests/Asmroner.Wpf.Tests/DownloadTaskListComposerTests.cs`（新增排序与状态同步测试）
+ - `dotnet/tests/Asmroner.Wpf.Tests/DownloadTaskStatusExtensionsTests.cs`（新建，验证 Attribute 读取）
 3. 验证结果：
-	- `dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj -c Release --nologo`：总计 69，失败 0，成功 69（+14 新测试）
-	- `dotnet test dotnet/Asmroner.sln -c Release --nologo`：总计 125，失败 0，成功 125（+14 新测试）
-
+ - `dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj -c Release --nologo`：总计 69，失败 0，成功 69（+14 新测试）
+ - `dotnet test dotnet/Asmroner.sln -c Release --nologo`：总计 125，失败 0，成功 125（+14 新测试）
 4. DoD 判定：是。8 项需求均已实现、测试、文档同步完成，无遗漏处理。所有回归测试通过，状态标签一致，排序行为符合预期。
-
 5. 下次计划：继续按"需求分解→顺序实现→测试验证→文档同步"的流程处理后续功能迁移。
+
+### 1.5.58 2026-03-18，阶段 2 URL 配置化与 Discover 调用收敛
+
+1. 变更摘要：
+ - **URL 配置化**：`DownloaderOptions` 新增 `ApiCandidateUrls`、`PublishSourceUrls`、`WorkPageUrlTemplate`，并将 `ApiUrl` 默认值调整为可用基础地址；`ConfigurationService` 新增对应 TOML 字段读写。
+ - **发现输入改造**：`AsmrApiOptionsProvider` 支持分号/逗号 URL 列表解析、归一化、去重与默认回退；`AsmrApiOptions` 新增 `PublishSourceUrls`。
+ - **调用时机收敛**：新增 `IApiEndpointUrlService` / `ApiEndpointUrlService`，负责“Discover 并回写 `downloader.api_url` + 提供当前生效 BaseUrl”；`AsmrApiClient` 与 `AuthService` 运行时不再直接调用 `DiscoverAsync`。
+ - **仅启动/测试连接触发 Discover**：`App` 启动后执行一次 `DiscoverAndPersistAsync`（失败仅记录日志并继续）；`ConnectivityProbeService` 在测试连接时执行 Discover 并持久化后再登录校验。
+ - **发现来源配置化**：`EndpointDiscoveryService` 改为使用配置中的发布源列表，而非硬编码发布源常量。
+ - **单测补齐**：新增 `AsmrApiOptionsProviderTests`、`ApiEndpointUrlServiceTests`、`ConnectivityProbeServiceTests`，并在 `AsmrApiClientTests` / `AuthServiceTests` / `EndpointDiscoveryServiceTests` 增补回归样例。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Configuration/DownloaderOptions.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Api/AsmrApiOptions.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IApiEndpointUrlService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/ConfigurationService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/AsmrApiOptionsProvider.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/ApiEndpointUrlService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/AsmrApiClient.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/AuthService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/ConnectivityProbeService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/App.xaml.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/*.cs`。
+3. 验证结果：`dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj -c Release --nologo` 通过（总计 28，失败 0，成功 28）；`dotnet test dotnet/Asmroner.sln -c Release --nologo` 通过（总计 136，失败 0，成功 136）。
+4. DoD 判定：是。本轮完成 URL 配置化、Discover 调用时机收敛、Discover 结果持久化及回归测试补齐，且整解无回归失败。
+5. 下次计划：继续推进下一批阶段任务，并沿用“代码改动 + 单测补齐 + progress 同步”同批提交策略。
+
+### 1.5.59 2026-03-18，阶段 2 启动窗口阻塞修复（异步 warmup 解耦）
+
+1. 变更摘要：
+ - **根因修复**：`App` 启动路径移除 `DiscoverAndPersistAsync().GetAwaiter().GetResult()` 同步阻塞，避免 UI 线程在窗口展示前被网络发现流程卡住。
+ - **启动流程调整**：改为 `MainWindow.Show()` 后触发后台 endpoint warmup，确保窗口可立即打开。
+ - **容错与超时**：新增 `StartupEndpointWarmupService`，统一封装后台 Discover 执行、超时（默认 10 秒）与失败日志，失败不阻塞应用继续启动。
+ - **单测补齐**：新增 `StartupEndpointWarmupServiceTests`，覆盖非阻塞调用、后台触发、异常吞吐、超时继续四类场景。
+2. 关键文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/App.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/StartupEndpointWarmupService.cs`、`dotnet/tests/Asmroner.Wpf.Tests/StartupEndpointWarmupServiceTests.cs`。
+3. 验证结果：`dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj -c Release --nologo` 通过（总计 73，失败 0，成功 73）；`dotnet test dotnet/Asmroner.sln -c Release --nologo` 通过（总计 140，失败 0，成功 140）。
+4. DoD 判定：是。启动窗口可用性修复已完成，且新增 warmup 回归样例通过。
+5. 下次计划：继续沿用“先修复行为，再补测试，再同步文档”的闭环节奏推进后续任务。
 
 ## 1.6 维护规则
 
@@ -670,7 +697,7 @@
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-03-17 的 `dotnet test dotnet/Asmroner.sln`（111/111）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-03-18 的 `dotnet test dotnet/Asmroner.sln`（140/140）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
@@ -950,6 +977,44 @@
 | [x]    | [x]    | 阶段 4 | `GetSortOrder_ReturnsCorrectSortOrder`（Theory，6 inline cases）      | Pending/Queued/Running/Completed/Failed/Canceled 枚举值 | 返回对应排序优先级：3/2/1/0/4/5                                        |
 | [x]    | [x]    | 阶段 4 | `GetSortOrder_OrdersStatusesCorrectly`                                | 无序的 6 个枚举值输入                                   | 按排序优先级递增排列：Completed→Running→Queued→Pending→Failed→Canceled |
 
+#### 2.1.36 Infrastructure.Tests / AsmrApiOptionsProviderTests.cs（新建）
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                      | 输入                                                         | 期望输出                                              |
+| ------ | ------ | ------ | --------------------------------------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------- |
+| [x]    | [x]    | 阶段 2 | `AsmrApiOptionsProvider_ShouldParseConfiguredUrlLists`                      | 自定义 `api_url` + 候选/发布源 URL 列表（含分号/逗号与重复） | 正确解析并去重，`BaseUrl` 与候选/发布源列表按预期生成 |
+| [x]    | [x]    | 阶段 2 | `AsmrApiOptionsProvider_ShouldFallbackToDefaults_WhenConfiguredUrlsMissing` | 空 `api_url` 与空列表字段                                    | 回退默认 API 地址、默认候选地址与默认发布源地址       |
+| [x]    | [x]    | 阶段 2 | `AsmrApiOptionsProvider_ShouldIgnoreInvalidUrls_InConfiguredLists`          | 列表中混入非法 URL                                           | 仅保留合法 URL 项，非法项被忽略                       |
+
+#### 2.1.37 Infrastructure.Tests / ApiEndpointUrlServiceTests.cs（新建）
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                | 输入                               | 期望输出                          |
+| ------ | ------ | ------ | --------------------------------------------------------------------- | ---------------------------------- | --------------------------------- |
+| [x]    | [x]    | 阶段 2 | `DiscoverAndPersistAsync_ShouldUpdateApiUrl_WhenConfigExists`         | 配置存在，发现结果返回新 BaseUrl   | `downloader.api_url` 被更新并保存 |
+| [x]    | [x]    | 阶段 2 | `DiscoverAndPersistAsync_ShouldSkipSave_WhenConfigMissing`            | 配置不存在，发现结果返回新 BaseUrl | 不写入配置文件，返回发现结果      |
+| [x]    | [x]    | 阶段 2 | `GetCurrentBaseUrlAsync_ShouldReturnDefault_WhenConfigMissingOrEmpty` | 配置缺失或 `api_url` 为空白        | 返回默认 API 基础地址             |
+
+#### 2.1.38 Infrastructure.Tests / ConnectivityProbeServiceTests.cs（新建）
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                             | 输入                       | 期望输出                              |
+| ------ | ------ | ------ | ------------------------------------------------------------------ | -------------------------- | ------------------------------------- |
+| [x]    | [x]    | 阶段 2 | `ProbeAsync_ShouldDiscoverAndAuthenticate_WhenDependenciesSucceed` | Discover 成功 + 登录成功   | 返回可达且鉴权成功，包含 BaseUrl/延迟 |
+| [x]    | [x]    | 阶段 2 | `ProbeAsync_ShouldReturnFailureResult_WhenAuthenticationThrows`    | Discover 成功 + 登录抛异常 | 返回不可达结果并携带失败消息          |
+
+#### 2.1.39 Infrastructure.Tests / Existing suite updates（本轮补充）
+
+- [x]/[x] 阶段 2 `AsmrApiClient_ShouldUseCurrentBaseUrlService_WithoutDiscovery`（`AsmrApiClientTests.cs`）：验证客户端请求链路仅使用当前 BaseUrl 服务，不触发 Discover。
+- [x]/[x] 阶段 2 `AuthService_ShouldUseCurrentBaseUrlService_WithoutDiscovery`（`AuthServiceTests.cs`）：验证登录链路仅使用当前 BaseUrl 服务，不触发 Discover。
+- [x]/[x] 阶段 2 `EndpointDiscoveryService_ShouldUseConfiguredPublishSources_ForDynamicCandidates`（`EndpointDiscoveryServiceTests.cs`）：验证发布源地址来自配置，且可动态发现候选 API。
+
+#### 2.1.40 Wpf.Tests / StartupEndpointWarmupServiceTests.cs（新建）
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                | 输入                     | 期望输出                                     |
+| ------ | ------ | ------ | --------------------------------------------------------------------- | ------------------------ | -------------------------------------------- |
+| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldReturnImmediately_WhenDiscoveryIsSlow`  | Discover 慢响应          | 启动 warmup 调用快速返回，不阻塞窗口启动路径 |
+| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldInvokeDiscoverAndPersistAsync`          | 正常 discover 依赖       | 后台流程会触发一次 DiscoverAndPersist 调用   |
+| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldNotThrow_WhenDiscoveryFails`            | Discover 抛异常          | 异常被吞吐并记录，不向上抛出                 |
+| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldRespectTimeout_AndContinue`             | Discover 超时（50ms）    | 超时后流程结束并继续，不阻塞应用             |
+
 ---
 
 ### 2.2 测试覆盖分析
@@ -982,6 +1047,7 @@
 
 ### 3.1 计划与提交明细
 
-| 日期       | 状态   | 计划提交标题                   | 提交说明                                                                                                                                                                                                                                                                        | 关联文件/范围                   | 是否包含代码逻辑变更 |
-| ---------- | ------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | -------------------- |
-| 2026-03-18 | 待提交 | WPF migration first submission | 1. Completed Phase 0: Initialize the .NET project\n 2. Completed Phase 1: Configure and initialize migration\n 3. Completed Phase 2: API and authentication migration\n 4. Completed Phase 3: Search capability migration\n 5. Completed Phase 4: Download capability migration | All files in `dotnet/`, `docs/` | 是                   |
+| 提交日期   | 状态   | 提交总结(Summary)              | 提交描述(Description)                                                                                                                                                                                                                                                               | Commit SHA |
+| ---------- | ------ | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 2026-03-18 | 待提交 | feat(dotnet): consolidate endpoint url flow and startup warmup | 1. Add configurable endpoint discovery flow with persisted API base URL and runtime current-base-url usage in API/Auth services<br>2. Keep Discover calls only for startup warmup and connectivity probe, and make startup warmup non-blocking with timeout/fail-open behavior<br>3. Add infrastructure and WPF regression tests, then sync progress sections 1.5/2.1/3.1 | Pending    |
+| 2026-03-18 | 已提交 | WPF migration first submission | 1. Completed Phase 0: Initialize the .NET project<br>2. Completed Phase 1: Configure and initialize migration<br>3. Completed Phase 2: API and authentication migration<br>4. Completed Phase 3: Search capability migration<br>5. Completed Phase 4: Download capability migration | d36ead7    |

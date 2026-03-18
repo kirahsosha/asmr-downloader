@@ -15,7 +15,7 @@ public class AuthServiceTests
         var factory = new RecordingHttpClientFactory();
         var sut = new AuthService(
             factory,
-            new StubInfrastructureEndpointDiscoveryService("https://api.example.com"),
+            new StubApiEndpointUrlService("https://api.example.com"),
             new StubInfrastructureConfigurationService(new AppConfig
             {
                 User = new UserOptions
@@ -45,7 +45,7 @@ public class AuthServiceTests
         var tokenStore = new TokenStore();
         var sut = new AuthService(
             factory,
-            new StubInfrastructureEndpointDiscoveryService("https://api.example.com"),
+            new StubApiEndpointUrlService("https://api.example.com"),
             new StubInfrastructureConfigurationService(new AppConfig
             {
                 User = new UserOptions
@@ -76,7 +76,7 @@ public class AuthServiceTests
 
         var sut = new AuthService(
             factory,
-            new StubInfrastructureEndpointDiscoveryService("https://api.example.com"),
+            new StubApiEndpointUrlService("https://api.example.com"),
             new StubInfrastructureConfigurationService(new AppConfig
             {
                 User = new UserOptions
@@ -92,5 +92,35 @@ public class AuthServiceTests
 
         Assert.Equal("auth_login_failed", ex.Error.Code);
         Assert.Equal(401, ex.Error.HttpStatus);
+    }
+
+    [Fact]
+    public async Task AuthService_ShouldUseCurrentBaseUrlService_WithoutDiscovery()
+    {
+        var endpointService = new StubApiEndpointUrlService("https://api.example.com", throwOnDiscover: true);
+        var factory = new RecordingHttpClientFactory();
+        factory.Register("AsmrApi", new RecordingHttpMessageHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("{\"token\":\"jwt-token\"}", Encoding.UTF8, "application/json"),
+        })));
+
+        var sut = new AuthService(
+            factory,
+            endpointService,
+            new StubInfrastructureConfigurationService(new AppConfig
+            {
+                User = new UserOptions
+                {
+                    Account = "tester",
+                    Password = "secret",
+                },
+            }),
+            new TokenStore(),
+            NullLogger<AuthService>.Instance);
+
+        _ = await sut.LoginAsync();
+
+        Assert.Equal(1, endpointService.GetCurrentBaseUrlCallCount);
+        Assert.Equal(0, endpointService.DiscoverAndPersistCallCount);
     }
 }

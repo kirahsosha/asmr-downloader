@@ -15,6 +15,10 @@ public partial class SettingsView : UserControl
     private readonly IConnectivityProbeService _connectivityProbeService;
     private readonly ILogger<SettingsView> _logger;
 
+    private string _apiCandidateUrls = new DownloaderOptions().ApiCandidateUrls;
+    private string _publishSourceUrls = new DownloaderOptions().PublishSourceUrls;
+    private string _workPageUrlTemplate = new DownloaderOptions().WorkPageUrlTemplate;
+
     public SettingsView(
         IConfigurationService configurationService,
         IApplicationBootstrapper bootstrapper,
@@ -43,6 +47,10 @@ public partial class SettingsView : UserControl
                 SyncDataFolder = _appPathService.DefaultSyncDataDirectory,
             },
         };
+
+        _apiCandidateUrls = config.Downloader.ApiCandidateUrls;
+        _publishSourceUrls = config.Downloader.PublishSourceUrls;
+        _workPageUrlTemplate = config.Downloader.WorkPageUrlTemplate;
 
         FillForm(config);
     }
@@ -102,6 +110,11 @@ public partial class SettingsView : UserControl
 
             await _configurationService.SaveAsync(config);
             var result = await _connectivityProbeService.ProbeAsync();
+
+            if (result.IsReachable)
+            {
+                ApiUrlTextBox.Text = result.BaseUrl;
+            }
 
             StatusTextBlock.Text = result.IsReachable
                 ? $"连接成功: {result.BaseUrl} | 延迟 {result.LatencyMs} ms | 鉴权 {(result.IsAuthenticated ? "成功" : "失败")}"
@@ -171,6 +184,9 @@ public partial class SettingsView : UserControl
             Downloader = new DownloaderOptions
             {
                 ApiUrl = ApiUrlTextBox.Text.Trim(),
+                ApiCandidateUrls = _apiCandidateUrls,
+                PublishSourceUrls = _publishSourceUrls,
+                WorkPageUrlTemplate = _workPageUrlTemplate,
                 ProxyUrl = ProxyUrlTextBox.Text.Trim(),
                 MaxWorkers = maxWorkers,
                 MaxRetries = maxRetries,

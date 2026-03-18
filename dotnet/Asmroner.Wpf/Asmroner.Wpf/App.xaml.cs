@@ -1,6 +1,7 @@
 ﻿using Asmroner.Core.Interfaces;
 using Asmroner.Application.Services;
 using Asmroner.Infrastructure.Services;
+using Asmroner.Wpf.Services;
 using Asmroner.Wpf.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -40,6 +41,7 @@ public partial class App : System.Windows.Application
 
                 services.TryAddSingleton<IAsmrApiOptionsProvider, AsmrApiOptionsProvider>();
                 services.TryAddSingleton<IEndpointDiscoveryService, EndpointDiscoveryService>();
+                services.TryAddSingleton<IApiEndpointUrlService, ApiEndpointUrlService>();
                 services.TryAddSingleton<ITokenStore, TokenStore>();
                 services.TryAddSingleton<IAuthService, Asmroner.Infrastructure.Services.AuthService>();
                 services.TryAddSingleton<IAsmrApiClient, AsmrApiClient>();
@@ -52,6 +54,7 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<IRateLimiterService, RateLimiterService>();
                 services.AddSingleton<IDownloadService, Asmroner.Application.Services.DownloadService>();
                 services.AddSingleton<ISyncService, Asmroner.Wpf.Services.SyncService>();
+                services.AddSingleton<StartupEndpointWarmupService>();
 
                 services.AddSingleton<DashboardView>();
                 services.AddSingleton<DownloadView>();
@@ -63,10 +66,13 @@ public partial class App : System.Windows.Application
         _host.Start();
 
         var logger = _host.Services.GetRequiredService<ILogger<App>>();
-        logger.LogInformation("Asmroner.Wpf startup completed.");
-
         var mainWindow = _host.Services.GetRequiredService<MainWindow>();
         mainWindow.Show();
+
+        var startupEndpointWarmupService = _host.Services.GetRequiredService<StartupEndpointWarmupService>();
+        _ = startupEndpointWarmupService.StartInBackgroundAsync();
+
+        logger.LogInformation("Asmroner.Wpf startup completed.");
     }
 
     protected override void OnExit(ExitEventArgs e)

@@ -6,16 +6,16 @@ namespace Asmroner.Infrastructure.Services;
 
 public sealed class ConnectivityProbeService : IConnectivityProbeService
 {
-    private readonly IEndpointDiscoveryService _endpointDiscoveryService;
+    private readonly IApiEndpointUrlService _apiEndpointUrlService;
     private readonly IAuthService _authService;
     private readonly ILogger<ConnectivityProbeService> _logger;
 
     public ConnectivityProbeService(
-        IEndpointDiscoveryService endpointDiscoveryService,
+        IApiEndpointUrlService apiEndpointUrlService,
         IAuthService authService,
         ILogger<ConnectivityProbeService> logger)
     {
-        _endpointDiscoveryService = endpointDiscoveryService;
+        _apiEndpointUrlService = apiEndpointUrlService;
         _authService = authService;
         _logger = logger;
     }
@@ -24,7 +24,7 @@ public sealed class ConnectivityProbeService : IConnectivityProbeService
     {
         try
         {
-            var endpoint = await _endpointDiscoveryService.DiscoverAsync(cancellationToken);
+            var endpoint = await _apiEndpointUrlService.DiscoverAndPersistAsync(cancellationToken);
             var token = await _authService.LoginAsync(cancellationToken);
 
             var result = new ConnectivityProbeResult

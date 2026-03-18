@@ -12,20 +12,20 @@ public sealed class AuthService : IAuthService
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(10);
 
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IEndpointDiscoveryService _endpointDiscoveryService;
+    private readonly IApiEndpointUrlService _apiEndpointUrlService;
     private readonly IConfigurationService _configurationService;
     private readonly ITokenStore _tokenStore;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         IHttpClientFactory httpClientFactory,
-        IEndpointDiscoveryService endpointDiscoveryService,
+        IApiEndpointUrlService apiEndpointUrlService,
         IConfigurationService configurationService,
         ITokenStore tokenStore,
         ILogger<AuthService> logger)
     {
         _httpClientFactory = httpClientFactory;
-        _endpointDiscoveryService = endpointDiscoveryService;
+        _apiEndpointUrlService = apiEndpointUrlService;
         _configurationService = configurationService;
         _tokenStore = tokenStore;
         _logger = logger;
@@ -44,7 +44,7 @@ public sealed class AuthService : IAuthService
             throw new InvalidOperationException("缺少账号或密码，无法执行登录。");
         }
 
-        var discoveryResult = await _endpointDiscoveryService.DiscoverAsync(cancellationToken);
+        var currentBaseUrl = await _apiEndpointUrlService.GetCurrentBaseUrlAsync(cancellationToken);
         var client = _httpClientFactory.CreateClient("AsmrApi");
 
         var request = new AuthLoginRequest
@@ -53,7 +53,7 @@ public sealed class AuthService : IAuthService
             Password = config.User.Password,
         };
 
-        var requestUri = BuildRequestUri(discoveryResult.BaseUrl, AsmrApiPaths.AuthLogin);
+        var requestUri = BuildRequestUri(currentBaseUrl, AsmrApiPaths.AuthLogin);
         using var httpRequest = CreateRequest(HttpMethod.Post, requestUri);
         httpRequest.Content = JsonContent.Create(request, options: JsonOptions);
         using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -82,7 +82,7 @@ public sealed class AuthService : IAuthService
         };
 
         await _tokenStore.SetAsync(token, cancellationToken);
-        _logger.LogInformation("Auth login succeeded against {BaseUrl}.", discoveryResult.BaseUrl);
+        _logger.LogInformation("Auth login succeeded against {BaseUrl}.", currentBaseUrl);
         return token;
     }
 

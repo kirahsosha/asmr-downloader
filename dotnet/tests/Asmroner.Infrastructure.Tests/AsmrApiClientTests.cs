@@ -20,7 +20,7 @@ public class AsmrApiClientTests
 
         var sut = new AsmrApiClient(
             factory,
-            new StubInfrastructureEndpointDiscoveryService("https://api.example.com"),
+            new StubApiEndpointUrlService("https://api.example.com"),
             new StubAuthService(new ApiToken { AccessToken = "jwt-token" }));
 
         var ex = await Assert.ThrowsAsync<AsmrApiException>(() => sut.GetWorkInfoAsync("RJ123"));
@@ -49,7 +49,7 @@ public class AsmrApiClientTests
 
         var sut = new AsmrApiClient(
             factory,
-            new StubInfrastructureEndpointDiscoveryService("https://api.example.com"),
+            new StubApiEndpointUrlService("https://api.example.com"),
             new StubAuthService(new ApiToken { AccessToken = "jwt-token" }));
 
         var result = await sut.GetPopularAsync();
@@ -84,7 +84,7 @@ public class AsmrApiClientTests
 
         var sut = new AsmrApiClient(
             factory,
-            new StubInfrastructureEndpointDiscoveryService("https://api.example.com"),
+            new StubApiEndpointUrlService("https://api.example.com"),
             new StubAuthService(new ApiToken { AccessToken = "jwt-token" }));
 
         _ = await sut.SearchAsync("%20%24age%3Ageneral%24?order=release&sort=desc&page=1&pageSize=20");
@@ -110,7 +110,7 @@ public class AsmrApiClientTests
 
         var sut = new AsmrApiClient(
             factory,
-            new StubInfrastructureEndpointDiscoveryService("https://api.example.com"),
+            new StubApiEndpointUrlService("https://api.example.com"),
             new StubAuthService(new ApiToken { AccessToken = "jwt-token" }));
 
         var result = await sut.GetWorkInfoAsync("RJ7301");
@@ -138,7 +138,7 @@ public class AsmrApiClientTests
 
         var sut = new AsmrApiClient(
             factory,
-            new StubInfrastructureEndpointDiscoveryService("https://api.example.com"),
+            new StubApiEndpointUrlService("https://api.example.com"),
             new StubAuthService(new ApiToken { AccessToken = "jwt-token" }));
 
         // asmr.one API 端点仅接受纯数字 id，传入包含前缀的 "RJ7301" 会返回 400 Bad Request
@@ -167,7 +167,7 @@ public class AsmrApiClientTests
 
         var sut = new AsmrApiClient(
             factory,
-            new StubInfrastructureEndpointDiscoveryService("https://api.example.com"),
+            new StubApiEndpointUrlService("https://api.example.com"),
             new StubAuthService(new ApiToken { AccessToken = "jwt-token" }));
 
         _ = await sut.GetWorkInfoAsync(sourceId);
@@ -176,5 +176,26 @@ public class AsmrApiClientTests
         // 传入包含 "RJ" 前缀的 id 将返回 400 Bad Request
         Assert.NotNull(capturedRequest?.RequestUri);
         Assert.Equal("/api/work/7301", capturedRequest!.RequestUri!.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task AsmrApiClient_ShouldUseCurrentBaseUrlService_WithoutDiscovery()
+    {
+        var endpointService = new StubApiEndpointUrlService("https://api.example.com", throwOnDiscover: true);
+        var factory = new RecordingHttpClientFactory();
+        factory.Register("AsmrApi", new RecordingHttpMessageHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("{\"id\":123,\"title\":\"Sample\",\"release\":\"2026-03-15\",\"has_subtitle\":true,\"source_id\":\"RJ7301\"}", Encoding.UTF8, "application/json"),
+        })));
+
+        var sut = new AsmrApiClient(
+            factory,
+            endpointService,
+            new StubAuthService(new ApiToken { AccessToken = "jwt-token" }));
+
+        _ = await sut.GetWorkInfoAsync("RJ7301");
+
+        Assert.Equal(1, endpointService.GetCurrentBaseUrlCallCount);
+        Assert.Equal(0, endpointService.DiscoverAndPersistCallCount);
     }
 }
