@@ -1,5 +1,7 @@
 # asmr-downloader WPF 项目进度跟踪
 
+当前跟踪版本：v0.4
+
 AI约束策略：章节1.5.1到1.5.57的文本不加入分析上下文
 
 ## 1. 项目进度跟踪清单
@@ -1008,12 +1010,12 @@ AI约束策略：章节1.5.1到1.5.57的文本不加入分析上下文
 
 #### 2.1.40 Wpf.Tests / StartupEndpointWarmupServiceTests.cs（新建）
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                | 输入                     | 期望输出                                     |
-| ------ | ------ | ------ | --------------------------------------------------------------------- | ------------------------ | -------------------------------------------- |
-| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldReturnImmediately_WhenDiscoveryIsSlow`  | Discover 慢响应          | 启动 warmup 调用快速返回，不阻塞窗口启动路径 |
-| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldInvokeDiscoverAndPersistAsync`          | 正常 discover 依赖       | 后台流程会触发一次 DiscoverAndPersist 调用   |
-| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldNotThrow_WhenDiscoveryFails`            | Discover 抛异常          | 异常被吞吐并记录，不向上抛出                 |
-| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldRespectTimeout_AndContinue`             | Discover 超时（50ms）    | 超时后流程结束并继续，不阻塞应用             |
+| 已创建 | 已通过 | 阶段   | 样例名                                                               | 输入                  | 期望输出                                     |
+| ------ | ------ | ------ | -------------------------------------------------------------------- | --------------------- | -------------------------------------------- |
+| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldReturnImmediately_WhenDiscoveryIsSlow` | Discover 慢响应       | 启动 warmup 调用快速返回，不阻塞窗口启动路径 |
+| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldInvokeDiscoverAndPersistAsync`         | 正常 discover 依赖    | 后台流程会触发一次 DiscoverAndPersist 调用   |
+| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldNotThrow_WhenDiscoveryFails`           | Discover 抛异常       | 异常被吞吐并记录，不向上抛出                 |
+| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldRespectTimeout_AndContinue`            | Discover 超时（50ms） | 超时后流程结束并继续，不阻塞应用             |
 
 ---
 
@@ -1047,7 +1049,8 @@ AI约束策略：章节1.5.1到1.5.57的文本不加入分析上下文
 
 ### 3.1 计划与提交明细
 
-| 提交日期   | 状态   | 提交总结(Summary)              | 提交描述(Description)                                                                                                                                                                                                                                                               | Commit SHA |
-| ---------- | ------ | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| 2026-03-18 | 待提交 | feat(dotnet): consolidate endpoint url flow and startup warmup | 1. Add configurable endpoint discovery flow with persisted API base URL and runtime current-base-url usage in API/Auth services<br>2. Keep Discover calls only for startup warmup and connectivity probe, and make startup warmup non-blocking with timeout/fail-open behavior<br>3. Add infrastructure and WPF regression tests, then sync progress sections 1.5/2.1/3.1 | Pending    |
-| 2026-03-18 | 已提交 | WPF migration first submission | 1. Completed Phase 0: Initialize the .NET project<br>2. Completed Phase 1: Configure and initialize migration<br>3. Completed Phase 2: API and authentication migration<br>4. Completed Phase 3: Search capability migration<br>5. Completed Phase 4: Download capability migration | d36ead7    |
+| 提交日期   | 状态   | 提交总结(Summary)                                              | 提交描述(Description)                                                                                                                                                                                                                                                                                                                                                                                                              | Commit SHA |
+| ---------- | ------ | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 2026-03-18 | 已提交 | WPF migration first submission                                 | 1. Completed Phase 0: Initialize the .NET project<br>2. Completed Phase 1: Configure and initialize migration<br>3. Completed Phase 2: API and authentication migration<br>4. Completed Phase 3: Search capability migration<br>5. Completed Phase 4: Download capability migration                                                                                                                                                | d36ead7    |
+| 2026-03-18 | 已提交 | feat(dotnet): consolidate endpoint url flow and startup warmup | 1. Add configurable endpoint discovery flow with persisted API base URL and runtime current-base-url usage in API/Auth services<br>2. Keep Discover calls only for startup warmup and connectivity probe, and make startup warmup non-blocking with timeout/fail-open behavior<br>3. Add infrastructure and WPF regression tests, then sync progress sections 1.5/2.1/3.1                                                          | 43eddcd    |
+| 2026-03-19 | 待提交 | align docs to WPF; align runtime/docs version to 0.4           | 1. Adjust README.md to focus on the WPF client; and move the original Go CLI/WebUI examples to docs/legacy-go.md as historical references.<br>2. Add LICENSE with copyright holder kirahsosha.<br>3. Uniformly set Version to the 0.4 series in the WPF runtime projects.<br>4. Add v0.4 display in MainWindow, Settings, and startup logs, and synchronize the version identifiers in README and the WPF migration documentation. | —          |
