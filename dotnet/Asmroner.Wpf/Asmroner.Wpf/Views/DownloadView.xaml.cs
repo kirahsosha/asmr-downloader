@@ -8,6 +8,7 @@ using Asmroner.Core.Download;
 using Asmroner.Core.Interfaces;
 using Asmroner.Wpf.ViewModels;
 using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
 
 namespace Asmroner.Wpf.Views;
 
@@ -20,12 +21,13 @@ public partial class DownloadView : UserControl
     private readonly ISearchStateStore _searchStateStore;
     private readonly IConfigurationService _configurationService;
     private readonly IAppPathService _appPathService;
+    private readonly ISearchImportService _importService;
     private readonly ILogger<DownloadView> _logger;
     private readonly ConcurrentDictionary<string, string> _queuedWorkInfoTitles = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, DownloadTaskStatus> _queuedStatusOverrides = new(StringComparer.OrdinalIgnoreCase);
 
     public DownloadView()
-        : this(null!, null!, null!, null!, null!, null!)
+        : this(null!, null!, null!, null!, null!, null!, null!)
     {
     }
 
@@ -35,6 +37,7 @@ public partial class DownloadView : UserControl
         ISearchStateStore searchStateStore,
         IConfigurationService configurationService,
         IAppPathService appPathService,
+        ISearchImportService importService,
         ILogger<DownloadView> logger)
     {
         _asmrApiClient = asmrApiClient;
@@ -42,6 +45,7 @@ public partial class DownloadView : UserControl
         _searchStateStore = searchStateStore;
         _configurationService = configurationService;
         _appPathService = appPathService;
+        _importService = importService;
         _logger = logger;
 
         InitializeComponent();
@@ -62,10 +66,13 @@ public partial class DownloadView : UserControl
             {
                 FilterTextBox.Text = filter;
             }
+
+            HdAudioOnlyCheckBox.IsChecked = config?.Downloader.HdAudioOnly ?? true;
         }
         catch
         {
             // 配置加载失败时保持文本框为空
+            HdAudioOnlyCheckBox.IsChecked = true;
         }
     }
 
@@ -76,6 +83,13 @@ public partial class DownloadView : UserControl
         if (string.IsNullOrWhiteSpace(sourceId))
         {
             StatusTextBlock.Text = "请输入 RJID 后再加入下载队列。";
+            return;
+        }
+
+        var allowedSingle = DownloadEnqueueDuplicatePolicy.FilterAlreadyPresent(_downloadService.GetTasks(), new[] { sourceId });
+        if (allowedSingle.Count == 0)
+        {
+            StatusTextBlock.Text = $"该作品已在下载列表中，跳过：{sourceId}";
             return;
         }
 
@@ -113,10 +127,18 @@ public partial class DownloadView : UserControl
             {
                 StatusTextBlock.Text = $"正在获取 {sourceIds.Count} 个作品信息...";
 
-                var workInfos = await ResolveWorkInfoAsync(sourceIds);
-                _searchStateStore.EnqueueForDownload(sourceIds);
+                var toEnqueue = DownloadEnqueueDuplicatePolicy.FilterAlreadyPresent(_downloadService.GetTasks(), sourceIds);
+                var skippedCount = sourceIds.Count - toEnqueue.Count;
+                if (toEnqueue.Count == 0)
+                {
+                    StatusTextBlock.Text = $"已跳过全部 {skippedCount} 项（已在下载列表中）。";
+                    return;
+                }
+
+                var workInfos = await ResolveWorkInfoAsync(toEnqueue);
+                _searchStateStore.EnqueueForDownload(toEnqueue);
                 _downloadService.UpsertPrefetchedWorkInfo(workInfos);
-                foreach (var sourceIdItem in sourceIds)
+                foreach (var sourceIdItem in toEnqueue)
                 {
                     _queuedStatusOverrides.TryRemove(sourceIdItem, out _);
                 }
@@ -125,7 +147,10 @@ public partial class DownloadView : UserControl
                 RefreshView();
 
                 var resolvedCount = workInfos.Count;
-                StatusTextBlock.Text = DownloadOperationStatusTexts.BuildBatchEnqueueResult(sourceIds.Count, resolvedCount);
+                var batchStatusMsg = DownloadOperationStatusTexts.BuildBatchEnqueueResult(toEnqueue.Count, resolvedCount);
+                StatusTextBlock.Text = skippedCount > 0
+                    ? $"{batchStatusMsg}；已跳过 {skippedCount} 项（已在下载列表中）。"
+                    : batchStatusMsg;
             },
             disableRunQueue: true,
             failurePrefix: "加入批量下载失败",
@@ -138,10 +163,10 @@ public partial class DownloadView : UserControl
             async () =>
             {
                 StatusTextBlock.Text = "正在执行下载队列...";
-                var context = DownloadOperationContext.Create(FilterTextBox.Text);
+                var context = DownloadOperationContext.Create(FilterTextBox.Text, HdAudioOnlyCheckBox.IsChecked == true);
 
                 var created = await _downloadService.RunQueuedAsync(
-                    context.FileFilter);
+                    context.FileFilter, context.HdAudioOnly);
                 RefreshView();
                 StatusTextBlock.Text = DownloadOperationStatusTexts.BuildRunQueueResult(created.Count);
             },
@@ -216,10 +241,10 @@ public partial class DownloadView : UserControl
         await ExecuteGuardedAsync(
             async () =>
             {
-                var context = DownloadOperationContext.Create(FilterTextBox.Text);
+                var context = DownloadOperationContext.Create(FilterTextBox.Text, HdAudioOnlyCheckBox.IsChecked == true);
                 var retried = await _downloadService.RetryFailedAsync(
                     target.TaskId,
-                    context.FileFilter);
+                    context.FileFilter, context.HdAudioOnly);
                 RefreshView();
                 StatusTextBlock.Text = DownloadOperationStatusTexts.BuildRetryResult(retried is not null, target.SourceId);
             },
@@ -253,13 +278,13 @@ public partial class DownloadView : UserControl
             async () =>
             {
                 var semaphore = new SemaphoreSlim(RetryAllMaxConcurrency);
-                var context = DownloadOperationContext.Create(FilterTextBox.Text);
+                var context = DownloadOperationContext.Create(FilterTextBox.Text, HdAudioOnlyCheckBox.IsChecked == true);
                 var jobs = failedTasks.Select(async item =>
                 {
                     await semaphore.WaitAsync();
                     try
                     {
-                        var retried = await _downloadService.RetryFailedAsync(item.TaskId, context.FileFilter);
+                        var retried = await _downloadService.RetryFailedAsync(item.TaskId, context.FileFilter, context.HdAudioOnly);
                         return retried is not null;
                     }
                     finally
@@ -299,7 +324,7 @@ public partial class DownloadView : UserControl
         await ExecuteGuardedAsync(
             async () =>
             {
-                var context = DownloadOperationContext.Create(FilterTextBox.Text);
+                var context = DownloadOperationContext.Create(FilterTextBox.Text, HdAudioOnlyCheckBox.IsChecked == true);
                 var startedCount = 0;
 
                 foreach (var task in selected)
@@ -308,7 +333,7 @@ public partial class DownloadView : UserControl
                     _queuedStatusOverrides.TryRemove(task.SourceId, out _);
 
                     Guid? preferredTaskId = task.TaskId == Guid.Empty ? null : task.TaskId;
-                    var started = await _downloadService.StartAsync(task.SourceId, context.FileFilter, preferredTaskId);
+                    var started = await _downloadService.StartAsync(task.SourceId, context.FileFilter, preferredTaskId, context.HdAudioOnly);
                     if (started is not null)
                     {
                         startedCount++;
@@ -333,6 +358,112 @@ public partial class DownloadView : UserControl
     private void OnBatchSourceIdsTextChanged(object sender, TextChangedEventArgs e)
     {
         // 批量输入框不做实时改写，避免影响空格/逗号/分号输入与多次粘贴体验。
+    }
+
+    private async void OnImportCsvClicked(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "选择要导入的 CSV 文件",
+            Filter = "CSV 文件 (*.csv)|*.csv|所有文件 (*.*)|*.*",
+            DefaultExt = ".csv",
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        await ExecuteGuardedAsync(
+            async () =>
+            {
+                StatusTextBlock.Text = "正在导入 CSV 文件...";
+                var items = await _importService.ParseCsvAsync(dialog.FileName);
+                var sourceIds = items.Select(static x => x.SourceId).ToArray();
+                var toEnqueue = DownloadEnqueueDuplicatePolicy.FilterAlreadyPresent(_downloadService.GetTasks(), sourceIds);
+                var skippedCount = sourceIds.Length - toEnqueue.Count;
+
+                if (toEnqueue.Count == 0)
+                {
+                    StatusTextBlock.Text = $"CSV 中全部 {skippedCount} 项已在下载列表中，已跳过。";
+                    return;
+                }
+
+                _searchStateStore.EnqueueForDownload(toEnqueue);
+                var workInfoMap = items
+                    .Where(x => toEnqueue.Contains(x.SourceId, StringComparer.OrdinalIgnoreCase))
+                    .ToDictionary(static x => x.SourceId, static x => x);
+                _downloadService.UpsertPrefetchedWorkInfo(
+                    workInfoMap.ToDictionary(
+                        static kv => kv.Key,
+                        static kv => new WorkInfoDto { SourceId = kv.Value.SourceId, Title = kv.Value.Title }));
+
+                foreach (var sourceId in toEnqueue)
+                {
+                    _queuedStatusOverrides.TryRemove(sourceId, out _);
+                }
+
+                RefreshView();
+                StatusTextBlock.Text = skippedCount > 0
+                    ? $"已从 CSV 导入 {toEnqueue.Count} 项；已跳过 {skippedCount} 项（已在下载列表中）。"
+                    : $"已从 CSV 导入 {toEnqueue.Count} 项。";
+            },
+            disableRunQueue: true,
+            failurePrefix: "导入 CSV 失败",
+            logMessage: "Failed to import CSV file.");
+    }
+
+    private async void OnImportJsonClicked(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "选择要导入的 JSON 文件",
+            Filter = "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*",
+            DefaultExt = ".json",
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        await ExecuteGuardedAsync(
+            async () =>
+            {
+                StatusTextBlock.Text = "正在导入 JSON 文件...";
+                var items = await _importService.ParseJsonAsync(dialog.FileName);
+                var sourceIds = items.Select(static x => x.SourceId).ToArray();
+                var toEnqueue = DownloadEnqueueDuplicatePolicy.FilterAlreadyPresent(_downloadService.GetTasks(), sourceIds);
+                var skippedCount = sourceIds.Length - toEnqueue.Count;
+
+                if (toEnqueue.Count == 0)
+                {
+                    StatusTextBlock.Text = $"JSON 中全部 {skippedCount} 项已在下载列表中，已跳过。";
+                    return;
+                }
+
+                _searchStateStore.EnqueueForDownload(toEnqueue);
+                var workInfoMap = items
+                    .Where(x => toEnqueue.Contains(x.SourceId, StringComparer.OrdinalIgnoreCase))
+                    .ToDictionary(static x => x.SourceId, static x => x);
+                _downloadService.UpsertPrefetchedWorkInfo(
+                    workInfoMap.ToDictionary(
+                        static kv => kv.Key,
+                        static kv => new WorkInfoDto { SourceId = kv.Value.SourceId, Title = kv.Value.Title }));
+
+                foreach (var sourceId in toEnqueue)
+                {
+                    _queuedStatusOverrides.TryRemove(sourceId, out _);
+                }
+
+                RefreshView();
+                StatusTextBlock.Text = skippedCount > 0
+                    ? $"已从 JSON 导入 {toEnqueue.Count} 项；已跳过 {skippedCount} 项（已在下载列表中）。"
+                    : $"已从 JSON 导入 {toEnqueue.Count} 项。";
+            },
+            disableRunQueue: true,
+            failurePrefix: "导入 JSON 失败",
+            logMessage: "Failed to import JSON file.");
     }
 
     private async void OnOpenDownloadDirectoryClicked(object sender, RoutedEventArgs e)

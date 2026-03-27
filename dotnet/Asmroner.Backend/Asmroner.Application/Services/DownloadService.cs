@@ -8,6 +8,8 @@ namespace Asmroner.Application.Services;
 
 public sealed class DownloadService : IDownloadService
 {
+    private static readonly string[] TextSidecarExtensions = [".txt", ".lrc", ".ass"];
+
     private readonly IAsmrApiClient _apiClient;
     private readonly IConfigurationService _configurationService;
     private readonly ISearchStateStore _searchStateStore;
@@ -32,7 +34,7 @@ public sealed class DownloadService : IDownloadService
         _rateLimiterService = rateLimiterService;
     }
 
-    public async Task<IReadOnlyList<DownloadTaskItem>> RunQueuedAsync(string? fileFilter = null, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<DownloadTaskItem>> RunQueuedAsync(string? fileFilter = null, bool hdAudioOnly = false, CancellationToken cancellationToken = default)
     {
         var sourceIds = _searchStateStore.GetQueuedSourceIds();
         if (sourceIds.Count == 0)
@@ -75,7 +77,7 @@ public sealed class DownloadService : IDownloadService
                     return;
                 }
 
-                await RunSingleAsync(task, targetRoot, preferExtensions, parsedFilter, config, cancellationToken);
+                await RunSingleAsync(task, targetRoot, preferExtensions, parsedFilter, hdAudioOnly, config, cancellationToken);
             }
             finally
             {
@@ -89,7 +91,7 @@ public sealed class DownloadService : IDownloadService
         return created;
     }
 
-    public async Task<DownloadTaskItem?> StartAsync(string sourceId, string? fileFilter = null, Guid? preferredTaskId = null, CancellationToken cancellationToken = default)
+    public async Task<DownloadTaskItem?> StartAsync(string sourceId, string? fileFilter = null, Guid? preferredTaskId = null, bool hdAudioOnly = false, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(sourceId))
         {
@@ -113,7 +115,7 @@ public sealed class DownloadService : IDownloadService
             }
         }
 
-        await RunSingleAsync(task, targetRoot, preferExtensions, parsedFilter, config, cancellationToken);
+        await RunSingleAsync(task, targetRoot, preferExtensions, parsedFilter, hdAudioOnly, config, cancellationToken);
         _searchStateStore.RemoveFromQueue(new[] { task.SourceId });
         return task;
     }
@@ -162,7 +164,7 @@ public sealed class DownloadService : IDownloadService
         }
     }
 
-    public async Task<DownloadTaskItem?> RetryFailedAsync(Guid taskId, string? fileFilter = null, CancellationToken cancellationToken = default)
+    public async Task<DownloadTaskItem?> RetryFailedAsync(Guid taskId, string? fileFilter = null, bool hdAudioOnly = false, CancellationToken cancellationToken = default)
     {
         DownloadTaskItem? task;
 
@@ -183,7 +185,7 @@ public sealed class DownloadService : IDownloadService
         var parsedFilter = DownloadFilterParser.ParseFileFilter(fileFilter ?? config?.Downloader.FileFilter);
         var targetRoot = ResolveTargetRoot(config?.Downloader.SyncDataFolder);
 
-        await RunSingleAsync(task, targetRoot, preferExtensions, parsedFilter, config, cancellationToken);
+        await RunSingleAsync(task, targetRoot, preferExtensions, parsedFilter, hdAudioOnly, config, cancellationToken);
         return task;
     }
 
@@ -212,6 +214,7 @@ public sealed class DownloadService : IDownloadService
         string targetRoot,
         IReadOnlyList<string> preferExtensions,
         IReadOnlyList<(string Term, bool IsExclude)> fileFilter,
+        bool hdAudioOnly,
         Core.Configuration.AppConfig? config,
         CancellationToken cancellationToken)
     {
@@ -257,7 +260,7 @@ public sealed class DownloadService : IDownloadService
             }
 
             var tracks = await _apiClient.GetTracksAsync(task.SourceId, runCancellationToken);
-            var mediaEntries = FlattenTracksWithPath(tracks)
+            var allEntries = FlattenTracksWithPath(tracks)
                 .Where(static item => !string.IsNullOrWhiteSpace(item.Url))
                 .Where(item => IsPreferred(item.Url, preferExtensions))
                 .Where(item => DownloadFilterParser.MatchesFileFilter(
@@ -267,13 +270,23 @@ public sealed class DownloadService : IDownloadService
                     fileFilter))
                 .ToArray();
 
+            var mediaEntries = DownloadFilterParser.FilterHdAudioOnly(
+                allEntries,
+                static item => item.Url,
+                hdAudioOnly);
+
+            if (hdAudioOnly)
+            {
+                mediaEntries = FilterTextSidecarsForRemovedMp3(allEntries, mediaEntries);
+            }
+
             lock (_stateLock)
             {
-                task.TotalFiles = mediaEntries.Length;
+                task.TotalFiles = mediaEntries.Count;
                 task.CompletedFiles = 0;
             }
 
-            if (mediaEntries.Length == 0)
+            if (mediaEntries.Count == 0)
             {
                 lock (_stateLock)
                 {
@@ -283,7 +296,7 @@ public sealed class DownloadService : IDownloadService
                 return;
             }
 
-            for (var index = 0; index < mediaEntries.Length; index++)
+            for (var index = 0; index < mediaEntries.Count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 runCancellationToken.ThrowIfCancellationRequested();
@@ -345,6 +358,50 @@ public sealed class DownloadService : IDownloadService
                 _taskCancellationSources.Remove(task.TaskId);
             }
         }
+    }
+
+    private static IReadOnlyList<(string Title, string Url, string RelativePath)> FilterTextSidecarsForRemovedMp3(
+        IReadOnlyList<(string Title, string Url, string RelativePath)> originalEntries,
+        IReadOnlyList<(string Title, string Url, string RelativePath)> filteredEntries)
+    {
+        if (originalEntries.Count == 0 || filteredEntries.Count == 0)
+        {
+            return filteredEntries;
+        }
+
+        var remainingMp3Keys = filteredEntries
+            .Where(static entry => IsExtension(entry.Url, ".mp3"))
+            .Select(static entry => BuildEntryKey(entry.RelativePath, entry.Title))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var removedMp3Keys = originalEntries
+            .Where(static entry => IsExtension(entry.Url, ".mp3"))
+            .Select(static entry => BuildEntryKey(entry.RelativePath, entry.Title))
+            .Where(key => !remainingMp3Keys.Contains(key))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (removedMp3Keys.Count == 0)
+        {
+            return filteredEntries;
+        }
+
+        return filteredEntries
+            .Where(entry =>
+                !TextSidecarExtensions.Contains(ReadExtension(entry.Url), StringComparer.OrdinalIgnoreCase)
+                || !removedMp3Keys.Contains(BuildEntryKey(entry.RelativePath, entry.Title)))
+            .ToArray();
+    }
+
+    private static bool IsExtension(string url, string extension)
+    {
+        return ReadExtension(url).Equals(extension, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string BuildEntryKey(string relativePath, string title)
+    {
+        var normalizedPath = relativePath ?? string.Empty;
+        var normalizedTitle = SanitizePathPart(title);
+        return string.Concat(normalizedPath, "|", normalizedTitle);
     }
 
     private string ResolveTargetRoot(string? configured)

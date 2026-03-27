@@ -50,6 +50,7 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<IQueryParserService, QueryParserService>();
                 services.AddSingleton<ISearchService, Asmroner.Application.Services.SearchService>();
                 services.AddSingleton<ISearchExportService, SearchExportService>();
+                services.AddSingleton<ISearchImportService, SearchImportService>();
                 services.AddSingleton<ISearchStateStore, SearchStateStore>();
                 services.AddSingleton<IRateLimiterService, RateLimiterService>();
                 services.AddSingleton<IDownloadService, Asmroner.Application.Services.DownloadService>();

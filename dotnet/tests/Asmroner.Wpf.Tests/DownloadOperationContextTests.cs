@@ -19,4 +19,20 @@ public class DownloadOperationContextTests
 
         Assert.Equal("+voice;-demo", context.FileFilter);
     }
+
+    [Fact]
+    public void Create_ShouldCarryHdAudioOnly_WhenFlagIsTrue()
+    {
+        var context = DownloadOperationContext.Create(null, hdAudioOnly: true);
+
+        Assert.True(context.HdAudioOnly);
+    }
+
+    [Fact]
+    public void Create_ShouldDefaultHdAudioOnly_ToFalse()
+    {
+        var context = DownloadOperationContext.Create(null);
+
+        Assert.False(context.HdAudioOnly);
+    }
 }

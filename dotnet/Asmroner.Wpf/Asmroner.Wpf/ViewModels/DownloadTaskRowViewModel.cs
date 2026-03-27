@@ -14,6 +14,8 @@ public sealed class DownloadTaskRowViewModel
 
     public string StatusText { get; init; } = string.Empty;
 
+    public int StatusSortOrder { get; init; }
+
     public string ProgressText { get; init; } = "0%";
 
     public string ErrorMessage { get; init; } = string.Empty;
@@ -29,6 +31,7 @@ public sealed class DownloadTaskRowViewModel
             Title = title,
             Status = status,
             StatusText = status.GetDisplayName(),
+            StatusSortOrder = status.GetSortOrder(),
             ProgressText = string.Empty,
             ErrorMessage = status == DownloadTaskStatus.Canceled ? "任务已取消。" : string.Empty,
         };
@@ -43,6 +46,7 @@ public sealed class DownloadTaskRowViewModel
             Title = item.Title,
             Status = item.Status,
             StatusText = item.Status.GetDisplayName(),
+            StatusSortOrder = item.Status.GetSortOrder(),
             ProgressText = $"{Math.Round(item.ProgressPercent, 1)}% ({item.CompletedFiles}/{item.TotalFiles})",
             ErrorMessage = item.ErrorMessage,
             TargetDirectory = item.TargetDirectory,

@@ -6,12 +6,12 @@ namespace Asmroner.Wpf.Services;
 
 public sealed class DownloadService : IDownloadService
 {
-    public Task<IReadOnlyList<DownloadTaskItem>> RunQueuedAsync(string? fileFilter = null, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<DownloadTaskItem>> RunQueuedAsync(string? fileFilter = null, bool hdAudioOnly = false, CancellationToken cancellationToken = default)
     {
         throw new NotSupportedException("请使用应用层 DownloadService。当前占位实现不参与运行。");
     }
 
-    public Task<DownloadTaskItem?> StartAsync(string sourceId, string? fileFilter = null, Guid? preferredTaskId = null, CancellationToken cancellationToken = default)
+    public Task<DownloadTaskItem?> StartAsync(string sourceId, string? fileFilter = null, Guid? preferredTaskId = null, bool hdAudioOnly = false, CancellationToken cancellationToken = default)
     {
         throw new NotSupportedException("请使用应用层 DownloadService。当前占位实现不参与运行。");
     }
@@ -26,7 +26,7 @@ public sealed class DownloadService : IDownloadService
         throw new NotSupportedException("请使用应用层 DownloadService。当前占位实现不参与运行。");
     }
 
-    public Task<DownloadTaskItem?> RetryFailedAsync(Guid taskId, string? fileFilter = null, CancellationToken cancellationToken = default)
+    public Task<DownloadTaskItem?> RetryFailedAsync(Guid taskId, string? fileFilter = null, bool hdAudioOnly = false, CancellationToken cancellationToken = default)
     {
         throw new NotSupportedException("请使用应用层 DownloadService。当前占位实现不参与运行。");
     }

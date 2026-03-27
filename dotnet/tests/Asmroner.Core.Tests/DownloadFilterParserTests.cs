@@ -57,4 +57,47 @@ public class DownloadFilterParserTests
         Assert.False(DownloadFilterParser.MatchesFileFilter("side_story/track01", filter));
         Assert.False(DownloadFilterParser.MatchesFileFilter("main_demo/track01", filter));
     }
+
+    [Fact]
+    public void FilterHdAudioOnly_ShouldRemoveMp3_WhenFlacExists()
+    {
+        var entries = new[] { "track01.mp3", "track01.flac" };
+
+        var result = DownloadFilterParser.FilterHdAudioOnly(entries, static url => url);
+
+        Assert.DoesNotContain("track01.mp3", result);
+        Assert.Contains("track01.flac", result);
+    }
+
+    [Fact]
+    public void FilterHdAudioOnly_ShouldRemoveMp3_WhenWavExists()
+    {
+        var entries = new[] { "bgm.mp3", "bgm.wav" };
+
+        var result = DownloadFilterParser.FilterHdAudioOnly(entries, static url => url);
+
+        Assert.DoesNotContain("bgm.mp3", result);
+        Assert.Contains("bgm.wav", result);
+    }
+
+    [Fact]
+    public void FilterHdAudioOnly_ShouldKeepMp3_WhenNoHdAudioExists()
+    {
+        var entries = new[] { "track01.mp3", "cover.jpg" };
+
+        var result = DownloadFilterParser.FilterHdAudioOnly(entries, static url => url);
+
+        Assert.Contains("track01.mp3", result);
+        Assert.Contains("cover.jpg", result);
+    }
+
+    [Fact]
+    public void FilterHdAudioOnly_ShouldReturnUnchanged_WhenHdAudioOnlyIsFalse()
+    {
+        var entries = new[] { "track01.mp3", "track01.flac" };
+
+        var result = DownloadFilterParser.FilterHdAudioOnly(entries, static url => url, hdAudioOnly: false);
+
+        Assert.Equal(entries, result);
+    }
 }

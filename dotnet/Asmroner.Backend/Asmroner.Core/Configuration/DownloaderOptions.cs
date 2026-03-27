@@ -59,6 +59,11 @@ public sealed class DownloaderOptions
     public string FileFilter { get; set; } = string.Empty;
 
     /// <summary>
+    /// 是否仅下载高清音频。开启后在同时存在 wav/flac 与 mp3 的情况下会跳过 mp3。
+    /// </summary>
+    public bool HdAudioOnly { get; set; } = true;
+
+    /// <summary>
     /// 全局搜索规则（高级筛选语法）。应用启动后自动填充到 Search 页高级筛选输入。
     /// 示例：tag:舔耳;lang:zh-CN;-age:r15。
     /// </summary>

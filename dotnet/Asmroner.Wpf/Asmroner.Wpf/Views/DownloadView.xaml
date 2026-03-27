@@ -172,6 +172,20 @@
                         Style="{StaticResource LightActionButtonStyle}"
                         Click="OnAddBatchClicked"
                         Content="加入批量下载"/>
+                <Button x:Name="ImportCsvButton"
+                        Width="84"
+                        Margin="6,0,6,6"
+                        Style="{StaticResource LightActionButtonStyle}"
+                        Click="OnImportCsvClicked"
+                        Content="导入CSV"
+                        ToolTip="导入从 Search 页面导出的 CSV 文件，将其中的作品加入下载队列"/>
+                <Button x:Name="ImportJsonButton"
+                        Width="90"
+                        Margin="6,0,6,6"
+                        Style="{StaticResource LightActionButtonStyle}"
+                        Click="OnImportJsonClicked"
+                        Content="导入JSON"
+                        ToolTip="导入从 Search 页面导出的 JSON 文件，将其中的作品加入下载队列"/>
                 <Button x:Name="RunQueueButton"
                         Width="142"
                         Margin="6,0,0,6"
@@ -193,6 +207,12 @@
                          Margin="8,0,0,0"
                          Style="{StaticResource FieldTextBoxStyle}"
                          ToolTip="分号分隔；无前缀或 + 为必含条件，- 为排除条件。例：+voice;-cover"/>
+                <CheckBox x:Name="HdAudioOnlyCheckBox"
+                          Margin="16,0,0,0"
+                          VerticalAlignment="Center"
+                          IsChecked="True"
+                          Content="只下载高清音频"
+                          ToolTip="同时存在高清音频如wav/flac和低清音频mp3时，只下载高清音频"/>
             </StackPanel>
         </Border>
 
@@ -294,7 +314,8 @@
                                         Binding="{Binding Title}"/>
                     <DataGridTextColumn Width="68"
                                         Header="状态"
-                                        Binding="{Binding StatusText}"/>
+                                        Binding="{Binding StatusText}"
+                                        SortMemberPath="StatusSortOrder"/>
                     <DataGridTextColumn Width="85"
                                         Header="进度"
                                         Binding="{Binding ProgressText}"/>
