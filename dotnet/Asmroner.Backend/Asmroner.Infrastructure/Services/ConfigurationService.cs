@@ -63,6 +63,7 @@ public sealed class ConfigurationService : IConfigurationService
                 PreferImage = GetString(root, "downloader", "prefer_image"),
                 PreferVideo = GetString(root, "downloader", "prefer_video"),
                 FileFilter = GetString(root, "downloader", "file_filter"),
+                HdAudioOnly = GetBool(root, "downloader", "hd_audio_only", true),
                 GlobalSearchRule = GetString(root, "downloader", "global_search_rule"),
             },
             Limit = new LimitOptions
@@ -104,6 +105,7 @@ public sealed class ConfigurationService : IConfigurationService
             $"prefer_image = \"{Escape(config.Downloader.PreferImage)}\"",
             $"prefer_video = \"{Escape(config.Downloader.PreferVideo)}\"",
             $"file_filter = \"{Escape(config.Downloader.FileFilter)}\"",
+            $"hd_audio_only = {config.Downloader.HdAudioOnly.ToString().ToLowerInvariant()}",
             $"global_search_rule = \"{Escape(config.Downloader.GlobalSearchRule)}\"",
             string.Empty,
             "[limit]",
@@ -249,5 +251,21 @@ public sealed class ConfigurationService : IConfigurationService
         }
 
         return double.TryParse(value.ToString(), out var parsed) ? parsed : defaultValue;
+    }
+
+    private static bool GetBool(TomlTable root, string sectionName, string key, bool defaultValue)
+    {
+        var section = GetSection(root, sectionName);
+        if (section is null || !section.TryGetValue(key, out var value) || value is null)
+        {
+            return defaultValue;
+        }
+
+        if (value is bool boolValue)
+        {
+            return boolValue;
+        }
+
+        return bool.TryParse(value.ToString(), out var parsed) ? parsed : defaultValue;
     }
 }

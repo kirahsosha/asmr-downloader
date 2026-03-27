@@ -1,8 +1,8 @@
-# asmr-downloader WPF 项目进度跟踪
+﻿# asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.4
+当前跟踪版本：v0.4.1
 
-AI约束策略：章节1.5.1到1.5.57的文本不加入分析上下文
+AI约束策略：章节1.5.1到1.5.60的文本不加入分析上下文
 
 ## 1. 项目进度跟踪清单
 
@@ -681,6 +681,33 @@ AI约束策略：章节1.5.1到1.5.57的文本不加入分析上下文
 4. DoD 判定：是。启动窗口可用性修复已完成，且新增 warmup 回归样例通过。
 5. 下次计划：继续沿用“先修复行为，再补测试，再同步文档”的闭环节奏推进后续任务。
 
+### 1.5.60 2026-03-26，状态列排序修正、重复入队防护、高清音频筛选与 CSV/JSON 导入
+
+1. 变更摘要：
+ - **Bug 1（状态排序）**：`DownloadTaskRowViewModel` 新增 `StatusSortOrder` 属性，`DownloadView.xaml` 状态列绑定 `SortMemberPath="StatusSortOrder"`，修复按字母序排序问题。
+ - **Bug 2（重复入队防护）**：新增 `DownloadEnqueueDuplicatePolicy.FilterAlreadyPresent()`，在 `DownloadView.OnAddSingleClicked`、`OnAddBatchClicked`、`DashboardView.OnQueueClicked` 入队前过滤已存在任务（任意状态）。
+ - **Feature 3（高清音频筛选）**：`DownloadFilterParser.FilterHdAudioOnly<T>()` 新增泛型方法；`IDownloadService`/`DownloadService` 三个公开方法新增 `hdAudioOnly = false` 参数；`DownloadOperationContext` 新增 `HdAudioOnly` 字段；`DownloadView.xaml` 新增复选框；调用链完整透传。
+ - **Feature 4（CSV/JSON 导入）**：新增 `ISearchImportService`（Core）与 `SearchImportService`（Application）；DI 注册；`DownloadView.xaml` 新增两个导入按钮；Handler 含 OpenFileDialog、去重过滤、WorkInfo 预取与 RefreshView。
+2. 关键文件：`DownloadTaskRowViewModel.cs`、`DownloadEnqueueDuplicatePolicy.cs`（新建）、`DownloadOperationContext.cs`、`DownloadView.xaml`、`DownloadView.xaml.cs`、`DashboardView.xaml.cs`、`Asmroner.Wpf/Services/DownloadService.cs`、`App.xaml.cs`、`DownloadFilterParser.cs`、`IDownloadService.cs`、`ISearchImportService.cs`（新建）、`Application/DownloadService.cs`、`SearchImportService.cs`（新建）。
+3. 验证结果：`dotnet build dotnet/Asmroner.sln` 成功（0 错误，0 警告）；`dotnet test dotnet/Asmroner.sln` 通过，总计 173，失败 0，成功 173（+33 新测试）。
+4. DoD 判定：是。4 项需求均已实现、单测覆盖、文档同步，回归测试全通过。
+5. 下次计划：继续沿用"代码改动 + 单测补齐 + progress 同步"同批提交策略推进后续任务。
+
+### 1.5.61 2026-03-27，v0.4.1 版本对齐、Search 行为修正与高清音频默认增强
+
+1. 变更摘要：
+ - **版本对齐（v0.4.1）**：统一更新 Core/Application/Infrastructure/Wpf 四个项目版本号与程序集版本；同步 `MainWindow`、`Settings`、启动日志、`README` 与进度文档头部版本展示。
+ - **Search 清空行为修正**：`DashboardView.OnClearClicked` 改为仅清空关键词、排序、分页与结果；保留高级筛选输入与反选复选框状态。
+ - **Search 入队提示计数修正**：新增 `SearchQueueCountPolicy`，统一处理输入重复、已在队列、已在下载列表三类跳过来源，提示文案展示“新增/跳过”准确数量。
+ - **热门分页上下文修复**：新增热门模式本地分页缓存（`_isPopularMode` + `_popularResults`），修复热门结果在上一页/下一页/跳页/改页大小时丢失上下文的问题。
+ - **单页跳页禁用**：新增 `SearchPagingPolicy`，在总页数为 1 时禁用页码输入框与“跳转”按钮。
+ - **高清音频默认与联动**：`DownloadView` 高清音频复选框默认勾选，配置项新增 `downloader.hd_audio_only`（默认 `true`）并支持读写；当高清音频模式移除 mp3 时，同路径同名 `txt/lrc/ass` sidecar 自动跳过。
+ - **测试补齐**：新增/更新 Application、Core、Infrastructure、Wpf 相关测试，覆盖版本展示、分页策略、入队计数策略、高清音频默认值与 sidecar 过滤逻辑。
+2. 关键文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DashboardView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/SearchPagingPolicy.cs`（新建）、`dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/SearchQueueCountPolicy.cs`（新建）、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/DownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Configuration/DownloaderOptions.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/ConfigurationService.cs`、`dotnet/tests/**/*.cs`（相关新增与更新）。
+3. 验证结果：`dotnet test dotnet/Asmroner.sln` 通过，总计 178，失败 0，成功 178。
+4. DoD 判定：是。本批需求实现完成，测试通过，文档同步完成。
+5. 下次计划：继续沿用“需求分解 -> 顺序实现 -> 测试验证 -> 文档同步”的闭环推进后续批次。
+
 ## 1.6 维护规则
 
 - 每次代码提交后更新第 16.2 节状态表。
@@ -699,29 +726,31 @@ AI约束策略：章节1.5.1到1.5.57的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-03-18 的 `dotnet test dotnet/Asmroner.sln`（140/140）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-03-27 的 `dotnet test dotnet/Asmroner.sln`（178/178）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                 | 输入                                            | 期望输出                                    |
-| ------ | ------ | ------ | ---------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------- |
-| [x]    | [x]    | 阶段 4 | `DirectoryNameStrategy_ShouldMatchGoCompatibilityRule`                 | 含非法字符标题 + SourceId                       | 目录名格式为 `[{SourceId}]{Title}`          |
-| [x]    | [x]    | 阶段 4 | `RunQueuedAsync_ShouldCreateCompletedTaskAndFiles`                     | 入队 1 个 RJID 并执行                           | 任务 `Completed`，文件落地成功，队列清空    |
-| [x]    | [x]    | 阶段 4 | `RunQueuedAsync_ShouldMarkTaskFailed_WhenApiThrows`                    | WorkInfo API 抛异常                             | 任务状态 `Failed` 且含错误信息              |
-| [x]    | [x]    | 阶段 4 | `CancelAsync_ShouldCancelRunningTask`                                  | 长任务执行中调用 `CancelAsync`                  | 目标任务最终状态为 `Canceled`               |
-| [x]    | [x]    | 阶段 4 | `CancelAsync_ShouldCancelQueuedTask_BeforeWorkerStarts`                | 单 worker 场景下取消排队任务                    | 排队任务状态更新为 `Canceled`               |
-| [x]    | [x]    | 阶段 4 | `RetryFailedAsync_ShouldRetryAndCompleteTask`                          | 首次失败后重试                                  | 重试计数 +1，任务转为 `Completed`           |
-| [x]    | [x]    | 阶段 4 | `RunQueuedAsync_ShouldRespectConfiguredMaxWorkers`                     | 入队 4 条、`MaxWorkers=2`                       | 最大观测并发不超过且达到 2                  |
-| [x]    | [x]    | 阶段 4 | `StartAsync_ShouldTrackFailedTask_WhenNewTaskFails`                    | 新任务 `StartAsync` 失败                        | 失败任务仍可在 `GetTasks()` 中追踪          |
-| [x]    | [x]    | 阶段 4 | `StartAsync_ShouldReuseFailedTask_WhenPreferredTaskProvided`           | 选中失败任务立即下载（带 `preferredTaskId`）    | 复用原 `TaskId` 行并重启，不新增任务行      |
-| [x]    | [x]    | 阶段 4 | `StartAsync_ShouldReuseCanceledTask_WhenPreferredTaskProvided`         | 选中已取消任务立即下载（带 `preferredTaskId`）  | 复用原 `TaskId` 行并重启，不新增任务行      |
-| [x]    | [x]    | 阶段 4 | `UpsertPrefetchedWorkInfo_ShouldExposeSnapshot_ForCrossViewTitleReuse` | Search 侧写入预取 WorkInfo 后读取快照           | 快照可读且包含对应标题映射                  |
-| [x]    | [x]    | 阶段 4 | `RunQueuedAsync_ShouldDownloadAllFormats_WhenPreferFormatsEmpty`       | `PreferFormats` 置空且存在多种扩展名轨道        | 不限扩展名，全部下载                        |
-| [x]    | [x]    | 阶段 4 | `RunQueuedAsync_ShouldUsePrefetchedWorkInfo_WithoutApiWorkInfoCall`    | 预先写入内存 WorkInfo 且 API 禁止 WorkInfo 调用 | 下载成功且不触发 WorkInfo API               |
-| [x]    | [x]    | 阶段 4 | `RunQueuedAsync_ShouldReuseCanceledTask_WhenSameSourceRequeued`        | 已取消任务再次由 Search 入队后执行队列          | 复用原任务并回流为待执行/完成，不新增重复行 |
-| [x]    | [x]    | 阶段 4 | `CancelAsync_ShouldReturnFalse_WhenTaskDoesNotExist`                   | 随机 `TaskId` 调取消                            | 返回 `false`                                |
-| [x]    | [x]    | 阶段 4 | `RetryFailedAsync_ShouldNotRetry_WhenTaskIsNotFailed`                  | 任务状态为 `Completed/Canceled` 调重试          | 返回空或拒绝重试                            |
-| [x]    | [x]    | 阶段 4 | `RunQueuedAsync_ShouldContinueOtherTasks_WhenSingleTaskFails`          | 批量队列中单任务失败                            | 其他任务继续完成                            |
+| 已创建 | 已通过 | 阶段    | 样例名                                                                 | 输入                                                | 期望输出                                    |
+| ------ | ------ | ------- | ---------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------- |
+| [x]    | [x]    | 阶段 4  | `DirectoryNameStrategy_ShouldMatchGoCompatibilityRule`                 | 含非法字符标题 + SourceId                           | 目录名格式为 `[{SourceId}]{Title}`          |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldCreateCompletedTaskAndFiles`                     | 入队 1 个 RJID 并执行                               | 任务 `Completed`，文件落地成功，队列清空    |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldMarkTaskFailed_WhenApiThrows`                    | WorkInfo API 抛异常                                 | 任务状态 `Failed` 且含错误信息              |
+| [x]    | [x]    | 阶段 4  | `CancelAsync_ShouldCancelRunningTask`                                  | 长任务执行中调用 `CancelAsync`                      | 目标任务最终状态为 `Canceled`               |
+| [x]    | [x]    | 阶段 4  | `CancelAsync_ShouldCancelQueuedTask_BeforeWorkerStarts`                | 单 worker 场景下取消排队任务                        | 排队任务状态更新为 `Canceled`               |
+| [x]    | [x]    | 阶段 4  | `RetryFailedAsync_ShouldRetryAndCompleteTask`                          | 首次失败后重试                                      | 重试计数 +1，任务转为 `Completed`           |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldRespectConfiguredMaxWorkers`                     | 入队 4 条、`MaxWorkers=2`                           | 最大观测并发不超过且达到 2                  |
+| [x]    | [x]    | 阶段 4  | `StartAsync_ShouldTrackFailedTask_WhenNewTaskFails`                    | 新任务 `StartAsync` 失败                            | 失败任务仍可在 `GetTasks()` 中追踪          |
+| [x]    | [x]    | 阶段 4  | `StartAsync_ShouldReuseFailedTask_WhenPreferredTaskProvided`           | 选中失败任务立即下载（带 `preferredTaskId`）        | 复用原 `TaskId` 行并重启，不新增任务行      |
+| [x]    | [x]    | 阶段 4  | `StartAsync_ShouldReuseCanceledTask_WhenPreferredTaskProvided`         | 选中已取消任务立即下载（带 `preferredTaskId`）      | 复用原 `TaskId` 行并重启，不新增任务行      |
+| [x]    | [x]    | 阶段 4  | `UpsertPrefetchedWorkInfo_ShouldExposeSnapshot_ForCrossViewTitleReuse` | Search 侧写入预取 WorkInfo 后读取快照               | 快照可读且包含对应标题映射                  |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldDownloadAllFormats_WhenPreferFormatsEmpty`       | `PreferFormats` 置空且存在多种扩展名轨道            | 不限扩展名，全部下载                        |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldUsePrefetchedWorkInfo_WithoutApiWorkInfoCall`    | 预先写入内存 WorkInfo 且 API 禁止 WorkInfo 调用     | 下载成功且不触发 WorkInfo API               |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldReuseCanceledTask_WhenSameSourceRequeued`        | 已取消任务再次由 Search 入队后执行队列              | 复用原任务并回流为待执行/完成，不新增重复行 |
+| [x]    | [x]    | 阶段 4  | `CancelAsync_ShouldReturnFalse_WhenTaskDoesNotExist`                   | 随机 `TaskId` 调取消                                | 返回 `false`                                |
+| [x]    | [x]    | 阶段 4  | `RetryFailedAsync_ShouldNotRetry_WhenTaskIsNotFailed`                  | 任务状态为 `Completed/Canceled` 调重试              | 返回空或拒绝重试                            |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldContinueOtherTasks_WhenSingleTaskFails`          | 批量队列中单任务失败                                | 其他任务继续完成                            |
+| [x]    | [x]    | 阶段 5+ | `RunQueuedAsync_ShouldSkipTextSidecars_WhenHdAudioOnlyRemovesMp3`      | 同路径同名 `mp3+wav+txt/lrc/ass`                    | 保留 `wav`，移除对应 `mp3/txt/lrc/ass`      |
+| [x]    | [x]    | 阶段 5+ | `RunQueuedAsync_ShouldKeepTextSidecars_WhenHdAudioOnlyIsFalse`         | 同路径同名 `mp3+wav+txt/lrc/ass`，hdAudioOnly=false | 全部文件保留并下载                          |
 
 #### 2.1.2 Application.Tests / QueryParserServiceTests.cs
 
@@ -861,12 +890,16 @@ AI约束策略：章节1.5.1到1.5.57的文本不加入分析上下文
 
 #### 2.1.21 Core.Tests / DownloadFilterParserTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                     | 输入                                        | 期望输出                                               |
-| ------ | ------ | ------ | ---------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------ |
-| [x]    | [x]    | 阶段 4 | `ParsePreferExtensions_ShouldUseUnifiedPreferFormatsFirst` | 同时提供 `PreferFormats` 与旧字段           | 优先采用 `PreferFormats`，并规范化为带点小写扩展名集合 |
-| [x]    | [x]    | 阶段 4 | `ParsePreferExtensions_ShouldFallbackToLegacyFields`       | `PreferFormats` 为空，旧字段有值            | 回退合并旧字段并生成规范化扩展名集合                   |
-| [x]    | [x]    | 阶段 4 | `ParseFileFilter_ShouldParseIncludeAndExcludeTerms`        | `+voice;-demo;chapter`                      | 正确解析必含/排除项，忽略空项                          |
-| [x]    | [x]    | 阶段 4 | `MatchesFileFilter_ShouldApplyAllTerms`                    | 包含必含与排除的筛选规则 + 多种文件路径输入 | 仅匹配同时满足全部必含且不命中排除条件的路径           |
+| 已创建 | 已通过 | 阶段    | 样例名                                                           | 输入                                        | 期望输出                                               |
+| ------ | ------ | ------- | ---------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------ |
+| [x]    | [x]    | 阶段 4  | `ParsePreferExtensions_ShouldUseUnifiedPreferFormatsFirst`       | 同时提供 `PreferFormats` 与旧字段           | 优先采用 `PreferFormats`，并规范化为带点小写扩展名集合 |
+| [x]    | [x]    | 阶段 4  | `ParsePreferExtensions_ShouldFallbackToLegacyFields`             | `PreferFormats` 为空，旧字段有值            | 回退合并旧字段并生成规范化扩展名集合                   |
+| [x]    | [x]    | 阶段 4  | `ParseFileFilter_ShouldParseIncludeAndExcludeTerms`              | `+voice;-demo;chapter`                      | 正确解析必含/排除项，忽略空项                          |
+| [x]    | [x]    | 阶段 4  | `MatchesFileFilter_ShouldApplyAllTerms`                          | 包含必含与排除的筛选规则 + 多种文件路径输入 | 仅匹配同时满足全部必含且不命中排除条件的路径           |
+| [x]    | [x]    | 阶段 5+ | `FilterHdAudioOnly_ShouldRemoveMp3_WhenFlacExists`               | mp3 + flac 混合列表，hdAudioOnly=true       | 保留 flac，移除 mp3                                    |
+| [x]    | [x]    | 阶段 5+ | `FilterHdAudioOnly_ShouldRemoveMp3_WhenWavExists`                | mp3 + wav 混合列表，hdAudioOnly=true        | 保留 wav，移除 mp3                                     |
+| [x]    | [x]    | 阶段 5+ | `FilterHdAudioOnly_ShouldKeepMp3_WhenNoHdAudioExists`            | mp3 + jpg 列表，无 wav/flac                 | 原样返回，不过滤 mp3                                   |
+| [x]    | [x]    | 阶段 5+ | `FilterHdAudioOnly_ShouldReturnUnchanged_WhenHdAudioOnlyIsFalse` | mp3 + flac，hdAudioOnly=false               | 原样返回所有条目                                       |
 
 #### 2.1.22 Wpf.Tests / DownloadTaskListComposerTests.cs
 
@@ -952,10 +985,12 @@ AI约束策略：章节1.5.1到1.5.57的文本不加入分析上下文
 
 #### 2.1.32 Wpf.Tests / DownloadOperationContextTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                          | 输入                               | 期望输出                    |
-| ------ | ------ | ------ | ----------------------------------------------- | ---------------------------------- | --------------------------- |
-| [x]    | [x]    | 阶段 4 | `Create_ShouldNormalizeWhitespaceFilter_ToNull` | `rawFileFilter="   "`              | `FileFilter=null`           |
-| [x]    | [x]    | 阶段 4 | `Create_ShouldTrimFilter_WhenValueProvided`     | `rawFileFilter="  +voice;-demo  "` | `FileFilter="+voice;-demo"` |
+| 已创建 | 已通过 | 阶段    | 样例名                                          | 输入                               | 期望输出                       |
+| ------ | ------ | ------- | ----------------------------------------------- | ---------------------------------- | ------------------------------ |
+| [x]    | [x]    | 阶段 4  | `Create_ShouldNormalizeWhitespaceFilter_ToNull` | `rawFileFilter="   "`              | `FileFilter=null`              |
+| [x]    | [x]    | 阶段 4  | `Create_ShouldTrimFilter_WhenValueProvided`     | `rawFileFilter="  +voice;-demo  "` | `FileFilter="+voice;-demo"`    |
+| [x]    | [x]    | 阶段 5+ | `Create_ShouldCarryHdAudioOnly_WhenFlagIsTrue`  | `hdAudioOnly=true`                 | `context.HdAudioOnly == true`  |
+| [x]    | [x]    | 阶段 5+ | `Create_ShouldDefaultHdAudioOnly_ToFalse`       | 不传第二参数                       | `context.HdAudioOnly == false` |
 
 #### 2.1.33 Wpf.Tests / DownloadTaskSnapshotPolicyTests.cs
 
@@ -1019,6 +1054,51 @@ AI约束策略：章节1.5.1到1.5.57的文本不加入分析上下文
 
 ---
 
+
+#### 2.1.41 Wpf.Tests / DownloadTaskRowViewModelTests.cs（新建）
+
+| 已创建 | 已通过 | 阶段    | 样例名                                                                                   | 输入                       | 期望输出                                      |
+| ------ | ------ | ------- | ---------------------------------------------------------------------------------------- | -------------------------- | --------------------------------------------- |
+| [x]    | [x]    | 阶段 5+ | `From_ShouldSetStatusSortOrder_MatchingGetSortOrder`（全 6 状态 Theory）                 | 各 DownloadTaskStatus 枚举 | `vm.StatusSortOrder == status.GetSortOrder()` |
+| [x]    | [x]    | 阶段 5+ | `CreatePending_ShouldSetStatusSortOrder_MatchingGetSortOrder`（Queued/Pending/Canceled） | 各待定状态                 | `vm.StatusSortOrder == status.GetSortOrder()` |
+
+#### 2.1.42 Wpf.Tests / DownloadEnqueueDuplicatePolicyTests.cs（新建）
+
+| 已创建 | 已通过 | 阶段    | 样例名                                                                                | 输入                             | 期望输出                 |
+| ------ | ------ | ------- | ------------------------------------------------------------------------------------- | -------------------------------- | ------------------------ |
+| [x]    | [x]    | 阶段 5+ | `FilterAlreadyPresent_ShouldExclude_WhenSourceIdExistsWithAnyStatus`（5 状态 Theory） | 已存在各状态任务，入队同 RJID    | 返回空列表               |
+| [x]    | [x]    | 阶段 5+ | `FilterAlreadyPresent_ShouldInclude_WhenSourceIdNotInTaskList`                        | 已有 RJ001，入队 RJ002/RJ003     | 返回 [RJ002, RJ003]      |
+| [x]    | [x]    | 阶段 5+ | `FilterAlreadyPresent_ShouldIgnoreCase`                                               | 已有小写 rj001，入队 RJ001/RJ002 | 跳过 RJ001，返回 [RJ002] |
+| [x]    | [x]    | 阶段 5+ | `FilterAlreadyPresent_ShouldReturnAll_WhenNoExistingTasks`                            | 空任务列表，入队 2 项            | 返回所有 2 项            |
+| [x]    | [x]    | 阶段 5+ | `FilterAlreadyPresent_ShouldReturnEmpty_WhenAllAlreadyExist`                          | 全部已存在                       | 返回空列表               |
+
+#### 2.1.43 Application.Tests / SearchImportServiceTests.cs（新建）
+
+| 已创建 | 已通过 | 阶段    | 样例名                                                  | 输入                           | 期望输出                                   |
+| ------ | ------ | ------- | ------------------------------------------------------- | ------------------------------ | ------------------------------------------ |
+| [x]    | [x]    | 阶段 5+ | `ParseCsvAsync_ShouldReturnItems_FromValidCsv`          | 有效 CSV（含标准 6 列）        | 正确解析 SourceId/Title/Release/Rate/Count |
+| [x]    | [x]    | 阶段 5+ | `ParseCsvAsync_ShouldSkipHeaderAndEmptyLines`           | 含空行的 CSV                   | 只返回有效数据行                           |
+| [x]    | [x]    | 阶段 5+ | `ParseCsvAsync_ShouldHandleQuotedTitle_WithComma`       | 标题含逗号（RFC4180 引号包裹） | 正确解析含逗号 title                       |
+| [x]    | [x]    | 阶段 5+ | `ParseCsvAsync_ShouldHandleEmbeddedDoubleQuote_InTitle` | 标题含双引号（`""`转义）       | 正确解析含引号 title                       |
+| [x]    | [x]    | 阶段 5+ | `ParseJsonAsync_ShouldDeserializeItems_FromValidJson`   | 有效 JSON 数组（camelCase）    | 正确反序列化 SourceId/Title                |
+| [x]    | [x]    | 阶段 5+ | `ParseJsonAsync_ShouldReturnEmpty_ForEmptyJsonArray`    | `[]`                           | 返回空列表                                 |
+| [x]    | [x]    | 阶段 5+ | `ParseJsonAsync_ShouldSkipEntries_WithEmptySourceId`    | 含空 sourceId 的条目           | 过滤空 sourceId，只返回有效项              |
+
+#### 2.1.44 Wpf.Tests / SearchPagingPolicyTests.cs（新建）
+
+| 已创建 | 已通过 | 阶段    | 样例名                                             | 输入                                  | 期望输出                        |
+| ------ | ------ | ------- | -------------------------------------------------- | ------------------------------------- | ------------------------------- |
+| [x]    | [x]    | 阶段 5+ | `SlicePage_ShouldClampPage_AndReturnExpectedItems` | 5 条数据，requestedPage=4，pageSize=2 | 纠正到有效页 3，并返回最后 1 条 |
+| [x]    | [x]    | 阶段 5+ | `CanJump_ShouldReturnFalse_WhenOnlySinglePage`     | totalPages=1                          | 返回 false（禁用跳页）          |
+| [x]    | [x]    | 阶段 5+ | `CanJump_ShouldReturnTrue_WhenMultiplePages`       | totalPages=2                          | 返回 true（允许跳页）           |
+
+#### 2.1.45 Wpf.Tests / SearchQueueCountPolicyTests.cs（新建）
+
+| 已创建 | 已通过 | 阶段    | 样例名                                                         | 输入                                   | 期望输出                                            |
+| ------ | ------ | ------- | -------------------------------------------------------------- | -------------------------------------- | --------------------------------------------------- |
+| [x]    | [x]    | 阶段 5+ | `Build_ShouldCountSkippedFromExistingQueuedAndInputDuplicates` | 混合输入重复 + 已在队列 + 已在任务列表 | `ToEnqueue` 与 `SkippedCount` 均与去重/跳过规则一致 |
+| [x]    | [x]    | 阶段 5+ | `Build_ShouldReturnEmpty_WhenInputInvalid`                     | 空字符串与空白输入                     | 返回空队列且跳过数为 0                              |
+
 ### 2.2 测试覆盖分析
 
 - Core（模型/配置）：默认值完整性，✅ 已覆盖。
@@ -1049,8 +1129,68 @@ AI约束策略：章节1.5.1到1.5.57的文本不加入分析上下文
 
 ### 3.1 计划与提交明细
 
-| 提交日期   | 状态   | 提交总结(Summary)                                              | 提交描述(Description)                                                                                                                                                                                                                                                                                                                                                                                                              | Commit SHA |
-| ---------- | ------ | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| 2026-03-18 | 已提交 | WPF migration first submission                                 | 1. Completed Phase 0: Initialize the .NET project<br>2. Completed Phase 1: Configure and initialize migration<br>3. Completed Phase 2: API and authentication migration<br>4. Completed Phase 3: Search capability migration<br>5. Completed Phase 4: Download capability migration                                                                                                                                                | d36ead7    |
-| 2026-03-18 | 已提交 | feat(dotnet): consolidate endpoint url flow and startup warmup | 1. Add configurable endpoint discovery flow with persisted API base URL and runtime current-base-url usage in API/Auth services<br>2. Keep Discover calls only for startup warmup and connectivity probe, and make startup warmup non-blocking with timeout/fail-open behavior<br>3. Add infrastructure and WPF regression tests, then sync progress sections 1.5/2.1/3.1                                                          | 43eddcd    |
-| 2026-03-19 | 待提交 | align docs to WPF; align runtime/docs version to 0.4           | 1. Adjust README.md to focus on the WPF client; and move the original Go CLI/WebUI examples to docs/legacy-go.md as historical references.<br>2. Add LICENSE with copyright holder kirahsosha.<br>3. Uniformly set Version to the 0.4 series in the WPF runtime projects.<br>4. Add v0.4 display in MainWindow, Settings, and startup logs, and synchronize the version identifiers in README and the WPF migration documentation. | —          |
+| 提交日期   | 状态   | 提交总结(Summary)                                                          | 提交描述(Description)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Commit SHA |
+| ---------- | ------ | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------- |
+| 2026-03-18 | 已提交 | WPF migration first submission                                             | 1. Completed Phase 0: Initialize the .NET project<br>2. Completed Phase 1: Configure and initialize migration<br>3. Completed Phase 2: API and authentication migration<br>4. Completed Phase 3: Search capability migration<br>5. Completed Phase 4: Download capability migration                                                                                                                                                                                                                                                                                            | d36ead7    |
+| 2026-03-18 | 已提交 | feat(dotnet): consolidate endpoint url flow and startup warmup             | 1. Add configurable endpoint discovery flow with persisted API base URL and runtime current-base-url usage in API/Auth services<br>2. Keep Discover calls only for startup warmup and connectivity probe, and make startup warmup non-blocking with timeout/fail-open behavior<br>3. Add infrastructure and WPF regression tests, then sync progress sections 1.5/2.1/3.1                                                                                                                                                                                                      | 43eddcd    |
+| 2026-03-19 | 待提交 | align docs to WPF; align runtime/docs version to 0.4                       | 1. Adjust README.md to focus on the WPF client; and move the original Go CLI/WebUI examples to docs/legacy-go.md as historical references.<br>2. Add LICENSE with copyright holder kirahsosha.<br>3. Uniformly set Version to the 0.4 series in the WPF runtime projects.<br>4. Add v0.4 display in MainWindow, Settings, and startup logs, and synchronize the version identifiers in README and the WPF migration documentation.                                                                                                                                             | —          |
+| 2026-03-19 | 待提交 | feat(dotnet): fix sort/dedup bugs, add hd-audio filter and csv/json import | 1. Fix status column sort order by adding `StatusSortOrder` property to `DownloadTaskRowViewModel`<br>2. Add `DownloadEnqueueDuplicatePolicy` to prevent duplicate RJID entries in download list<br>3. Add HD audio only checkbox and `FilterHdAudioOnly<T>()` to exclude mp3 when wav/flac exists<br>4. Add Import CSV/Import JSON buttons with `SearchImportService` (RFC4180 CSV + camelCase JSON)<br>5. Add regression tests (+31) and sync progress sections 1.5/2.1/3.1                                                                                                  | —          |
+| 2026-03-27 | 待提交 | fix(search/download): preserve filters, accurate queue counts, v0.4.1 sync | 1. Bump runtime/docs version to v0.4.1 across csproj, WPF title/status and README.<br>2. Fix Search clear behavior to preserve advanced filters while clearing keyword/sort/pagination/results.<br>3. Keep popular query context during paging and disable jump controls when only one page.<br>4. Add queue-count policy to report accurate added/skipped counts.<br>5. Add hd_audio_only config default true and skip txt/lrc/ass sidecars when mp3 is removed by HD-audio filtering.<br>6. Add/refresh regression tests and validate with full solution test run (178/178). | —          |
+
+---
+
+## 4. 功能测试验证清单
+
+本章用于指导测试人员对当前已交付的 WPF 客户端执行功能测试与回归测试。当前范围仅覆盖已完成并可使用的能力：阶段 1 到阶段 4，以及第 1.5.60 与第 1.5.61 条补充的功能修复与增强。阶段 5 及以后功能暂不纳入本清单。
+
+AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可见行为的改动时，必须先检查本章并将受影响的测试项重置为未勾选；待对应的功能测试或回归测试通过后，再重新勾选，并在必要时同步更新第 1.4 节和第 1.5 节记录。
+
+说明：
+
+- `[ ]`：本轮尚未验证，或因代码改动需要重新验证。
+- `[x]`：本轮已验证通过。
+- 任一项失败时，不得勾选该项；需要在第 1.4 节登记阻塞，或在第 1.5 节补充验证结果。
+
+### 4.1 启动、配置与连接
+
+- [x] 应用可正常启动，主窗口可显示 Search、Download、Settings 三个页签，且启动过程不因站点发现流程长时间阻塞。
+- [x] Settings 页面可正确加载现有配置；默认下载目录、格式优先级、下载筛选默认规则、全局搜索规则等字段显示完整。
+- [x] 在 Settings 页面修改有效配置后，“保存并重新初始化”可成功完成，状态提示明确，应用进入可用状态。
+- [x] Settings 页面输入无效配置时，可给出可读错误提示，且应用不崩溃。
+- [x] “测试连接”可完成站点发现与登录校验；成功时回填当前 BaseUrl 并显示延迟与鉴权结果，失败时显示明确原因。
+
+### 4.2 Search 功能
+
+- [x] 仅输入基础关键词即可成功搜索，并展示结果列表、总数和页码信息。
+- [x] 高级筛选 `tag/circle/va/duration/rate/price/sell/age/lang` 可单独或组合生效，`反选` 语义正确。
+- [x] Search 的排序、方向、字幕、是否包含翻译作品等选项生效，翻页后条件保持不丢失。
+- [x] 上一页、下一页、跳页、页大小切换均可用，分页结果与页码信息正确。
+- [x] “查询热门作品”可返回结果并展示到结果列表。
+- [x] “清空”可重置关键词、排序选项、分页状态和当前结果，同时保留高级筛选输入与反选状态。
+- [x] Settings 中配置的“全局搜索规则”会在 Search 页面首次加载时自动填充到高级筛选，页面切换往返后不会重复追加。
+- [x] 选中部分结果点击“加入下载队列”时，仅将选中项入队；未选中任何结果时，可按当前结果集批量入队。
+- [x] 已存在于下载列表中的作品不会重复入队，页面提示中会明确说明新增数量与跳过数量。
+- [x] Search 结果可成功导出 CSV 与 JSON，导出文件内容可正常打开且关键字段完整。
+
+### 4.3 Download 功能
+
+- [x] 单个 RJID 入队支持 `RJxxxx`、作品 URL、`RJ-xxxx`、纯数字等输入形式，提交后可归一化并成功入队。
+- [x] 批量入队支持逗号、分号、空格、换行混合分隔；重复项会去重，已存在任务不会重复加入。
+- [x] 导入 CSV 与导入 JSON 可成功读取 Search 导出文件并入队，重复任务会被跳过且提示明确。
+- [x] 执行下载队列后，任务列表与队列计数会刷新，任务状态、进度、目标目录、错误信息显示正确。
+- [x] 状态列排序遵循业务顺序而非字母序；状态文案显示为中文且与实际状态一致。
+- [x] “立即下载选中任务”可对 Pending、Failed、Canceled 等允许状态生效，不允许的状态不会误触发。
+- [x] “取消选中任务”可取消 Pending、Queued、Running 任务，确认提示、取消结果与列表状态一致。
+- [x] “重试失败任务”仅对单个失败任务可用；“重试全部失败任务”仅在存在失败任务时可用，并能输出正确汇总结果。
+- [x] “打开下载目录”可打开当前生效的下载目录。
+- [x] 文件筛选规则可生效；开启“只下载高清音频”后，在同时存在 flac/wav 与 mp3 的场景下不会重复下载 mp3。
+- [x] 新启动的失败任务不会从列表中消失；失败、取消、完成后的任务状态可被稳定追踪。
+
+### 4.4 Search/Download 联动与回归
+
+- [x] Search 页面加入下载队列后，Download 页面可看到对应待执行任务，标题信息尽量不丢失。
+- [x] 已取消任务再次从 Search 侧或 Download 侧触发下载时，可复用原任务行并回流为待执行/执行中状态，不新增重复行。
+- [x] Search 与 Download 页面之间来回切换后，队列数量、任务状态和标题缓存保持一致，不出现旧状态残留。
+- [x] Search 导出 -> Download 导入 -> 执行下载的链路可端到端跑通。
+- [x] 重复入队防护在 Search 入队、Download 单个入队、Download 批量入队、CSV 导入、JSON 导入五条入口上行为一致。
+- [x] 连续执行“搜索 -> 入队 -> 立即下载/执行队列 -> 刷新列表 -> 重试/取消”后，应用无崩溃、无明显 UI 状态错乱。

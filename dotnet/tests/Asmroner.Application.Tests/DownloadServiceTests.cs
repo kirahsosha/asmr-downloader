@@ -433,6 +433,90 @@ public class DownloadServiceTests
     }
 
     [Fact]
+    public async Task RunQueuedAsync_ShouldSkipTextSidecars_WhenHdAudioOnlyRemovesMp3()
+    {
+        var tempRoot = CreateTempRoot("hd-sidecar-skip");
+        var searchStateStore = new SearchStateStore();
+        searchStateStore.EnqueueForDownload(new[] { "RJ7001" });
+
+        var apiClient = new ScriptedApiClient(tracks: new[]
+        {
+            new Asmroner.Core.Api.TrackDto { Title = "voice", MediaDownloadUrl = "https://cdn.example.com/a/voice.mp3" },
+            new Asmroner.Core.Api.TrackDto { Title = "voice", MediaDownloadUrl = "https://cdn.example.com/a/voice.wav" },
+            new Asmroner.Core.Api.TrackDto { Title = "voice", MediaDownloadUrl = "https://cdn.example.com/a/voice.txt" },
+            new Asmroner.Core.Api.TrackDto { Title = "voice", MediaDownloadUrl = "https://cdn.example.com/a/voice.lrc" },
+            new Asmroner.Core.Api.TrackDto { Title = "voice", MediaDownloadUrl = "https://cdn.example.com/a/voice.ass" },
+            new Asmroner.Core.Api.TrackDto { Title = "readme", MediaDownloadUrl = "https://cdn.example.com/a/readme.txt" },
+        });
+
+        var sut = new DownloadService(
+            apiClient,
+            new TestConfigurationService(tempRoot),
+            searchStateStore,
+            new TestAppPathService(tempRoot),
+            new NoopRateLimiterService());
+
+        var tasks = await sut.RunQueuedAsync(hdAudioOnly: true);
+        var task = Assert.Single(tasks);
+
+        Assert.Equal(DownloadTaskStatus.Completed, task.Status);
+        Assert.Equal(2, task.TotalFiles);
+
+        var downloadedFiles = Directory
+            .EnumerateFiles(task.TargetDirectory, "*", SearchOption.AllDirectories)
+            .Select(Path.GetFileName)
+            .ToArray();
+
+        Assert.Contains("voice.wav", downloadedFiles, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("readme.txt", downloadedFiles, StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain("voice.mp3", downloadedFiles, StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain("voice.txt", downloadedFiles, StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain("voice.lrc", downloadedFiles, StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain("voice.ass", downloadedFiles, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task RunQueuedAsync_ShouldKeepTextSidecars_WhenHdAudioOnlyIsFalse()
+    {
+        var tempRoot = CreateTempRoot("hd-sidecar-keep");
+        var searchStateStore = new SearchStateStore();
+        searchStateStore.EnqueueForDownload(new[] { "RJ7002" });
+
+        var apiClient = new ScriptedApiClient(tracks: new[]
+        {
+            new Asmroner.Core.Api.TrackDto { Title = "voice", MediaDownloadUrl = "https://cdn.example.com/a/voice.mp3" },
+            new Asmroner.Core.Api.TrackDto { Title = "voice", MediaDownloadUrl = "https://cdn.example.com/a/voice.wav" },
+            new Asmroner.Core.Api.TrackDto { Title = "voice", MediaDownloadUrl = "https://cdn.example.com/a/voice.txt" },
+            new Asmroner.Core.Api.TrackDto { Title = "voice", MediaDownloadUrl = "https://cdn.example.com/a/voice.lrc" },
+            new Asmroner.Core.Api.TrackDto { Title = "voice", MediaDownloadUrl = "https://cdn.example.com/a/voice.ass" },
+        });
+
+        var sut = new DownloadService(
+            apiClient,
+            new TestConfigurationService(tempRoot),
+            searchStateStore,
+            new TestAppPathService(tempRoot),
+            new NoopRateLimiterService());
+
+        var tasks = await sut.RunQueuedAsync(hdAudioOnly: false);
+        var task = Assert.Single(tasks);
+
+        Assert.Equal(DownloadTaskStatus.Completed, task.Status);
+        Assert.Equal(5, task.TotalFiles);
+
+        var downloadedFiles = Directory
+            .EnumerateFiles(task.TargetDirectory, "*", SearchOption.AllDirectories)
+            .Select(Path.GetFileName)
+            .ToArray();
+
+        Assert.Contains("voice.mp3", downloadedFiles, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("voice.wav", downloadedFiles, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("voice.txt", downloadedFiles, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("voice.lrc", downloadedFiles, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("voice.ass", downloadedFiles, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task RunQueuedAsync_ShouldUsePrefetchedWorkInfo_WithoutApiWorkInfoCall()
     {
         var tempRoot = CreateTempRoot("prefetched-workinfo");

@@ -72,6 +72,7 @@ public class ConfigurationServiceTests
                     SyncDataFolder = Path.Combine(tempRoot, "sync"),
                     MaxWorkers = 8,
                     MaxRetries = 5,
+                    HdAudioOnly = false,
                     GlobalSearchRule = "tag:舔耳;lang:zh-CN",
                 },
                 Limit = new LimitOptions
@@ -92,6 +93,7 @@ public class ConfigurationServiceTests
             Assert.Equal("https://example.com/work/{RJID}", loaded.Downloader.WorkPageUrlTemplate);
             Assert.Equal(8, loaded.Downloader.MaxWorkers);
             Assert.Equal(5, loaded.Downloader.MaxRetries);
+            Assert.False(loaded.Downloader.HdAudioOnly);
             Assert.Equal("tag:舔耳;lang:zh-CN", loaded.Downloader.GlobalSearchRule);
         }
         finally

@@ -24,9 +24,11 @@ public partial class DashboardView : UserControl
     private readonly ILogger<DashboardView> _logger;
 
     private IReadOnlyList<SearchWorkItem> _results = Array.Empty<SearchWorkItem>();
+    private IReadOnlyList<SearchWorkItem> _popularResults = Array.Empty<SearchWorkItem>();
     private int _currentPage = 1;
     private int _pageSize = 20;
     private int _totalCount;
+    private bool _isPopularMode;
     private bool _globalSearchRuleLoadedAtStartup;
 
     public DashboardView()
@@ -133,6 +135,8 @@ public partial class DashboardView : UserControl
 
     private async void OnSearchClicked(object sender, System.Windows.RoutedEventArgs e)
     {
+        _isPopularMode = false;
+        _popularResults = Array.Empty<SearchWorkItem>();
         _currentPage = 1;
         await ExecuteSearchAsync();
     }
@@ -196,10 +200,23 @@ public partial class DashboardView : UserControl
             return;
         }
 
-        _searchStateStore.EnqueueForDownload(sourceIds);
-        _downloadService.UpsertPrefetchedWorkInfo(BuildPrefetchedWorkInfoMap(sourceIds));
+        var queuePlan = SearchQueueCountPolicy.Build(
+            sourceIds,
+            _downloadService.GetTasks(),
+            _searchStateStore.GetQueuedSourceIds());
+
+        if (queuePlan.ToEnqueue.Count == 0)
+        {
+            StatusTextBlock.Text = $"所选作品均已在下载列表或队列中，跳过 {queuePlan.SkippedCount} 项。";
+            return;
+        }
+
+        _searchStateStore.EnqueueForDownload(queuePlan.ToEnqueue);
+        _downloadService.UpsertPrefetchedWorkInfo(BuildPrefetchedWorkInfoMap(queuePlan.ToEnqueue));
         var queueCount = _searchStateStore.GetQueuedSourceIds().Count;
-        StatusTextBlock.Text = $"已加入下载队列 {sourceIds.Length} 项，当前队列总数 {queueCount}。";
+        StatusTextBlock.Text = queuePlan.SkippedCount > 0
+            ? $"已加入下载队列 {queuePlan.ToEnqueue.Count} 项，跳过 {queuePlan.SkippedCount} 项（已存在或重复），当前队列总数 {queueCount}。"
+            : $"已加入下载队列 {queuePlan.ToEnqueue.Count} 项，当前队列总数 {queueCount}。";
     }
 
     private async void OnQueryHotClicked(object sender, System.Windows.RoutedEventArgs e)
@@ -210,7 +227,7 @@ public partial class DashboardView : UserControl
         try
         {
             var popular = await _asmrApiClient.GetPopularAsync();
-            _results = popular
+            _popularResults = popular
                 .Where(static item => !string.IsNullOrWhiteSpace(item.SourceId))
                 .Select(static item => new SearchWorkItem
                 {
@@ -223,11 +240,11 @@ public partial class DashboardView : UserControl
                 })
                 .ToArray();
 
-            ResultsGrid.ItemsSource = _results;
-            _totalCount = _results.Count;
+            _isPopularMode = true;
+            _totalCount = _popularResults.Count;
             _currentPage = 1;
-            UpdatePaginationInfo();
-            StatusTextBlock.Text = $"热门查询完成：返回 {_results.Count} 条。";
+            RenderPopularPage();
+            StatusTextBlock.Text = BuildPopularPageStatusText();
         }
         catch (Exception ex)
         {
@@ -243,39 +260,21 @@ public partial class DashboardView : UserControl
     private void OnClearClicked(object sender, System.Windows.RoutedEventArgs e)
     {
         QueryTextBox.Text = string.Empty;
-        TagTextBox.Text = string.Empty;
-        CircleTextBox.Text = string.Empty;
-        VaTextBox.Text = string.Empty;
-        DurationTextBox.Text = string.Empty;
-        RateTextBox.Text = string.Empty;
-        PriceTextBox.Text = string.Empty;
-        SellTextBox.Text = string.Empty;
-        AgeTextBox.Text = string.Empty;
-        LangTextBox.Text = string.Empty;
-
-        TagExcludeCheckBox.IsChecked = false;
-        CircleExcludeCheckBox.IsChecked = false;
-        VaExcludeCheckBox.IsChecked = false;
-        DurationExcludeCheckBox.IsChecked = false;
-        RateExcludeCheckBox.IsChecked = false;
-        PriceExcludeCheckBox.IsChecked = false;
-        SellExcludeCheckBox.IsChecked = false;
-        AgeExcludeCheckBox.IsChecked = false;
-        LangExcludeCheckBox.IsChecked = false;
 
         OrderComboBox.SelectedIndex = 0;
         SortComboBox.SelectedIndex = 0;
         SubtitleComboBox.SelectedIndex = 0;
-        IncludeTranslationCheckBox.IsChecked = true;
         PageSizeComboBox.SelectedIndex = 0;
 
+        _isPopularMode = false;
+        _popularResults = Array.Empty<SearchWorkItem>();
         _currentPage = 1;
         _pageSize = 20;
         _totalCount = 0;
         _results = Array.Empty<SearchWorkItem>();
         ResultsGrid.ItemsSource = _results;
         UpdatePaginationInfo();
-        StatusTextBlock.Text = "已清空搜索条件与结果。";
+        StatusTextBlock.Text = "已清空关键词、排序、分页与当前结果。";
     }
 
     private async void OnPrevPageClicked(object sender, System.Windows.RoutedEventArgs e)
@@ -286,6 +285,14 @@ public partial class DashboardView : UserControl
         }
 
         _currentPage--;
+
+        if (_isPopularMode)
+        {
+            RenderPopularPage();
+            StatusTextBlock.Text = BuildPopularPageStatusText();
+            return;
+        }
+
         await ExecuteSearchAsync();
     }
 
@@ -298,6 +305,14 @@ public partial class DashboardView : UserControl
         }
 
         _currentPage++;
+
+        if (_isPopularMode)
+        {
+            RenderPopularPage();
+            StatusTextBlock.Text = BuildPopularPageStatusText();
+            return;
+        }
+
         await ExecuteSearchAsync();
     }
 
@@ -310,6 +325,14 @@ public partial class DashboardView : UserControl
         }
 
         _currentPage = page;
+
+        if (_isPopularMode)
+        {
+            RenderPopularPage();
+            StatusTextBlock.Text = BuildPopularPageStatusText();
+            return;
+        }
+
         await ExecuteSearchAsync();
     }
 
@@ -323,6 +346,13 @@ public partial class DashboardView : UserControl
 
         _pageSize = newPageSize;
         _currentPage = 1;
+
+        if (_isPopularMode)
+        {
+            RenderPopularPage();
+            StatusTextBlock.Text = BuildPopularPageStatusText();
+            return;
+        }
 
         if (!string.IsNullOrWhiteSpace(QueryTextBox.Text) || HasAdvancedFilter())
         {
@@ -396,6 +426,8 @@ public partial class DashboardView : UserControl
 
     private void ToggleActionButtons(bool isEnabled)
     {
+        var canJump = SearchPagingPolicy.CanJump(GetTotalPages());
+
         SearchButton.IsEnabled = isEnabled;
         QueryHotButton.IsEnabled = isEnabled;
         ExportCsvButton.IsEnabled = isEnabled;
@@ -404,9 +436,25 @@ public partial class DashboardView : UserControl
         ClearButton.IsEnabled = isEnabled;
         PrevPageButton.IsEnabled = isEnabled && _currentPage > 1;
         NextPageButton.IsEnabled = isEnabled && _currentPage < GetTotalPages();
-        GoPageButton.IsEnabled = isEnabled;
-        CurrentPageTextBox.IsEnabled = isEnabled;
+        GoPageButton.IsEnabled = isEnabled && canJump;
+        CurrentPageTextBox.IsEnabled = isEnabled && canJump;
         PageSizeComboBox.IsEnabled = isEnabled;
+    }
+
+    private void RenderPopularPage()
+    {
+        _totalCount = _popularResults.Count;
+        var window = SearchPagingPolicy.SlicePage(_popularResults, _currentPage, _pageSize);
+        _currentPage = window.EffectivePage;
+        _results = window.Items;
+
+        ResultsGrid.ItemsSource = _results;
+        UpdatePaginationInfo();
+    }
+
+    private string BuildPopularPageStatusText()
+    {
+        return $"热门查询：第 {_currentPage}/{GetTotalPages()} 页，当前 {_results.Count} 条 / 总计 {_totalCount} 条。";
     }
 
     private string BuildEffectiveQuery()
@@ -630,9 +678,13 @@ public partial class DashboardView : UserControl
             _currentPage = totalPages;
         }
 
+        var canJump = SearchPagingPolicy.CanJump(totalPages);
+
         CurrentPageTextBox.Text = _currentPage.ToString();
         PageInfoTextBlock.Text = $"第 {_currentPage}/{totalPages} 页，总计 {_totalCount} 条";
         PrevPageButton.IsEnabled = _currentPage > 1;
         NextPageButton.IsEnabled = _currentPage < totalPages;
+        GoPageButton.IsEnabled = canJump;
+        CurrentPageTextBox.IsEnabled = canJump;
     }
 }

@@ -257,10 +257,10 @@
                            Margin="2,2,0,0"
                            Foreground="#FF2F4B67"
                            Text="等待保存配置。"/>
-                                <TextBlock Margin="2,6,0,0"
-                                                   Foreground="#FF6F8095"
-                                                   FontSize="12"
-                                                   Text="版本：v0.4"/>
+                <TextBlock Margin="2,6,0,0"
+                           Foreground="#FF6F8095"
+                           FontSize="12"
+                           Text="版本：v0.4.1"/>
             </StackPanel>
         </ScrollViewer>
     </Grid>
