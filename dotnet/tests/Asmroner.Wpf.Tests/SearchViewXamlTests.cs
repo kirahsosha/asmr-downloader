@@ -64,4 +64,26 @@ public class SearchViewXamlTests
         Assert.Contains("SelectionChanged=\"OnSubtitleChanged\"", content, StringComparison.Ordinal);
         Assert.Contains("SelectionChanged=\"OnPageSizeChanged\"", content, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void SearchViewXaml_ShouldContainResultsGridContextMenuItems()
+    {
+        var xamlPath = XamlTestPathLocator.Locate("SearchView.xaml", "dotnet", "Asmroner.Wpf", "Asmroner.Wpf", "Views");
+        var content = File.ReadAllText(xamlPath);
+
+        Assert.Contains("PreviewMouseRightButtonDown=\"OnResultsGridPreviewMouseRightButtonDown\"", content, StringComparison.Ordinal);
+        Assert.Contains("<DataGrid.ContextMenu>", content, StringComparison.Ordinal);
+        Assert.Contains("Header=\"加入下载队列\"", content, StringComparison.Ordinal);
+        Assert.Contains("Header=\"导出全部任务到 CSV\"", content, StringComparison.Ordinal);
+        Assert.Contains("Header=\"导出全部任务到 JSON\"", content, StringComparison.Ordinal);
+        Assert.Contains("Header=\"导出选中任务到 CSV\"", content, StringComparison.Ordinal);
+        Assert.Contains("Header=\"导出选中任务到 JSON\"", content, StringComparison.Ordinal);
+        Assert.Contains("Header=\"在浏览器打开\"", content, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnContextMenuQueueClicked\"", content, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnContextMenuExportCsvClicked\"", content, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnContextMenuExportJsonClicked\"", content, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnContextMenuExportSelectedCsvClicked\"", content, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnContextMenuExportSelectedJsonClicked\"", content, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnContextMenuOpenWorkPageClicked\"", content, StringComparison.Ordinal);
+    }
 }

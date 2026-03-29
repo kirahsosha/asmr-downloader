@@ -1,4 +1,5 @@
 using System.IO;
+using System.Diagnostics;
 using System.Text;
 using Asmroner.Core.Api;
 using Asmroner.Core.Configuration;
@@ -6,7 +7,10 @@ using Asmroner.Core.Interfaces;
 using Asmroner.Core.Search;
 using Microsoft.Extensions.Logging;
 using Microsoft.Win32;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 using Asmroner.Wpf.ViewModels;
 
 namespace Asmroner.Wpf.Views;
@@ -21,6 +25,7 @@ public partial class SearchView : UserControl
     private readonly ISearchStateStore _searchStateStore;
     private readonly IDownloadService _downloadService;
     private readonly IUiStateStore _uiStateStore;
+    private readonly IConfigurationService _configurationService;
     private readonly IAppPathService _appPathService;
     private readonly ILogger<SearchView> _logger;
 
@@ -32,9 +37,11 @@ public partial class SearchView : UserControl
     private bool _isPopularMode;
     private bool _isApplyingSearchUiState;
     private bool _suppressSearchOptionSelectionChanged = true;
+    private SearchWorkItem? _contextMenuTargetItem;
 
     public SearchView()
         : this(
+            null!,
             null!,
             null!,
             null!,
@@ -53,6 +60,7 @@ public partial class SearchView : UserControl
         ISearchStateStore searchStateStore,
         IDownloadService downloadService,
         IUiStateStore uiStateStore,
+        IConfigurationService configurationService,
         IAppPathService appPathService,
         ILogger<SearchView> logger)
     {
@@ -62,6 +70,7 @@ public partial class SearchView : UserControl
         _searchStateStore = searchStateStore;
         _downloadService = downloadService;
         _uiStateStore = uiStateStore;
+        _configurationService = configurationService;
         _appPathService = appPathService;
         _logger = logger;
 
@@ -290,12 +299,12 @@ public partial class SearchView : UserControl
 
     private async void OnExportCsvClicked(object sender, System.Windows.RoutedEventArgs e)
     {
-        await ExportAsync("csv");
+        await ExportAsync("csv", SearchExportScope.All);
     }
 
     private async void OnExportJsonClicked(object sender, System.Windows.RoutedEventArgs e)
     {
-        await ExportAsync("json");
+        await ExportAsync("json", SearchExportScope.All);
     }
 
     private async void OnQueueClicked(object sender, System.Windows.RoutedEventArgs e)
@@ -336,6 +345,116 @@ public partial class SearchView : UserControl
         StatusTextBlock.Text = queuePlan.SkippedCount > 0
             ? $"已加入下载队列 {queuePlan.ToEnqueue.Count} 项，跳过 {queuePlan.SkippedCount} 项（已存在或重复），当前队列总数 {queueCount}。"
             : $"已加入下载队列 {queuePlan.ToEnqueue.Count} 项，当前队列总数 {queueCount}。";
+    }
+
+    private void OnContextMenuQueueClicked(object sender, RoutedEventArgs e)
+    {
+        OnQueueClicked(sender, e);
+    }
+
+    private void OnContextMenuExportCsvClicked(object sender, RoutedEventArgs e)
+    {
+        OnExportCsvClicked(sender, e);
+    }
+
+    private void OnContextMenuExportJsonClicked(object sender, RoutedEventArgs e)
+    {
+        OnExportJsonClicked(sender, e);
+    }
+
+    private async void OnContextMenuExportSelectedCsvClicked(object sender, RoutedEventArgs e)
+    {
+        await ExportAsync("csv", SearchExportScope.Selected);
+    }
+
+    private async void OnContextMenuExportSelectedJsonClicked(object sender, RoutedEventArgs e)
+    {
+        await ExportAsync("json", SearchExportScope.Selected);
+    }
+
+    private async void OnContextMenuOpenWorkPageClicked(object sender, RoutedEventArgs e)
+    {
+        var target = ResolveContextMenuTargetItem();
+        if (target is null)
+        {
+            StatusTextBlock.Text = "请先右键选择一条搜索结果。";
+            return;
+        }
+
+        try
+        {
+            var config = await _configurationService.LoadAsync();
+            var template = config?.Downloader.WorkPageUrlTemplate;
+
+            if (!SearchWorkPageUrlPolicy.TryBuild(template, target.SourceId, out var url, out var errorMessage))
+            {
+                StatusTextBlock.Text = errorMessage;
+                return;
+            }
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true,
+            });
+
+            StatusTextBlock.Text = $"已在浏览器打开：{url}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to open search work page for {SourceId}.", target.SourceId);
+            StatusTextBlock.Text = $"打开浏览器失败：{ex.Message}";
+        }
+    }
+
+    private SearchWorkItem? ResolveContextMenuTargetItem()
+    {
+        if (_contextMenuTargetItem is not null)
+        {
+            return _contextMenuTargetItem;
+        }
+
+        if (ResultsGrid.SelectedItem is SearchWorkItem selectedItem)
+        {
+            return selectedItem;
+        }
+
+        return ResultsGrid.SelectedItems.OfType<SearchWorkItem>().FirstOrDefault();
+    }
+
+    private void OnResultsGridPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        var row = FindParent<DataGridRow>(e.OriginalSource as DependencyObject);
+        if (row?.Item is not SearchWorkItem clickedItem)
+        {
+            _contextMenuTargetItem = null;
+            return;
+        }
+
+        _contextMenuTargetItem = clickedItem;
+
+        if (ResultsGrid.SelectedItems.Count == 0)
+        {
+            ResultsGrid.SelectedItem = clickedItem;
+        }
+
+        row.Focus();
+    }
+
+    private static T? FindParent<T>(DependencyObject? child)
+        where T : DependencyObject
+    {
+        while (child is not null)
+        {
+            if (child is T typed)
+            {
+                return typed;
+            }
+
+            child = VisualTreeHelper.GetParent(child);
+        }
+
+        return null;
     }
 
     private async Task PersistUnfinishedQueueSnapshotSafeAsync(IReadOnlyList<string> queuedSourceIds)
@@ -538,9 +657,15 @@ public partial class SearchView : UserControl
         await ExecuteSearchAsync(allowOptionOnlyQuery: true);
     }
 
-    private async Task ExportAsync(string extension)
+    private async Task ExportAsync(string extension, SearchExportScope scope)
     {
-        if (_results.Count == 0)
+        var selectedItems = ResultsGrid.SelectedItems.OfType<SearchWorkItem>().ToArray();
+        var plan = SearchExportScopePolicy.Build(_results, selectedItems, scope);
+        var exportItems = plan.Items;
+        var isSelectedScope = scope == SearchExportScope.Selected;
+        var fallbackToAll = plan.FallbackToAll;
+
+        if (exportItems.Count == 0)
         {
             StatusTextBlock.Text = "当前没有可导出的搜索结果。";
             return;
@@ -551,7 +676,10 @@ public partial class SearchView : UserControl
         try
         {
             Directory.CreateDirectory(_appPathService.MetadataDirectory);
-            var fileName = $"search-export-{DateTime.Now:yyyyMMdd-HHmmss}.{extension}";
+            var filePrefix = isSelectedScope && !fallbackToAll
+                ? "search-selected-export"
+                : "search-export";
+            var fileName = $"{filePrefix}-{DateTime.Now:yyyyMMdd-HHmmss}.{extension}";
             var fullPath = ShowSaveFileDialog(extension, fileName);
             if (string.IsNullOrWhiteSpace(fullPath))
             {
@@ -561,14 +689,25 @@ public partial class SearchView : UserControl
 
             if (extension.Equals("csv", StringComparison.OrdinalIgnoreCase))
             {
-                await _searchExportService.ExportCsvAsync(_results, fullPath);
+                await _searchExportService.ExportCsvAsync(exportItems, fullPath);
             }
             else
             {
-                await _searchExportService.ExportJsonAsync(_results, fullPath);
+                await _searchExportService.ExportJsonAsync(exportItems, fullPath);
             }
 
-            StatusTextBlock.Text = $"导出成功：{fullPath}";
+            if (isSelectedScope && fallbackToAll)
+            {
+                StatusTextBlock.Text = $"未选中任何结果，已回退导出全部：{fullPath}";
+            }
+            else if (isSelectedScope)
+            {
+                StatusTextBlock.Text = $"导出选中任务成功：{fullPath}";
+            }
+            else
+            {
+                StatusTextBlock.Text = $"导出成功：{fullPath}";
+            }
         }
         catch (Exception ex)
         {

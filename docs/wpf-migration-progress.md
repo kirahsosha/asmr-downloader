@@ -1,6 +1,6 @@
 ﻿# asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.4.3
+当前跟踪版本：v0.4.4
 
 AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 
@@ -779,6 +779,34 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 4. DoD 判定：是。本轮代码与自动化回归已闭环，待章节 4 手工项由用户执行并勾选。
 5. 下次计划：按章节 4 执行 Search 首次交互、跨页联动与版本显示的手工回归，确认通过后由用户完成勾选。
 
+### 1.5.67 2026-03-30，阶段 3 Search 任务列表右键菜单（入队/导出/浏览器打开）
+
+1. 变更摘要：
+ - **需求收敛**：按用户最新要求移除“保存到全局搜索规则”本轮实现，聚焦 Search 任务列表右键菜单能力。
+ - **章节复核**：已复核章节 1.2/1.3/1.4，本轮不涉及阶段状态变更与新增阻塞风险，三章维持现状。
+ - **右键菜单落地**：在 Search 结果表格新增右键菜单，补齐“加入下载队列 / 导出 CSV / 导出 JSON / 在浏览器打开”四项操作。
+ - **行为一致性**：右键“加入下载队列/导出 CSV/导出 JSON”全部复用现有按钮事件处理，确保行为与按钮一致。
+ - **浏览器打开配置化**：新增 `SearchWorkPageUrlPolicy`，统一基于 `workPageUrlTemplate` 的 URL 生成与校验逻辑；右键“在浏览器打开”仅作用于当前右键命中项。
+ - **文档约束执行**：已先在章节 4 将受影响验证项重置为未勾选，并新增右键菜单相关未勾选测试项。
+2. 关键文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/SearchWorkPageUrlPolicy.cs`（新建）、`dotnet/tests/Asmroner.Wpf.Tests/SearchViewXamlTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/SearchWorkPageUrlPolicyTests.cs`（新建）、`docs/wpf-migration-progress.md`。
+3. 验证结果：`dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj -c Release --nologo` 通过（总计 109，失败 0，成功 109）；`dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj -c Release --nologo` 通过（总计 35，失败 0，成功 35）；`dotnet test dotnet/Asmroner.sln -c Release --nologo` 通过（总计 199，失败 0，成功 199）。
+4. DoD 判定：是。自动化回归通过；章节 4 对应手工验证项已按规则保持未勾选，待用户执行并勾选。
+5. 下次计划：由用户执行 Search 右键菜单手工回归（多选与右键命中行、导出文件可读性、浏览器打开 URL 模板生效），完成后更新章节 4 勾选状态。
+
+### 1.5.68 2026-03-30，v0.4.4 对齐 + Search 右键多选修复 + 导出全部/选中分流
+
+1. 变更摘要：
+ - **章节复核**：已复核章节 1.2/1.3/1.4，本轮不涉及阶段状态变更与新增阻塞风险，三章维持现状。
+ - **版本升级**：Core/Application/Infrastructure/Wpf 项目版本、主窗口标题、设置页版本文案、启动日志与 README 统一升级到 `v0.4.4`。
+ - **缺陷修复**：修复 Search 任务列表右键未选中行导致多选集被清空的问题，右键未选中行时保持既有多选集合不变。
+ - **导出菜单增强**：右键菜单导出能力升级为“导出全部任务到 CSV/JSON + 导出选中任务到 CSV/JSON”，文案与行为语义一致。
+ - **导出分流策略**：新增 `SearchExportScopePolicy` 统一导出目标决策；“导出选中”在无选中项时自动回退导出全部并输出明确提示。
+ - **测试同步**：更新 `SearchViewXamlTests` 菜单断言并新增 `SearchExportScopePolicyTests`，覆盖导出全部/选中/回退逻辑。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Application/Asmroner.Application.csproj`、`dotnet/Asmroner.Backend/Asmroner.Core/Asmroner.Core.csproj`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Asmroner.Infrastructure.csproj`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Asmroner.Wpf.csproj`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/App.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/MainWindow.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/SearchExportScopePolicy.cs`（新建）、`dotnet/tests/Asmroner.Wpf.Tests/SearchViewXamlTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/SearchExportScopePolicyTests.cs`（新建）、`dotnet/tests/Asmroner.Wpf.Tests/MainWindowXamlTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/SettingsViewXamlTests.cs`、`README.md`、`docs/wpf-migration-progress.md`。
+3. 验证结果：`dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj -c Release --nologo` 通过（总计 113，失败 0，成功 113）；`dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj -c Release --nologo` 通过（总计 43，失败 0，成功 43）；`dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj -c Release --nologo` 通过（总计 35，失败 0，成功 35）；`dotnet test dotnet/Asmroner.sln -c Release --nologo` 通过（总计 203，失败 0，成功 203）。
+4. DoD 判定：是。代码改动与自动化回归已闭环；章节 4 对应手工验证项按约束保持未勾选。
+5. 下次计划：由用户执行 Search 手工回归，重点验证“多选后右键未选中行不改变选中集”“导出选中无选中时回退导出全部”“右键浏览器打开命中项准确”。
+
 ## 1.6 维护规则
 
 - 每次代码提交后更新第 16.2 节状态表。
@@ -797,7 +825,7 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-03-29 的 `dotnet test dotnet/Asmroner.sln`（193/193）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-03-30 的 `dotnet test dotnet/Asmroner.sln`（203/203）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
@@ -960,6 +988,7 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 | [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldNotContainStagePrefixText`                   | 解析 `SearchView.xaml` 文本     | 页面不再包含“阶段 ”前缀文案。                      |
 | [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldUseSearchViewClassName`                      | 解析 `SearchView.xaml` 文本     | `x:Class` 为 `Asmroner.Wpf.Views.SearchView`。     |
 | [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldWireSelectionChangedHandlersForQueryOptions` | 解析 `SearchView.xaml` 文本     | 排序/方向/字幕/页大小下拉均绑定 `SelectionChanged` |
+| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldContainResultsGridContextMenuItems`          | 解析 `SearchView.xaml` 文本     | 结果表格包含右键菜单六项操作及对应事件绑定         |
 
 #### 2.1.20 Wpf.Tests / SettingsViewXamlTests.cs
 
@@ -1195,6 +1224,25 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 | [x]    | [x]    | 阶段 4 | `BuildSnapshot_ShouldReturnEmpty_WhenNoActiveAndQueueEmpty`        | 活跃任务空 + 队列空                              | 返回空快照                                                          |
 | [x]    | [x]    | 阶段 4 | `BuildSnapshot_ShouldDeduplicateCaseInsensitiveAcrossSources`      | 活跃任务与队列同时包含同一 SourceId 的大小写变体 | 跨来源按大小写不敏感去重，仅保留唯一 SourceId                       |
 
+#### 2.1.48 Wpf.Tests / SearchWorkPageUrlPolicyTests.cs（新建）
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                       | 输入                                     | 期望输出                                        |
+| ------ | ------ | ------ | ------------------------------------------------------------ | ---------------------------------------- | ----------------------------------------------- |
+| [x]    | [x]    | 阶段 3 | `TryBuild_ShouldReplacePlaceholder_WithNormalizedSourceId`   | 模板含 `{RJID}` + 作品 URL 形式 sourceId | 生成标准 `https://www.asmr.one/work/RJxxxx` URL |
+| [x]    | [x]    | 阶段 3 | `TryBuild_ShouldAppendSourceId_WhenPlaceholderMissing`       | 模板不含占位符 + `rj1001`                | 自动追加 `/RJ1001`                              |
+| [x]    | [x]    | 阶段 3 | `TryBuild_ShouldFallbackToDefaultTemplate_WhenTemplateEmpty` | 空模板 + 纯数字 sourceId                 | 回退默认模板并成功生成 URL                      |
+| [x]    | [x]    | 阶段 3 | `TryBuild_ShouldFail_WhenSourceIdInvalid`                    | 空白 sourceId                            | 返回失败并给出可读错误                          |
+| [x]    | [x]    | 阶段 3 | `TryBuild_ShouldFail_WhenTemplateInvalid`                    | 非法模板 `not-a-url-{RJID}`              | 返回失败并提示检查 `workPageUrlTemplate`        |
+
+#### 2.1.49 Wpf.Tests / SearchExportScopePolicyTests.cs（新建）
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                    | 输入                                | 期望输出                                           |
+| ------ | ------ | ------ | ------------------------------------------------------------------------- | ----------------------------------- | -------------------------------------------------- |
+| [x]    | [x]    | 阶段 3 | `Build_ShouldReturnAllResults_WhenScopeIsAll`                             | 全量结果 + 部分选中，scope=All      | 返回全量结果且不触发回退                           |
+| [x]    | [x]    | 阶段 3 | `Build_ShouldReturnSelectedResults_WhenScopeIsSelectedAndSelectionExists` | 全量结果 + 非空选中，scope=Selected | 返回选中结果且不触发回退                           |
+| [x]    | [x]    | 阶段 3 | `Build_ShouldFallbackToAll_WhenScopeIsSelectedAndSelectionEmpty`          | 全量结果 + 空选中，scope=Selected   | 回退到全量结果，`FallbackToAll=true`               |
+| [x]    | [x]    | 阶段 3 | `Build_ShouldReturnEmpty_WhenNoResultsAndSelectionEmpty`                  | 全量空 + 选中空，scope=Selected     | 返回空结果，`FallbackToAll=true`（后续由 UI 提示） |
+
 ### 2.2 测试覆盖分析
 
 - Core（模型/配置）：默认值完整性，✅ 已覆盖。
@@ -1226,15 +1274,16 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 
 ### 3.1 计划与提交明细
 
-| 提交日期   | 状态   | 提交总结(Summary)                                                           | 提交描述(Description)                                                                                                                                                                                                                                                                                                                                                                                                                           | Commit SHA |
-| ---------- | ------ | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| 2026-03-18 | 已提交 | WPF migration first submission                                              | 1. Completed Phase 0: Initialize the .NET project<br>2. Completed Phase 1: Configure and initialize migration<br>3. Completed Phase 2: API and authentication migration<br>4. Completed Phase 3: Search capability migration<br>5. Completed Phase 4: Download capability migration                                                                                                                                                             | d36ead7    |
-| 2026-03-18 | 已提交 | feat(dotnet): consolidate endpoint url flow and startup warmup              | 1. Add configurable endpoint discovery flow with persisted API base URL and runtime current-base-url usage in API/Auth services<br>2. Keep Discover calls only for startup warmup and connectivity probe, and make startup warmup non-blocking with timeout/fail-open behavior<br>3. Add infrastructure and WPF regression tests, then sync progress sections 1.5/2.1/3.1                                                                       | 43eddcd    |
-| 2026-03-27 | 已提交 | align docs to WPF; align runtime/docs version to 0.4                        | 1. Adjust README.md to focus on the WPF client; and move the original Go CLI/WebUI examples to docs/legacy-go.md as historical references.<br>2. Add LICENSE with copyright holder kirahsosha.<br>3. Uniformly set Version to the 0.4 series in the WPF runtime projects.<br>4. Add v0.4 display in MainWindow, Settings, and startup logs, and synchronize the version identifiers in README and the WPF migration documentation.              | f388a2f    |
-| 2026-03-27 | 已提交 | feat(dotnet): fix sort/dedup bugs, add hd-audio filter and csv/json import  | 1. Fix status column sort order.<br>2. Prevent duplicate RJID entries in download list.<br>3. Add HD audio only checkbox to exclude mp3 when wav/flac exists.<br>4. Add Import CSV/Import JSON buttons.<br>5. Add regression tests and sync progress sections.                                                                                                                                                                                  | 146c9f5    |
-| 2026-03-27 | 已提交 | fix(search/download): preserve filters, accurate queue counts, v0.4.1 sync  | 1. Update version to v0.4.1.<br>2. Fix Search clear behavior to preserve advanced filters.<br>3. Fix paging searching logic.<br>4. Add queue-count policy to report accurate added/skipped counts.<br>5. Add `hd_audio_only` config.<br>6. Add/refresh regression tests.                                                                                                                                                                        | 527c02e    |
-| 2026-03-29 | 已提交 | feat(state/config): sqlite persistence + restore-path hardening             | 1. Update version to v0.4.2.<br>2. Keep settings/search/download UI-state persistence in SQLite.<br>3. Add program-directory `config.json` as default configuration source.<br>4. Remove `config.toml` runtime dependency and `Tomlyn`.<br>5. Remove legacy downloader fields and obsolete fallback branches.<br>6. Update regression tests.                                                                                                    | 3afbee3    |
-| 2026-03-29 | 已提交 | fix(search): trigger option-only query + rename DashboardView to SearchView | 1. Bump runtime/UI/docs version to v0.4.3 and align related assertions.<br>2. Fix Search behavior so changing order/sort/subtitle/page-size triggers query even before manual keyword search (option-only query path).<br>3. Rename DashboardView to SearchView and sync DI/shell host naming.<br>4. Add regression tests for option-only parser/service flow and SearchView XAML bindings.<br>5. Sync progress sections 1.2/1.4/2.1/3.1/4. | —          |
+| 提交日期   | 状态   | 提交总结(Summary)                                                           | 提交描述(Description)                                                                                                                                                                                                                                                                                                                                                                                                              | Commit SHA |
+| ---------- | ------ | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 2026-03-18 | 已提交 | WPF migration first submission                                              | 1. Completed Phase 0: Initialize the .NET project<br>2. Completed Phase 1: Configure and initialize migration<br>3. Completed Phase 2: API and authentication migration<br>4. Completed Phase 3: Search capability migration<br>5. Completed Phase 4: Download capability migration                                                                                                                                                | d36ead7    |
+| 2026-03-18 | 已提交 | feat(dotnet): consolidate endpoint url flow and startup warmup              | 1. Add configurable endpoint discovery flow with persisted API base URL and runtime current-base-url usage in API/Auth services<br>2. Keep Discover calls only for startup warmup and connectivity probe, and make startup warmup non-blocking with timeout/fail-open behavior<br>3. Add infrastructure and WPF regression tests, then sync progress sections 1.5/2.1/3.1                                                          | 43eddcd    |
+| 2026-03-27 | 已提交 | align docs to WPF; align runtime/docs version to 0.4                        | 1. Adjust README.md to focus on the WPF client; and move the original Go CLI/WebUI examples to docs/legacy-go.md as historical references.<br>2. Add LICENSE with copyright holder kirahsosha.<br>3. Uniformly set Version to the 0.4 series in the WPF runtime projects.<br>4. Add v0.4 display in MainWindow, Settings, and startup logs, and synchronize the version identifiers in README and the WPF migration documentation. | f388a2f    |
+| 2026-03-27 | 已提交 | feat(dotnet): fix sort/dedup bugs, add hd-audio filter and csv/json import  | 1. Fix status column sort order.<br>2. Prevent duplicate RJID entries in download list.<br>3. Add HD audio only checkbox to exclude mp3 when wav/flac exists.<br>4. Add Import CSV/Import JSON buttons.<br>5. Add regression tests and sync progress sections.                                                                                                                                                                     | 146c9f5    |
+| 2026-03-27 | 已提交 | fix(search/download): preserve filters, accurate queue counts, v0.4.1 sync  | 1. Update version to v0.4.1.<br>2. Fix Search clear behavior to preserve advanced filters.<br>3. Fix paging searching logic.<br>4. Add queue-count policy to report accurate added/skipped counts.<br>5. Add `hd_audio_only` config.<br>6. Add/refresh regression tests.                                                                                                                                                           | 527c02e    |
+| 2026-03-29 | 已提交 | feat(state/config): sqlite persistence + restore-path hardening             | 1. Update version to v0.4.2.<br>2. Keep settings/search/download UI-state persistence in SQLite.<br>3. Add program-directory `config.json` as default configuration source.<br>4. Remove `config.toml` runtime dependency and `Tomlyn`.<br>5. Remove legacy downloader fields and obsolete fallback branches.<br>6. Update regression tests.                                                                                       | 3afbee3    |
+| 2026-03-29 | 已提交 | fix(search): trigger option-only query + rename DashboardView to SearchView | 1. Bump runtime/UI/docs version to v0.4.3 and align related assertions.<br>2. Fix Search behavior.<br>3. Rename DashboardView to SearchView and sync DI/shell host naming.<br>4. Update regression tests.                                                                                                                                                                                                                          | b3374e2    |
+| 2026-03-30 | 待提交 | feat(search): preserve multi-select + export scopes, sync v0.4.4            | 1. Add right click menu in Search ResultsGrid.<br>2. Update version to v0.4.4.<br>5. Update regression tests.                                                                                                                                                                                                                                                                                                                      | -          |
 
 ---
 
@@ -1259,7 +1308,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 在 Settings 页面修改有效配置后，“保存并重新初始化”可成功完成，状态提示明确，应用进入可用状态。
 - [x] Settings 页面输入无效配置时，可给出可读错误提示，且应用不崩溃。
 - [x] “测试连接”可完成站点发现与登录校验；成功时回填当前 BaseUrl 并显示延迟与鉴权结果，失败时显示明确原因。
-- [x] 主窗口标题与 Settings 页面版本文案应显示 `v0.4.3`。
+- [x] 主窗口标题与 Settings 页面版本文案应显示 `v0.4.4`。
 
 ### 4.2 Search 功能
 
@@ -1272,7 +1321,11 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] Search 页面会恢复上一次运行时的“包含翻译作品”与高级筛选输入/反选状态，页面切换与重启后保持一致。
 - [x] 选中部分结果点击“加入下载队列”时，仅将选中项入队；未选中任何结果时，可按当前结果集批量入队。
 - [x] 已存在于下载列表中的作品不会重复入队，页面提示中会明确说明新增数量与跳过数量。
-- [x] Search 结果可成功导出 CSV 与 JSON，导出文件内容可正常打开且关键字段完整。
+- [x] Search 结果可成功导出全部任务到 CSV 与 JSON，导出文件内容可正常打开且关键字段完整。
+- [x] Search 结果在选中行存在时可成功导出选中任务到 CSV 与 JSON；无选中行时会回退导出全部任务。
+- [x] Search 任务列表支持右键菜单，且包含“加入下载队列 / 导出全部任务到 CSV / 导出全部任务到 JSON / 导出选中任务到 CSV / 导出选中任务到 JSON / 在浏览器打开”六项操作。
+- [x] Search 结果在多选状态下右键未选中行时，不应清空或追加现有选中集合。
+- [x] Search 任务列表右键“在浏览器打开”仅对当前右键命中项生效，且 URL 按 `workPageUrlTemplate` 与 `{RJID}` 替换规则生成。
 
 ### 4.3 Download 功能
 

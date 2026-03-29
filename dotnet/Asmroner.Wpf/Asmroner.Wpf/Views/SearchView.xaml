@@ -473,7 +473,24 @@
                           IsReadOnly="True"
                           SelectionMode="Extended"
                           SelectionUnit="FullRow"
+                          PreviewMouseRightButtonDown="OnResultsGridPreviewMouseRightButtonDown"
                           Style="{StaticResource ResultGridStyle}">
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="加入下载队列"
+                                      Click="OnContextMenuQueueClicked"/>
+                            <MenuItem Header="导出全部任务到 CSV"
+                                      Click="OnContextMenuExportCsvClicked"/>
+                            <MenuItem Header="导出全部任务到 JSON"
+                                      Click="OnContextMenuExportJsonClicked"/>
+                            <MenuItem Header="导出选中任务到 CSV"
+                                      Click="OnContextMenuExportSelectedCsvClicked"/>
+                            <MenuItem Header="导出选中任务到 JSON"
+                                      Click="OnContextMenuExportSelectedJsonClicked"/>
+                            <MenuItem Header="在浏览器打开"
+                                      Click="OnContextMenuOpenWorkPageClicked"/>
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
                     <DataGrid.Columns>
                         <DataGridTextColumn Width="120"
                                             Header="ID"
