@@ -188,17 +188,6 @@
                                  Style="{StaticResource FieldTextBoxStyle}"
                                  ToolTip="示例：mp3,wav,flac,jpg,jpeg,png,gif,webp,mp4,mkv,avi,webm,txt,lrc,ass"/>
 
-                        <TextBlock Style="{StaticResource FieldLabelStyle}"
-                                   Text="下载筛选默认规则"/>
-                        <TextBox x:Name="FileFilterTextBox"
-                                 Style="{StaticResource FieldTextBoxStyle}"
-                                 ToolTip="分号分隔；无前缀或 +前缀：路径必须含该词；-前缀：路径不能含该词。例：+voice;-cover"/>
-
-                        <TextBlock Style="{StaticResource FieldLabelStyle}"
-                                   Text="全局搜索规则"/>
-                        <TextBox x:Name="GlobalSearchRuleTextBox"
-                                 Style="{StaticResource FieldTextBoxStyle}"
-                                 ToolTip="启动时自动填充到 Search 高级筛选；支持空格、分号、逗号分隔。例：tag:舔耳;lang:zh-CN;-age:r15"/>
                     </StackPanel>
                 </Border>
 
@@ -260,7 +249,7 @@
                 <TextBlock Margin="2,6,0,0"
                            Foreground="#FF6F8095"
                            FontSize="12"
-                           Text="版本：v0.4.1"/>
+                           Text="版本：v0.4.2"/>
             </StackPanel>
         </ScrollViewer>
     </Grid>

@@ -234,6 +234,11 @@
                             Style="{StaticResource LightActionButtonStyle}"
                             Click="OnRefreshClicked"
                             Content="刷新任务列表"/>
+                    <Button x:Name="ClearTaskListButton"
+                            Width="120"
+                            Style="{StaticResource LightActionButtonStyle}"
+                            Click="OnClearTaskListClicked"
+                            Content="清空任务列表"/>
                     <Button x:Name="CancelButton"
                             Width="120"
                             Style="{StaticResource LightActionButtonStyle}"

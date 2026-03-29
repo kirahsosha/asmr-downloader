@@ -193,8 +193,6 @@ public partial class SettingsView : UserControl
                 SyncDataFolder = SyncDataFolderTextBox.Text.Trim(),
                 SyncWantedSize = SyncWantedSizeTextBox.Text.Trim(),
                 PreferFormats = PreferFormatsTextBox.Text.Trim(),
-                FileFilter = FileFilterTextBox.Text.Trim(),
-                GlobalSearchRule = GlobalSearchRuleTextBox.Text.Trim(),
             },
             Limit = new LimitOptions
             {
@@ -221,8 +219,6 @@ public partial class SettingsView : UserControl
             : config.Downloader.SyncDataFolder;
         SyncWantedSizeTextBox.Text = config.Downloader.SyncWantedSize;
         PreferFormatsTextBox.Text = BuildPreferFormatsForDisplay(config.Downloader);
-        FileFilterTextBox.Text = config.Downloader.FileFilter;
-        GlobalSearchRuleTextBox.Text = config.Downloader.GlobalSearchRule;
         SyncQpsTextBox.Text = config.Limit.SyncQps.ToString();
         SyncJitterMinTextBox.Text = config.Limit.SyncJitterMin.ToString();
         SyncJitterMaxTextBox.Text = config.Limit.SyncJitterMax.ToString();
@@ -233,18 +229,6 @@ public partial class SettingsView : UserControl
 
     private static string BuildPreferFormatsForDisplay(DownloaderOptions downloader)
     {
-        if (!string.IsNullOrWhiteSpace(downloader.PreferFormats))
-        {
-            return downloader.PreferFormats;
-        }
-
-        var merged = string.Join(",", new[]
-        {
-            downloader.PreferMedia,
-            downloader.PreferImage,
-            downloader.PreferVideo,
-        }.Where(static s => !string.IsNullOrWhiteSpace(s)));
-
-        return merged;
+        return downloader.PreferFormats;
     }
 }

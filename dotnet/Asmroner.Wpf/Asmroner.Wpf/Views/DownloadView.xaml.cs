@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using Asmroner.Core.Api;
+using Asmroner.Core.Configuration;
 using Asmroner.Core.Download;
 using Asmroner.Core.Interfaces;
 using Asmroner.Wpf.ViewModels;
@@ -19,15 +20,17 @@ public partial class DownloadView : UserControl
     private readonly IAsmrApiClient _asmrApiClient;
     private readonly IDownloadService _downloadService;
     private readonly ISearchStateStore _searchStateStore;
+    private readonly IUiStateStore _uiStateStore;
     private readonly IConfigurationService _configurationService;
     private readonly IAppPathService _appPathService;
     private readonly ISearchImportService _importService;
     private readonly ILogger<DownloadView> _logger;
     private readonly ConcurrentDictionary<string, string> _queuedWorkInfoTitles = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, DownloadTaskStatus> _queuedStatusOverrides = new(StringComparer.OrdinalIgnoreCase);
+    private bool _isApplyingDownloadUiState;
 
     public DownloadView()
-        : this(null!, null!, null!, null!, null!, null!, null!)
+        : this(null!, null!, null!, null!, null!, null!, null!, null!)
     {
     }
 
@@ -35,6 +38,7 @@ public partial class DownloadView : UserControl
         IAsmrApiClient asmrApiClient,
         IDownloadService downloadService,
         ISearchStateStore searchStateStore,
+        IUiStateStore uiStateStore,
         IConfigurationService configurationService,
         IAppPathService appPathService,
         ISearchImportService importService,
@@ -43,6 +47,7 @@ public partial class DownloadView : UserControl
         _asmrApiClient = asmrApiClient;
         _downloadService = downloadService;
         _searchStateStore = searchStateStore;
+        _uiStateStore = uiStateStore;
         _configurationService = configurationService;
         _appPathService = appPathService;
         _importService = importService;
@@ -51,28 +56,80 @@ public partial class DownloadView : UserControl
         InitializeComponent();
         Loaded += async (_, _) =>
         {
-            await LoadFilterFromConfigAsync();
+            await LoadDownloadUiStateAsync();
+            await RestoreUnfinishedQueueAsync();
             RefreshView();
             UpdateSelectionActions();
         };
+
+        FilterTextBox.TextChanged += OnDownloadUiStateChanged;
+        HdAudioOnlyCheckBox.Checked += OnDownloadUiStateChanged;
+        HdAudioOnlyCheckBox.Unchecked += OnDownloadUiStateChanged;
     }
 
-    private async Task LoadFilterFromConfigAsync()
+    private async Task LoadDownloadUiStateAsync()
     {
         try
         {
-            var config = await _configurationService.LoadAsync();
-            if (config?.Downloader.FileFilter is { Length: > 0 } filter)
-            {
-                FilterTextBox.Text = filter;
-            }
-
-            HdAudioOnlyCheckBox.IsChecked = config?.Downloader.HdAudioOnly ?? true;
+            _isApplyingDownloadUiState = true;
+            var state = await _uiStateStore.LoadDownloadUiStateAsync();
+            FilterTextBox.Text = state.FileFilter;
+            HdAudioOnlyCheckBox.IsChecked = state.HdAudioOnly;
         }
         catch
         {
             // 配置加载失败时保持文本框为空
             HdAudioOnlyCheckBox.IsChecked = true;
+        }
+        finally
+        {
+            _isApplyingDownloadUiState = false;
+        }
+    }
+
+    private async Task RestoreUnfinishedQueueAsync()
+    {
+        try
+        {
+            var unfinishedSourceIds = await _uiStateStore.LoadUnfinishedQueueAsync();
+            if (unfinishedSourceIds.Count == 0)
+            {
+                return;
+            }
+
+            _searchStateStore.EnqueueForDownload(unfinishedSourceIds);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to restore unfinished queue.");
+        }
+    }
+
+    private void OnDownloadUiStateChanged(object? sender, EventArgs e)
+    {
+        if (_isApplyingDownloadUiState)
+        {
+            return;
+        }
+
+        _ = SaveDownloadUiStateSafeAsync();
+    }
+
+    private async Task SaveDownloadUiStateSafeAsync()
+    {
+        try
+        {
+            var state = new DownloadUiState
+            {
+                FileFilter = FilterTextBox.Text,
+                HdAudioOnly = HdAudioOnlyCheckBox.IsChecked == true,
+            };
+
+            await _uiStateStore.SaveDownloadUiStateAsync(state);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to persist download UI state.");
         }
     }
 
@@ -180,6 +237,31 @@ public partial class DownloadView : UserControl
     {
         RefreshView();
         StatusTextBlock.Text = "任务列表已刷新。";
+    }
+
+    private async void OnClearTaskListClicked(object sender, RoutedEventArgs e)
+    {
+        if (!ConfirmWithQuestion("将停止正在下载的任务并清空任务列表，是否继续？", "确认清空任务列表"))
+        {
+            return;
+        }
+
+        await ExecuteGuardedAsync(
+            async () =>
+            {
+                await _downloadService.ClearAllTasksAsync();
+                await _uiStateStore.ClearUnfinishedQueueAsync();
+                _queuedStatusOverrides.Clear();
+                _queuedWorkInfoTitles.Clear();
+
+                RefreshView();
+                StatusTextBlock.Text = "任务列表已清空。";
+            },
+            disableRunQueue: true,
+            disableSelectionActions: true,
+            updateSelectionOnFinally: true,
+            failurePrefix: "清空任务列表失败",
+            logMessage: "Failed to clear all download tasks.");
     }
 
     private async void OnCancelClicked(object sender, System.Windows.RoutedEventArgs e)
@@ -516,6 +598,23 @@ public partial class DownloadView : UserControl
         TaskGrid.ItemsSource = combined;
         QueueCountTextBlock.Text = $"待下载队列：{queuedSourceIds.Count}";
         UpdateSelectionActions();
+
+        _ = PersistUnfinishedQueueSnapshotSafeAsync(activeTasks, queuedSourceIds);
+    }
+
+    private async Task PersistUnfinishedQueueSnapshotSafeAsync(
+        IReadOnlyList<DownloadTaskItem> activeTasks,
+        IReadOnlyList<string> queuedSourceIds)
+    {
+        try
+        {
+            var snapshot = DownloadUnfinishedQueueSnapshotPolicy.BuildSnapshot(activeTasks, queuedSourceIds);
+            await _uiStateStore.SaveUnfinishedQueueAsync(snapshot);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to persist unfinished queue snapshot.");
+        }
     }
 
     private void ReplaceQueuedCache(DownloadQueueCacheSnapshot cacheSnapshot)
@@ -539,6 +638,7 @@ public partial class DownloadView : UserControl
         AddSingleButton.IsEnabled = isEnabled;
         AddBatchButton.IsEnabled = isEnabled;
         OpenDownloadDirectoryButton.IsEnabled = isEnabled;
+        ClearTaskListButton.IsEnabled = isEnabled;
     }
 
     private void ToggleSelectionActions(bool isEnabled)

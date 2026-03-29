@@ -6,21 +6,24 @@ public sealed class AppPathService : IAppPathService
 {
     public AppPathService(string? userHomeDirectory = null)
     {
-        var homeDirectory = userHomeDirectory;
-        if (string.IsNullOrWhiteSpace(homeDirectory))
-        {
-            homeDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        }
+        var usesDefaultProgramDirectory = string.IsNullOrWhiteSpace(userHomeDirectory);
+        var resolvedHomeDirectory = usesDefaultProgramDirectory
+            ? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+            : userHomeDirectory!;
 
-        MetadataDirectory = Path.Combine(homeDirectory, ".asmroner-data");
-        ConfigFilePath = Path.Combine(MetadataDirectory, "config.toml");
+        var programDirectory = usesDefaultProgramDirectory
+            ? AppContext.BaseDirectory
+            : userHomeDirectory!;
+
+        MetadataDirectory = Path.Combine(resolvedHomeDirectory, ".asmroner-data");
+        DefaultConfigFilePath = Path.Combine(programDirectory, "config.json");
         DatabaseFilePath = Path.Combine(MetadataDirectory, "asmroner.db");
         DefaultSyncDataDirectory = Path.Combine(MetadataDirectory, "sync-data");
     }
 
     public string MetadataDirectory { get; }
 
-    public string ConfigFilePath { get; }
+    public string DefaultConfigFilePath { get; }
 
     public string DatabaseFilePath { get; }
 

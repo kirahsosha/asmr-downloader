@@ -15,6 +15,8 @@ public interface IDownloadService
 
     Task<DownloadTaskItem?> RetryFailedAsync(Guid taskId, string? fileFilter = null, bool hdAudioOnly = false, CancellationToken cancellationToken = default);
 
+    Task ClearAllTasksAsync(CancellationToken cancellationToken = default);
+
     void UpsertPrefetchedWorkInfo(IReadOnlyDictionary<string, WorkInfoDto> workInfos);
 
     IReadOnlyDictionary<string, WorkInfoDto> GetPrefetchedWorkInfoSnapshot();

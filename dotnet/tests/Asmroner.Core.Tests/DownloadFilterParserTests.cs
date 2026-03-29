@@ -11,9 +11,6 @@ public class DownloadFilterParserTests
         var options = new DownloaderOptions
         {
             PreferFormats = "mp3,m4a,TXT",
-            PreferMedia = "flac",
-            PreferImage = "jpg",
-            PreferVideo = "mp4",
         };
 
         var result = DownloadFilterParser.ParsePreferExtensions(options);
@@ -22,19 +19,16 @@ public class DownloadFilterParserTests
     }
 
     [Fact]
-    public void ParsePreferExtensions_ShouldFallbackToLegacyFields()
+    public void ParsePreferExtensions_ShouldReturnEmpty_WhenPreferFormatsEmpty()
     {
         var options = new DownloaderOptions
         {
             PreferFormats = string.Empty,
-            PreferMedia = "mp3,m4a",
-            PreferImage = "jpg,png",
-            PreferVideo = "mp4",
         };
 
         var result = DownloadFilterParser.ParsePreferExtensions(options);
 
-        Assert.Equal(new[] { ".mp3", ".m4a", ".jpg", ".png", ".mp4" }, result);
+        Assert.Empty(result);
     }
 
     [Fact]

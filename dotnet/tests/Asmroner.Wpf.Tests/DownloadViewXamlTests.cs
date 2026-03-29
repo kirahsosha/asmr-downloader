@@ -15,6 +15,7 @@ public class DownloadViewXamlTests
         Assert.Contains("x:Key=\"ActionButtonStyle\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"TaskGrid\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"StartSelectedButton\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"ClearTaskListButton\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"HdAudioOnlyCheckBox\"", content, StringComparison.Ordinal);
         Assert.Contains("IsChecked=\"True\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"StatusTextBlock\"", content, StringComparison.Ordinal);

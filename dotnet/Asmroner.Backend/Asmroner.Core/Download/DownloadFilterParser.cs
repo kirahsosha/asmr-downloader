@@ -11,14 +11,7 @@ public static class DownloadFilterParser
             return Array.Empty<string>();
         }
 
-        var unified = options.PreferFormats;
-        if (string.IsNullOrWhiteSpace(unified))
-        {
-            unified = string.Join(",", new[] { options.PreferMedia, options.PreferImage, options.PreferVideo }
-                .Where(static s => !string.IsNullOrWhiteSpace(s)));
-        }
-
-        return ParseFormatGroup(unified);
+        return ParseFormatGroup(options.PreferFormats);
     }
 
     public static IReadOnlyList<(string Term, bool IsExclude)> ParseFileFilter(string? raw)

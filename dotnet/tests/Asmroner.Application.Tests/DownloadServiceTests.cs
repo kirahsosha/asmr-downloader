@@ -45,7 +45,7 @@ public class DownloadServiceTests
         var tempRoot = CreateTempRoot("run-queued-completed");
 
         var apiClient = new ScriptedApiClient(trackCount: 2);
-        var configService = new TestConfigurationService(tempRoot, preferFormats: "mp3,m4a", preferMedia: "mp3,m4a");
+        var configService = new TestConfigurationService(tempRoot, preferFormats: "mp3,m4a");
         var searchStateStore = new SearchStateStore();
         searchStateStore.EnqueueForDownload(new[] { "RJ4001" });
 
@@ -133,6 +133,43 @@ public class DownloadServiceTests
 
         var updated = sut.GetTasks().Single(static task => task.SourceId == "RJ4003");
         Assert.Equal(DownloadTaskStatus.Canceled, updated.Status);
+    }
+
+    [Fact]
+    public async Task ClearAllTasksAsync_ShouldStopRunningAndClearQueueAndTasks()
+    {
+        var tempRoot = CreateTempRoot("clear-all-tasks");
+
+        var apiClient = new ScriptedApiClient(trackCount: 20);
+        var configService = new TestConfigurationService(tempRoot, maxWorkers: 1);
+        var searchStateStore = new SearchStateStore();
+        searchStateStore.EnqueueForDownload(new[] { "RJ4015", "RJ4016" });
+
+        var sut = new DownloadService(
+            apiClient,
+            configService,
+            searchStateStore,
+            new TestAppPathService(tempRoot),
+            new DelayRateLimiterService(delayMilliseconds: 20));
+
+        var runTask = sut.RunQueuedAsync();
+
+        for (var index = 0; index < 60; index++)
+        {
+            var hasRunning = sut.GetTasks().Any(static item => item.Status == DownloadTaskStatus.Running);
+            if (hasRunning)
+            {
+                break;
+            }
+
+            await Task.Delay(20);
+        }
+
+        await sut.ClearAllTasksAsync();
+        await runTask;
+
+        Assert.Empty(sut.GetTasks());
+        Assert.Empty(searchStateStore.GetQueuedSourceIds());
     }
 
     [Fact]
@@ -419,7 +456,7 @@ public class DownloadServiceTests
 
         var sut = new DownloadService(
             apiClient,
-            new TestConfigurationService(tempRoot, preferFormats: string.Empty, preferMedia: string.Empty),
+            new TestConfigurationService(tempRoot, preferFormats: string.Empty),
             searchStateStore,
             new TestAppPathService(tempRoot),
             new NoopRateLimiterService());

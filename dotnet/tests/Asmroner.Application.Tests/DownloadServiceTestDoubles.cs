@@ -148,8 +148,7 @@ internal sealed class TestConfigurationService : IConfigurationService
     public TestConfigurationService(
         string syncDataFolder,
         int maxWorkers = 4,
-        string? preferFormats = null,
-        string preferMedia = "mp3,m4a")
+        string? preferFormats = null)
     {
         _config = new AppConfig
         {
@@ -157,7 +156,6 @@ internal sealed class TestConfigurationService : IConfigurationService
             {
                 SyncDataFolder = syncDataFolder,
                 PreferFormats = preferFormats ?? "mp3,wav,flac,jpg,jpeg,png,gif,webp,mp4,mkv,avi,webm,txt,lrc,ass",
-                PreferMedia = preferMedia,
                 MaxWorkers = maxWorkers,
             },
             Limit = new LimitOptions
@@ -186,14 +184,14 @@ internal sealed class TestAppPathService : IAppPathService
     public TestAppPathService(string root)
     {
         MetadataDirectory = root;
-        ConfigFilePath = Path.Combine(root, "config.toml");
+        DefaultConfigFilePath = Path.Combine(root, "config.json");
         DatabaseFilePath = Path.Combine(root, "asmroner.db");
         DefaultSyncDataDirectory = Path.Combine(root, "sync-data");
     }
 
     public string MetadataDirectory { get; }
 
-    public string ConfigFilePath { get; }
+    public string DefaultConfigFilePath { get; }
 
     public string DatabaseFilePath { get; }
 

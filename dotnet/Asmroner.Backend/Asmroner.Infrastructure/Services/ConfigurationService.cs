@@ -1,12 +1,23 @@
+using System.Text.Json;
 using Asmroner.Core.Configuration;
 using Asmroner.Core.Interfaces;
-using Tomlyn;
-using Tomlyn.Model;
+using Microsoft.Data.Sqlite;
 
 namespace Asmroner.Infrastructure.Services;
 
 public sealed class ConfigurationService : IConfigurationService
 {
+    private const string AppConfigTableName = "AppConfig";
+    private const string AppConfigLegacyTableName = "AppConfigLegacy";
+    private const string AppConfigKeyColumn = "ConfigKey";
+    private const string AppConfigJsonColumn = "JsonValue";
+
+    private const string UserSectionKey = "user";
+    private const string DownloaderSectionKey = "downloader";
+    private const string LimitSectionKey = "limit";
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
     private readonly IAppPathService _appPathService;
 
     public ConfigurationService(IAppPathService appPathService)
@@ -16,66 +27,18 @@ public sealed class ConfigurationService : IConfigurationService
 
     public bool Exists()
     {
-        return File.Exists(_appPathService.ConfigFilePath);
+        return ExistsInSqlite() || File.Exists(_appPathService.DefaultConfigFilePath);
     }
 
     public async Task<AppConfig?> LoadAsync(CancellationToken cancellationToken = default)
     {
-        if (!Exists())
+        var sqliteConfig = await LoadFromSqliteAsync(cancellationToken);
+        if (sqliteConfig is not null)
         {
-            return null;
+            return sqliteConfig;
         }
 
-        var content = await File.ReadAllTextAsync(_appPathService.ConfigFilePath, cancellationToken);
-        var parseResult = Toml.Parse(content);
-        if (parseResult.HasErrors)
-        {
-            var errorMessage = string.Join("; ", parseResult.Diagnostics.Select(diagnostic => diagnostic.ToString()));
-            throw new InvalidOperationException($"配置文件格式无效: {errorMessage}");
-        }
-
-        var model = parseResult.ToModel();
-        if (model is not TomlTable root)
-        {
-            throw new InvalidOperationException("配置文件格式无效: TOML 根节点不是对象。");
-        }
-
-        return new AppConfig
-        {
-            User = new UserOptions
-            {
-                Account = GetString(root, "user", "account"),
-                Password = GetString(root, "user", "password"),
-            },
-            Downloader = new DownloaderOptions
-            {
-                ApiUrl = GetString(root, "downloader", "api_url", new DownloaderOptions().ApiUrl),
-                ApiCandidateUrls = GetString(root, "downloader", "api_candidate_urls", new DownloaderOptions().ApiCandidateUrls),
-                PublishSourceUrls = GetString(root, "downloader", "publish_source_urls", new DownloaderOptions().PublishSourceUrls),
-                WorkPageUrlTemplate = GetString(root, "downloader", "work_page_url_template", new DownloaderOptions().WorkPageUrlTemplate),
-                ProxyUrl = GetString(root, "downloader", "proxy_url"),
-                MaxWorkers = GetInt(root, "downloader", "max_workers", 4),
-                MaxRetries = GetInt(root, "downloader", "max_retries", 3),
-                SyncDataFolder = GetString(root, "downloader", "sync_data_folder"),
-                SyncWantedSize = GetString(root, "downloader", "sync_wanted_size", "5GB"),
-                PreferFormats = ResolvePreferFormats(root),
-                PreferMedia = GetString(root, "downloader", "prefer_media", "mp3,m4a,wav,flac"),
-                PreferImage = GetString(root, "downloader", "prefer_image"),
-                PreferVideo = GetString(root, "downloader", "prefer_video"),
-                FileFilter = GetString(root, "downloader", "file_filter"),
-                HdAudioOnly = GetBool(root, "downloader", "hd_audio_only", true),
-                GlobalSearchRule = GetString(root, "downloader", "global_search_rule"),
-            },
-            Limit = new LimitOptions
-            {
-                SyncQps = GetDouble(root, "limit", "sync_qps", 5),
-                SyncJitterMin = GetInt(root, "limit", "sync_jitter_min", 50),
-                SyncJitterMax = GetInt(root, "limit", "sync_jitter_max", 200),
-                DownloadQps = GetDouble(root, "limit", "download_qps", 3),
-                DownloadJitterMin = GetInt(root, "limit", "download_jitter_min", 50),
-                DownloadJitterMax = GetInt(root, "limit", "download_jitter_max", 300),
-            },
-        };
+        return await LoadFromDefaultConfigFileAsync(cancellationToken);
     }
 
     public async Task SaveAsync(AppConfig config, CancellationToken cancellationToken = default)
@@ -84,42 +47,34 @@ public sealed class ConfigurationService : IConfigurationService
 
         _appPathService.EnsureMetadataDirectory();
 
-        var lines = new[]
-        {
-            "[user]",
-            $"account = \"{Escape(config.User.Account)}\"",
-            $"password = \"{Escape(config.User.Password)}\"",
-            string.Empty,
-            "[downloader]",
-            $"api_url = \"{Escape(config.Downloader.ApiUrl)}\"",
-            $"api_candidate_urls = \"{Escape(config.Downloader.ApiCandidateUrls)}\"",
-            $"publish_source_urls = \"{Escape(config.Downloader.PublishSourceUrls)}\"",
-            $"work_page_url_template = \"{Escape(config.Downloader.WorkPageUrlTemplate)}\"",
-            $"proxy_url = \"{Escape(config.Downloader.ProxyUrl)}\"",
-            $"max_workers = {config.Downloader.MaxWorkers}",
-            $"max_retries = {config.Downloader.MaxRetries}",
-            $"sync_data_folder = \"{Escape(config.Downloader.SyncDataFolder)}\"",
-            $"sync_wanted_size = \"{Escape(config.Downloader.SyncWantedSize)}\"",
-            $"prefer_formats = \"{Escape(config.Downloader.PreferFormats)}\"",
-            $"prefer_media = \"{Escape(config.Downloader.PreferMedia)}\"",
-            $"prefer_image = \"{Escape(config.Downloader.PreferImage)}\"",
-            $"prefer_video = \"{Escape(config.Downloader.PreferVideo)}\"",
-            $"file_filter = \"{Escape(config.Downloader.FileFilter)}\"",
-            $"hd_audio_only = {config.Downloader.HdAudioOnly.ToString().ToLowerInvariant()}",
-            $"global_search_rule = \"{Escape(config.Downloader.GlobalSearchRule)}\"",
-            string.Empty,
-            "[limit]",
-            $"sync_qps = {config.Limit.SyncQps}",
-            $"sync_jitter_min = {config.Limit.SyncJitterMin}",
-            $"sync_jitter_max = {config.Limit.SyncJitterMax}",
-            $"download_qps = {config.Limit.DownloadQps}",
-            $"download_jitter_min = {config.Limit.DownloadJitterMin}",
-            $"download_jitter_max = {config.Limit.DownloadJitterMax}",
-            string.Empty,
-        };
+        var persisted = CloneForStorage(config);
 
-        var content = string.Join(Environment.NewLine, lines);
-        await File.WriteAllTextAsync(_appPathService.ConfigFilePath, content, cancellationToken);
+        await using var connection = CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+        await EnsureConfigTableAsync(connection, cancellationToken);
+
+        await using var transaction = connection.BeginTransaction();
+
+        await UpsertSectionAsync(
+            connection,
+            transaction,
+            UserSectionKey,
+            JsonSerializer.Serialize(persisted.User, JsonOptions),
+            cancellationToken);
+        await UpsertSectionAsync(
+            connection,
+            transaction,
+            DownloaderSectionKey,
+            JsonSerializer.Serialize(persisted.Downloader, JsonOptions),
+            cancellationToken);
+        await UpsertSectionAsync(
+            connection,
+            transaction,
+            LimitSectionKey,
+            JsonSerializer.Serialize(persisted.Limit, JsonOptions),
+            cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
     }
 
     public IReadOnlyList<string> Validate(AppConfig config)
@@ -170,102 +125,486 @@ public sealed class ConfigurationService : IConfigurationService
         return errors;
     }
 
-    private static string Escape(string input)
+    private async Task<AppConfig?> LoadFromSqliteAsync(CancellationToken cancellationToken)
     {
-        return (input ?? string.Empty).Replace("\\", "\\\\").Replace("\"", "\\\"");
-    }
+        _appPathService.EnsureMetadataDirectory();
 
-    private static string ResolvePreferFormats(TomlTable root)
-    {
-        var preferFormats = GetString(root, "downloader", "prefer_formats");
-        if (!string.IsNullOrWhiteSpace(preferFormats))
+        await using var connection = CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+        await EnsureConfigTableAsync(connection, cancellationToken);
+
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            $"""
+            SELECT {AppConfigKeyColumn}, {AppConfigJsonColumn}
+            FROM {AppConfigTableName}
+            WHERE {AppConfigKeyColumn} IN (@user, @downloader, @limit);
+            """;
+        command.Parameters.AddWithValue("@user", UserSectionKey);
+        command.Parameters.AddWithValue("@downloader", DownloaderSectionKey);
+        command.Parameters.AddWithValue("@limit", LimitSectionKey);
+
+        var sections = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
         {
-            return preferFormats;
+            var key = reader.GetString(0);
+            var json = reader.GetString(1);
+            sections[key] = json;
         }
 
-        var merged = string.Join(",", new[]
-        {
-            GetString(root, "downloader", "prefer_media"),
-            GetString(root, "downloader", "prefer_image"),
-            GetString(root, "downloader", "prefer_video"),
-        }.Where(static value => !string.IsNullOrWhiteSpace(value)));
-
-        return string.IsNullOrWhiteSpace(merged)
-            ? "mp3,wav,flac,jpg,jpeg,png,gif,webp,mp4,mkv,avi,webm,txt,lrc,ass"
-            : merged;
-    }
-
-    private static TomlTable? GetSection(TomlTable root, string sectionName)
-    {
-        if (!root.TryGetValue(sectionName, out var sectionValue))
+        if (sections.Count == 0)
         {
             return null;
         }
 
-        return sectionValue as TomlTable;
+        var loaded = new AppConfig();
+        var hasAnySection = false;
+
+        if (TryDeserializeSection(sections, UserSectionKey, out UserOptions user))
+        {
+            loaded.User = user;
+            hasAnySection = true;
+        }
+
+        if (TryDeserializeSection(sections, DownloaderSectionKey, out DownloaderOptions downloader))
+        {
+            loaded.Downloader = downloader;
+            hasAnySection = true;
+        }
+
+        if (TryDeserializeSection(sections, LimitSectionKey, out LimitOptions limit))
+        {
+            loaded.Limit = limit;
+            hasAnySection = true;
+        }
+
+        return hasAnySection ? loaded : null;
     }
 
-    private static string GetString(TomlTable root, string sectionName, string key, string defaultValue = "")
+    private async Task<AppConfig?> LoadFromDefaultConfigFileAsync(CancellationToken cancellationToken)
     {
-        var section = GetSection(root, sectionName);
-        if (section is null || !section.TryGetValue(key, out var value) || value is null)
+        if (!File.Exists(_appPathService.DefaultConfigFilePath))
         {
-            return defaultValue;
+            return null;
         }
 
-        return value.ToString() ?? defaultValue;
+        var content = await File.ReadAllTextAsync(_appPathService.DefaultConfigFilePath, cancellationToken);
+
+        try
+        {
+            var parsed = JsonSerializer.Deserialize<AppConfig>(content, JsonOptions);
+            if (parsed is null)
+            {
+                throw new InvalidOperationException("默认配置文件格式无效: 根对象不能为空。");
+            }
+
+            return NormalizeLoadedConfig(parsed);
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidOperationException($"默认配置文件格式无效: {ex.Message}", ex);
+        }
     }
 
-    private static int GetInt(TomlTable root, string sectionName, string key, int defaultValue)
+    private bool ExistsInSqlite()
     {
-        var section = GetSection(root, sectionName);
-        if (section is null || !section.TryGetValue(key, out var value) || value is null)
+        try
         {
-            return defaultValue;
-        }
+            if (!File.Exists(_appPathService.DatabaseFilePath))
+            {
+                return false;
+            }
 
-        if (value is long longValue)
+            using var connection = CreateConnection();
+            connection.Open();
+
+            using var tableCheck = connection.CreateCommand();
+            tableCheck.CommandText = "SELECT COUNT(1) FROM sqlite_master WHERE type='table' AND name=@name;";
+            tableCheck.Parameters.AddWithValue("@name", AppConfigTableName);
+            if (Convert.ToInt32(tableCheck.ExecuteScalar()) <= 0)
+            {
+                return false;
+            }
+
+            using var pragma = connection.CreateCommand();
+            pragma.CommandText = $"PRAGMA table_info({AppConfigTableName});";
+
+            var hasConfigKey = false;
+            var hasLegacyId = false;
+
+            using (var reader = pragma.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var column = reader.GetString(1);
+                    if (string.Equals(column, AppConfigKeyColumn, StringComparison.OrdinalIgnoreCase))
+                    {
+                        hasConfigKey = true;
+                    }
+
+                    if (string.Equals(column, "Id", StringComparison.OrdinalIgnoreCase))
+                    {
+                        hasLegacyId = true;
+                    }
+                }
+            }
+
+            using var rowCheck = connection.CreateCommand();
+            if (hasConfigKey)
+            {
+                rowCheck.CommandText =
+                    $"SELECT COUNT(1) FROM {AppConfigTableName} WHERE {AppConfigKeyColumn} IN ('{UserSectionKey}','{DownloaderSectionKey}','{LimitSectionKey}');";
+                return Convert.ToInt32(rowCheck.ExecuteScalar()) > 0;
+            }
+
+            if (hasLegacyId)
+            {
+                rowCheck.CommandText = $"SELECT COUNT(1) FROM {AppConfigTableName} WHERE Id = 1;";
+                return Convert.ToInt32(rowCheck.ExecuteScalar()) > 0;
+            }
+
+            return false;
+        }
+        catch
         {
-            return (int)longValue;
+            return false;
         }
-
-        return int.TryParse(value.ToString(), out var parsed) ? parsed : defaultValue;
     }
 
-    private static double GetDouble(TomlTable root, string sectionName, string key, double defaultValue)
+    private static bool TryDeserializeSection<T>(
+        IReadOnlyDictionary<string, string> sections,
+        string sectionKey,
+        out T section)
+        where T : class, new()
     {
-        var section = GetSection(root, sectionName);
-        if (section is null || !section.TryGetValue(key, out var value) || value is null)
+        section = new T();
+
+        if (!sections.TryGetValue(sectionKey, out var json) || string.IsNullOrWhiteSpace(json))
         {
-            return defaultValue;
+            return false;
         }
 
-        if (value is double doubleValue)
+        try
         {
-            return doubleValue;
-        }
+            var parsed = JsonSerializer.Deserialize<T>(json, JsonOptions);
+            if (parsed is null)
+            {
+                return false;
+            }
 
-        if (value is long longValue)
+            section = parsed;
+            return true;
+        }
+        catch
         {
-            return longValue;
+            return false;
         }
-
-        return double.TryParse(value.ToString(), out var parsed) ? parsed : defaultValue;
     }
 
-    private static bool GetBool(TomlTable root, string sectionName, string key, bool defaultValue)
+    private static AppConfig NormalizeLoadedConfig(AppConfig config)
     {
-        var section = GetSection(root, sectionName);
-        if (section is null || !section.TryGetValue(key, out var value) || value is null)
+        return new AppConfig
         {
-            return defaultValue;
+            User = config.User ?? new UserOptions(),
+            Downloader = config.Downloader ?? new DownloaderOptions(),
+            Limit = config.Limit ?? new LimitOptions(),
+        };
+    }
+
+    private static AppConfig CloneForStorage(AppConfig config)
+    {
+        return new AppConfig
+        {
+            User = new UserOptions
+            {
+                Account = config.User.Account,
+                Password = config.User.Password,
+            },
+            Downloader = new DownloaderOptions
+            {
+                ApiUrl = config.Downloader.ApiUrl,
+                ApiCandidateUrls = config.Downloader.ApiCandidateUrls,
+                PublishSourceUrls = config.Downloader.PublishSourceUrls,
+                WorkPageUrlTemplate = config.Downloader.WorkPageUrlTemplate,
+                ProxyUrl = config.Downloader.ProxyUrl,
+                MaxWorkers = config.Downloader.MaxWorkers,
+                MaxRetries = config.Downloader.MaxRetries,
+                SyncDataFolder = config.Downloader.SyncDataFolder,
+                SyncWantedSize = config.Downloader.SyncWantedSize,
+                PreferFormats = config.Downloader.PreferFormats,
+                HdAudioOnly = config.Downloader.HdAudioOnly,
+            },
+            Limit = new LimitOptions
+            {
+                SyncQps = config.Limit.SyncQps,
+                SyncJitterMin = config.Limit.SyncJitterMin,
+                SyncJitterMax = config.Limit.SyncJitterMax,
+                DownloadQps = config.Limit.DownloadQps,
+                DownloadJitterMin = config.Limit.DownloadJitterMin,
+                DownloadJitterMax = config.Limit.DownloadJitterMax,
+            },
+        };
+    }
+
+    private static void MergeLegacyPreferFormatsIfNeeded(AppConfig config, string legacyJson)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(legacyJson);
+            if (!TryGetPropertyIgnoreCase(document.RootElement, "downloader", out var downloaderElement) ||
+                downloaderElement.ValueKind != JsonValueKind.Object)
+            {
+                return;
+            }
+
+            if (TryGetPropertyIgnoreCase(downloaderElement, "preferFormats", out var preferFormatsElement))
+            {
+                config.Downloader.PreferFormats = preferFormatsElement.GetString() ?? string.Empty;
+                return;
+            }
+
+            var legacyParts = new[]
+            {
+                ReadStringPropertyIgnoreCase(downloaderElement, "preferMedia"),
+                ReadStringPropertyIgnoreCase(downloaderElement, "preferImage"),
+                ReadStringPropertyIgnoreCase(downloaderElement, "preferVideo"),
+            };
+
+            var merged = string.Join(",", legacyParts.Where(static part => !string.IsNullOrWhiteSpace(part)));
+            if (!string.IsNullOrWhiteSpace(merged))
+            {
+                config.Downloader.PreferFormats = merged;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+    }
+
+    private static string ReadStringPropertyIgnoreCase(JsonElement element, string propertyName)
+    {
+        if (!TryGetPropertyIgnoreCase(element, propertyName, out var property))
+        {
+            return string.Empty;
         }
 
-        if (value is bool boolValue)
+        return property.GetString() ?? string.Empty;
+    }
+
+    private static bool TryGetPropertyIgnoreCase(JsonElement element, string propertyName, out JsonElement property)
+    {
+        foreach (var candidate in element.EnumerateObject())
         {
-            return boolValue;
+            if (string.Equals(candidate.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+            {
+                property = candidate.Value;
+                return true;
+            }
         }
 
-        return bool.TryParse(value.ToString(), out var parsed) ? parsed : defaultValue;
+        property = default;
+        return false;
+    }
+
+    private static async Task EnsureConfigTableAsync(SqliteConnection connection, CancellationToken cancellationToken)
+    {
+        var tableExists = await TableExistsAsync(connection, AppConfigTableName, cancellationToken);
+        if (!tableExists)
+        {
+            await CreateConfigTableAsync(connection, transaction: null, cancellationToken);
+            return;
+        }
+
+        var columns = await ReadTableColumnsAsync(connection, AppConfigTableName, cancellationToken);
+        if (columns.Contains(AppConfigKeyColumn, StringComparer.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (columns.Contains("Id", StringComparer.OrdinalIgnoreCase))
+        {
+            await MigrateLegacyConfigTableAsync(connection, cancellationToken);
+            return;
+        }
+
+        await using var resetTransaction = connection.BeginTransaction();
+        await ExecuteNonQueryAsync(
+            connection,
+            $"DROP TABLE IF EXISTS {AppConfigTableName};",
+            resetTransaction,
+            cancellationToken);
+        await CreateConfigTableAsync(connection, resetTransaction, cancellationToken);
+        await resetTransaction.CommitAsync(cancellationToken);
+    }
+
+    private static async Task MigrateLegacyConfigTableAsync(SqliteConnection connection, CancellationToken cancellationToken)
+    {
+        AppConfig? legacyConfig = null;
+
+        await using (var readCommand = connection.CreateCommand())
+        {
+            readCommand.CommandText = $"SELECT {AppConfigJsonColumn} FROM {AppConfigTableName} WHERE Id = 1 LIMIT 1;";
+            var legacyJson = await readCommand.ExecuteScalarAsync(cancellationToken) as string;
+            if (!string.IsNullOrWhiteSpace(legacyJson))
+            {
+                try
+                {
+                    legacyConfig = JsonSerializer.Deserialize<AppConfig>(legacyJson, JsonOptions);
+                    if (legacyConfig is not null)
+                    {
+                        MergeLegacyPreferFormatsIfNeeded(legacyConfig, legacyJson);
+                    }
+                }
+                catch
+                {
+                    legacyConfig = null;
+                }
+            }
+        }
+
+        await using var transaction = connection.BeginTransaction();
+
+        await ExecuteNonQueryAsync(
+            connection,
+            $"DROP TABLE IF EXISTS {AppConfigLegacyTableName};",
+            transaction,
+            cancellationToken);
+        await ExecuteNonQueryAsync(
+            connection,
+            $"ALTER TABLE {AppConfigTableName} RENAME TO {AppConfigLegacyTableName};",
+            transaction,
+            cancellationToken);
+
+        await CreateConfigTableAsync(connection, transaction, cancellationToken);
+
+        if (legacyConfig is not null)
+        {
+            var normalized = CloneForStorage(legacyConfig);
+
+            await UpsertSectionAsync(
+                connection,
+                transaction,
+                UserSectionKey,
+                JsonSerializer.Serialize(normalized.User, JsonOptions),
+                cancellationToken);
+            await UpsertSectionAsync(
+                connection,
+                transaction,
+                DownloaderSectionKey,
+                JsonSerializer.Serialize(normalized.Downloader, JsonOptions),
+                cancellationToken);
+            await UpsertSectionAsync(
+                connection,
+                transaction,
+                LimitSectionKey,
+                JsonSerializer.Serialize(normalized.Limit, JsonOptions),
+                cancellationToken);
+        }
+
+        await ExecuteNonQueryAsync(
+            connection,
+            $"DROP TABLE IF EXISTS {AppConfigLegacyTableName};",
+            transaction,
+            cancellationToken);
+
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    private static async Task CreateConfigTableAsync(
+        SqliteConnection connection,
+        SqliteTransaction? transaction,
+        CancellationToken cancellationToken)
+    {
+        var sql =
+            $"""
+            CREATE TABLE IF NOT EXISTS {AppConfigTableName} (
+                {AppConfigKeyColumn} TEXT PRIMARY KEY,
+                {AppConfigJsonColumn} TEXT NOT NULL,
+                UpdatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            """;
+
+        await ExecuteNonQueryAsync(connection, sql, transaction, cancellationToken);
+    }
+
+    private static async Task UpsertSectionAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        string key,
+        string json,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText =
+            $"""
+            INSERT INTO {AppConfigTableName} ({AppConfigKeyColumn}, {AppConfigJsonColumn}, UpdatedAt)
+            VALUES (@key, @json, CURRENT_TIMESTAMP)
+            ON CONFLICT({AppConfigKeyColumn}) DO UPDATE SET
+                {AppConfigJsonColumn} = excluded.{AppConfigJsonColumn},
+                UpdatedAt = CURRENT_TIMESTAMP;
+            """;
+        command.Parameters.AddWithValue("@key", key);
+        command.Parameters.AddWithValue("@json", json);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task ExecuteNonQueryAsync(
+        SqliteConnection connection,
+        string sql,
+        SqliteTransaction? transaction,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = sql;
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task<bool> TableExistsAsync(
+        SqliteConnection connection,
+        string tableName,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT COUNT(1) FROM sqlite_master WHERE type='table' AND name=@name;";
+        command.Parameters.AddWithValue("@name", tableName);
+        return Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken)) > 0;
+    }
+
+    private static async Task<HashSet<string>> ReadTableColumnsAsync(
+        SqliteConnection connection,
+        string tableName,
+        CancellationToken cancellationToken)
+    {
+        var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"PRAGMA table_info({tableName});";
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            if (reader[1] is string column)
+            {
+                columns.Add(column);
+            }
+        }
+
+        return columns;
+    }
+
+    private SqliteConnection CreateConnection()
+    {
+        var connectionString = new SqliteConnectionStringBuilder
+        {
+            DataSource = _appPathService.DatabaseFilePath,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Pooling = false,
+        }.ToString();
+
+        return new SqliteConnection(connectionString);
     }
 }

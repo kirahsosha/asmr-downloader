@@ -30,6 +30,7 @@ public partial class App : System.Windows.Application
             {
                 services.AddSingleton<IAppPathService, AppPathService>();
                 services.AddSingleton<IConfigurationService, Asmroner.Infrastructure.Services.ConfigurationService>();
+                services.AddSingleton<IUiStateStore, UiStateStore>();
                 services.AddSingleton<IDatabaseInitializer, DatabaseInitializer>();
                 services.AddSingleton<IFirstRunService, FirstRunService>();
                 services.AddSingleton<IApplicationBootstrapper, ApplicationBootstrapper>();
@@ -73,7 +74,7 @@ public partial class App : System.Windows.Application
         var startupEndpointWarmupService = _host.Services.GetRequiredService<StartupEndpointWarmupService>();
         _ = startupEndpointWarmupService.StartInBackgroundAsync();
 
-        logger.LogInformation("Asmroner v0.4.1 startup completed.");
+        logger.LogInformation("Asmroner v0.4.2 startup completed.");
     }
 
     protected override void OnExit(ExitEventArgs e)

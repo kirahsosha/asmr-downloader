@@ -1,9 +1,9 @@
 
 ## 📖 项目简介
 
-ASMRoner v0.4.1 — Windows 客户端（WPF）
+ASMRoner v0.4.2 — Windows 客户端（WPF）
 
-当前版本：v0.4.1
+当前版本：v0.4.2
 
 本仓库当前主要面向 Windows 桌面应用（基于 WPF），提供 ASMR.one 内容的搜索、预览与下载功能。原始的 Go 命令行工具与本地 WebUI 实现仅作为历史参考并保留于仓库中，迁移工作以 WPF 为主线。
 
@@ -55,29 +55,34 @@ WPF 客户端以可视化操作为主，历史的 Go/CLI 命令参考请见 [doc
 <details>
 <summary><b>⚙️ 配置文件说明</b></summary>
 
-配置文件路径：`~/.asmroner/config.toml`（TOML 格式）
+默认配置文件：程序目录 `config.json`（JSON 格式）
 
-```toml
-[user]
-account = "guest"
-password = "guest"
+运行时实际配置：`~/.asmroner-data/asmroner.db` 的 `AppConfig` 表（按 `user/downloader/limit` 分段存储）
 
-[downloader]
-api_url = ""                # 留空自动获取最快站点
-proxy_url = ""              # 支持 http / socks5
-max_workers = 5
-max_retries = 3
-sync_data_folder = "./syncdata"
-sync_wanted_size = "200MB"  # 同步容量限制
-prefer_media = "all"        # all | mp3>wav>flac
-
-[limit]
-sync_qps = 2
-sync_jitter_min = 100       # ms
-sync_jitter_max = 500
-download_qps = 0.2
-download_jitter_min = 2000
-download_jitter_max = 5000
+```json
+{
+	"user": {
+		"account": "",
+		"password": ""
+	},
+	"downloader": {
+		"apiUrl": "https://api.asmr-300.com",
+		"maxWorkers": 4,
+		"maxRetries": 3,
+		"syncDataFolder": "",
+		"syncWantedSize": "5GB",
+		"preferFormats": "mp3,wav,flac,jpg,jpeg,png,gif,webp,mp4,mkv,avi,webm,txt,lrc,ass",
+		"hdAudioOnly": true
+	},
+	"limit": {
+		"syncQps": 5,
+		"syncJitterMin": 50,
+		"syncJitterMax": 200,
+		"downloadQps": 3,
+		"downloadJitterMin": 50,
+		"downloadJitterMax": 300
+	}
+}
 ```
 
 </details>
@@ -113,6 +118,6 @@ download_jitter_max = 5000
 
 ---
 
-ASMRoner v0.4.1 — Windows 客户端（WPF）迁移计划中
+ASMRoner v0.4.2 — Windows 客户端（WPF）迁移计划中
 
-*最后更新：2026 年 3 月 19 日*
+*最后更新：2026 年 3 月 29 日*

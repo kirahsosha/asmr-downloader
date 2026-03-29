@@ -4,7 +4,7 @@ public interface IAppPathService
 {
     string MetadataDirectory { get; }
 
-    string ConfigFilePath { get; }
+    string DefaultConfigFilePath { get; }
 
     string DatabaseFilePath { get; }
 

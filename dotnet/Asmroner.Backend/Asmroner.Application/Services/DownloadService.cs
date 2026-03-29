@@ -44,7 +44,7 @@ public sealed class DownloadService : IDownloadService
 
         var config = await _configurationService.LoadAsync(cancellationToken);
         var preferExtensions = DownloadFilterParser.ParsePreferExtensions(config?.Downloader);
-        var parsedFilter = DownloadFilterParser.ParseFileFilter(fileFilter ?? config?.Downloader.FileFilter);
+        var parsedFilter = DownloadFilterParser.ParseFileFilter(fileFilter);
         var targetRoot = ResolveTargetRoot(config?.Downloader.SyncDataFolder);
         var maxWorkers = NormalizeMaxWorkers(config?.Downloader.MaxWorkers ?? 4);
 
@@ -100,7 +100,7 @@ public sealed class DownloadService : IDownloadService
 
         var config = await _configurationService.LoadAsync(cancellationToken);
         var preferExtensions = DownloadFilterParser.ParsePreferExtensions(config?.Downloader);
-        var parsedFilter = DownloadFilterParser.ParseFileFilter(fileFilter ?? config?.Downloader.FileFilter);
+        var parsedFilter = DownloadFilterParser.ParseFileFilter(fileFilter);
         var targetRoot = ResolveTargetRoot(config?.Downloader.SyncDataFolder);
 
         DownloadTaskItem task;
@@ -182,11 +182,44 @@ public sealed class DownloadService : IDownloadService
 
         var config = await _configurationService.LoadAsync(cancellationToken);
         var preferExtensions = DownloadFilterParser.ParsePreferExtensions(config?.Downloader);
-        var parsedFilter = DownloadFilterParser.ParseFileFilter(fileFilter ?? config?.Downloader.FileFilter);
+        var parsedFilter = DownloadFilterParser.ParseFileFilter(fileFilter);
         var targetRoot = ResolveTargetRoot(config?.Downloader.SyncDataFolder);
 
         await RunSingleAsync(task, targetRoot, preferExtensions, parsedFilter, hdAudioOnly, config, cancellationToken);
         return task;
+    }
+
+    public Task ClearAllTasksAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        List<CancellationTokenSource> cancellationSources;
+        lock (_stateLock)
+        {
+            cancellationSources = _taskCancellationSources.Values.ToList();
+            foreach (var source in cancellationSources)
+            {
+                source.Cancel();
+            }
+
+            _taskCancellationSources.Clear();
+            _tasks.Clear();
+        }
+
+        foreach (var source in cancellationSources)
+        {
+            source.Dispose();
+        }
+
+        _prefetchedWorkInfo.Clear();
+
+        var queuedSourceIds = _searchStateStore.GetQueuedSourceIds();
+        if (queuedSourceIds.Count > 0)
+        {
+            _searchStateStore.RemoveFromQueue(queuedSourceIds);
+        }
+
+        return Task.CompletedTask;
     }
 
     public void UpsertPrefetchedWorkInfo(IReadOnlyDictionary<string, WorkInfoDto> workInfos)

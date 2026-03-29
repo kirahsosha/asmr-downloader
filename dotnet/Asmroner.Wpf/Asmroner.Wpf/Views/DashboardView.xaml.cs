@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text;
 using Asmroner.Core.Api;
+using Asmroner.Core.Configuration;
 using Asmroner.Core.Interfaces;
 using Asmroner.Core.Search;
 using Microsoft.Extensions.Logging;
@@ -19,7 +20,7 @@ public partial class DashboardView : UserControl
     private readonly ISearchExportService _searchExportService;
     private readonly ISearchStateStore _searchStateStore;
     private readonly IDownloadService _downloadService;
-    private readonly IConfigurationService _configurationService;
+    private readonly IUiStateStore _uiStateStore;
     private readonly IAppPathService _appPathService;
     private readonly ILogger<DashboardView> _logger;
 
@@ -29,7 +30,7 @@ public partial class DashboardView : UserControl
     private int _pageSize = 20;
     private int _totalCount;
     private bool _isPopularMode;
-    private bool _globalSearchRuleLoadedAtStartup;
+    private bool _isApplyingSearchUiState;
 
     public DashboardView()
         : this(
@@ -50,7 +51,7 @@ public partial class DashboardView : UserControl
         ISearchExportService searchExportService,
         ISearchStateStore searchStateStore,
         IDownloadService downloadService,
-        IConfigurationService configurationService,
+        IUiStateStore uiStateStore,
         IAppPathService appPathService,
         ILogger<DashboardView> logger)
     {
@@ -59,40 +60,152 @@ public partial class DashboardView : UserControl
         _searchExportService = searchExportService;
         _searchStateStore = searchStateStore;
         _downloadService = downloadService;
-        _configurationService = configurationService;
+        _uiStateStore = uiStateStore;
         _appPathService = appPathService;
         _logger = logger;
 
         InitializeComponent();
         _pageSize = ReadPageSize();
         UpdatePaginationInfo();
+        RegisterSearchUiAutosaveHandlers();
 
-        Loaded += async (_, _) => await LoadGlobalSearchRuleAsync();
+        Loaded += async (_, _) => await LoadSearchUiStateAsync();
     }
 
-    private async Task LoadGlobalSearchRuleAsync()
+    private async Task LoadSearchUiStateAsync()
     {
-        // Only load global search rules once at startup
-        if (_globalSearchRuleLoadedAtStartup)
+        try
+        {
+            _isApplyingSearchUiState = true;
+            var state = await _uiStateStore.LoadSearchUiStateAsync();
+
+            IncludeTranslationCheckBox.IsChecked = state.IncludeTranslationWorks;
+
+            TagTextBox.Text = state.Tag;
+            TagExcludeCheckBox.IsChecked = state.TagExclude;
+
+            CircleTextBox.Text = state.Circle;
+            CircleExcludeCheckBox.IsChecked = state.CircleExclude;
+
+            VaTextBox.Text = state.Va;
+            VaExcludeCheckBox.IsChecked = state.VaExclude;
+
+            DurationTextBox.Text = state.Duration;
+            DurationExcludeCheckBox.IsChecked = state.DurationExclude;
+
+            RateTextBox.Text = state.Rate;
+            RateExcludeCheckBox.IsChecked = state.RateExclude;
+
+            PriceTextBox.Text = state.Price;
+            PriceExcludeCheckBox.IsChecked = state.PriceExclude;
+
+            SellTextBox.Text = state.Sell;
+            SellExcludeCheckBox.IsChecked = state.SellExclude;
+
+            AgeTextBox.Text = state.Age;
+            AgeExcludeCheckBox.IsChecked = state.AgeExclude;
+
+            LangTextBox.Text = state.Lang;
+            LangExcludeCheckBox.IsChecked = state.LangExclude;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to restore search UI state.");
+        }
+        finally
+        {
+            _isApplyingSearchUiState = false;
+        }
+    }
+
+    private void RegisterSearchUiAutosaveHandlers()
+    {
+        IncludeTranslationCheckBox.Checked += OnSearchUiStateChanged;
+        IncludeTranslationCheckBox.Unchecked += OnSearchUiStateChanged;
+
+        TagTextBox.TextChanged += OnSearchUiStateChanged;
+        TagExcludeCheckBox.Checked += OnSearchUiStateChanged;
+        TagExcludeCheckBox.Unchecked += OnSearchUiStateChanged;
+
+        CircleTextBox.TextChanged += OnSearchUiStateChanged;
+        CircleExcludeCheckBox.Checked += OnSearchUiStateChanged;
+        CircleExcludeCheckBox.Unchecked += OnSearchUiStateChanged;
+
+        VaTextBox.TextChanged += OnSearchUiStateChanged;
+        VaExcludeCheckBox.Checked += OnSearchUiStateChanged;
+        VaExcludeCheckBox.Unchecked += OnSearchUiStateChanged;
+
+        DurationTextBox.TextChanged += OnSearchUiStateChanged;
+        DurationExcludeCheckBox.Checked += OnSearchUiStateChanged;
+        DurationExcludeCheckBox.Unchecked += OnSearchUiStateChanged;
+
+        RateTextBox.TextChanged += OnSearchUiStateChanged;
+        RateExcludeCheckBox.Checked += OnSearchUiStateChanged;
+        RateExcludeCheckBox.Unchecked += OnSearchUiStateChanged;
+
+        PriceTextBox.TextChanged += OnSearchUiStateChanged;
+        PriceExcludeCheckBox.Checked += OnSearchUiStateChanged;
+        PriceExcludeCheckBox.Unchecked += OnSearchUiStateChanged;
+
+        SellTextBox.TextChanged += OnSearchUiStateChanged;
+        SellExcludeCheckBox.Checked += OnSearchUiStateChanged;
+        SellExcludeCheckBox.Unchecked += OnSearchUiStateChanged;
+
+        AgeTextBox.TextChanged += OnSearchUiStateChanged;
+        AgeExcludeCheckBox.Checked += OnSearchUiStateChanged;
+        AgeExcludeCheckBox.Unchecked += OnSearchUiStateChanged;
+
+        LangTextBox.TextChanged += OnSearchUiStateChanged;
+        LangExcludeCheckBox.Checked += OnSearchUiStateChanged;
+        LangExcludeCheckBox.Unchecked += OnSearchUiStateChanged;
+    }
+
+    private void OnSearchUiStateChanged(object? sender, EventArgs e)
+    {
+        if (_isApplyingSearchUiState)
         {
             return;
         }
 
+        _ = SaveSearchUiStateSafeAsync();
+    }
+
+    private async Task SaveSearchUiStateSafeAsync()
+    {
         try
         {
-            var config = await _configurationService.LoadAsync();
-            if (string.IsNullOrWhiteSpace(config?.Downloader.GlobalSearchRule))
-            {
-                return;
-            }
-
-            ApplyGlobalSearchRule(config.Downloader.GlobalSearchRule);
-            _globalSearchRuleLoadedAtStartup = true;
+            await _uiStateStore.SaveSearchUiStateAsync(BuildSearchUiState());
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to load global search rule from configuration.");
+            _logger.LogWarning(ex, "Failed to persist search UI state.");
         }
+    }
+
+    private SearchUiState BuildSearchUiState()
+    {
+        return new SearchUiState
+        {
+            IncludeTranslationWorks = IncludeTranslationCheckBox.IsChecked == true,
+            Tag = TagTextBox.Text,
+            TagExclude = TagExcludeCheckBox.IsChecked == true,
+            Circle = CircleTextBox.Text,
+            CircleExclude = CircleExcludeCheckBox.IsChecked == true,
+            Va = VaTextBox.Text,
+            VaExclude = VaExcludeCheckBox.IsChecked == true,
+            Duration = DurationTextBox.Text,
+            DurationExclude = DurationExcludeCheckBox.IsChecked == true,
+            Rate = RateTextBox.Text,
+            RateExclude = RateExcludeCheckBox.IsChecked == true,
+            Price = PriceTextBox.Text,
+            PriceExclude = PriceExcludeCheckBox.IsChecked == true,
+            Sell = SellTextBox.Text,
+            SellExclude = SellExcludeCheckBox.IsChecked == true,
+            Age = AgeTextBox.Text,
+            AgeExclude = AgeExcludeCheckBox.IsChecked == true,
+            Lang = LangTextBox.Text,
+            LangExclude = LangExcludeCheckBox.IsChecked == true,
+        };
     }
 
     private void OnAdvancedFilterExpanded(object sender, System.Windows.RoutedEventArgs e)
@@ -183,7 +296,7 @@ public partial class DashboardView : UserControl
         await ExportAsync("json");
     }
 
-    private void OnQueueClicked(object sender, System.Windows.RoutedEventArgs e)
+    private async void OnQueueClicked(object sender, System.Windows.RoutedEventArgs e)
     {
         var selected = ResultsGrid.SelectedItems
             .OfType<SearchWorkItem>()
@@ -213,10 +326,29 @@ public partial class DashboardView : UserControl
 
         _searchStateStore.EnqueueForDownload(queuePlan.ToEnqueue);
         _downloadService.UpsertPrefetchedWorkInfo(BuildPrefetchedWorkInfoMap(queuePlan.ToEnqueue));
-        var queueCount = _searchStateStore.GetQueuedSourceIds().Count;
+
+        var queuedSourceIds = _searchStateStore.GetQueuedSourceIds();
+        await PersistUnfinishedQueueSnapshotSafeAsync(queuedSourceIds);
+
+        var queueCount = queuedSourceIds.Count;
         StatusTextBlock.Text = queuePlan.SkippedCount > 0
             ? $"已加入下载队列 {queuePlan.ToEnqueue.Count} 项，跳过 {queuePlan.SkippedCount} 项（已存在或重复），当前队列总数 {queueCount}。"
             : $"已加入下载队列 {queuePlan.ToEnqueue.Count} 项，当前队列总数 {queueCount}。";
+    }
+
+    private async Task PersistUnfinishedQueueSnapshotSafeAsync(IReadOnlyList<string> queuedSourceIds)
+    {
+        try
+        {
+            var snapshot = DownloadUnfinishedQueueSnapshotPolicy.BuildSnapshot(
+                _downloadService.GetTasks(),
+                queuedSourceIds);
+            await _uiStateStore.SaveUnfinishedQueueAsync(snapshot);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to persist unfinished queue snapshot from search view.");
+        }
     }
 
     private async void OnQueryHotClicked(object sender, System.Windows.RoutedEventArgs e)
@@ -537,72 +669,6 @@ public partial class DashboardView : UserControl
 
             var useExcludePrefix = isExclude ^ isValueExclude;
             tokens.Add(useExcludePrefix ? $"-{key}:{normalizedValue}" : $"{key}:{normalizedValue}");
-        }
-    }
-
-    private void ApplyGlobalSearchRule(string globalSearchRule)
-    {
-        var tokens = globalSearchRule
-            .Split(FilterSeparators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-        foreach (var token in tokens)
-        {
-            var normalizedToken = token.Trim();
-            var colonIndex = normalizedToken.IndexOf(':');
-            if (colonIndex <= 0 || colonIndex == normalizedToken.Length - 1)
-            {
-                continue;
-            }
-
-            var isExclude = normalizedToken.StartsWith("-", StringComparison.Ordinal);
-            var keyStart = isExclude ? 1 : 0;
-            var key = normalizedToken[keyStart..colonIndex].Trim().ToLowerInvariant();
-            var value = normalizedToken[(colonIndex + 1)..].Trim();
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                continue;
-            }
-
-            switch (key)
-            {
-                case "tag":
-                    ApplyFilterValue(TagTextBox, TagExcludeCheckBox, value, isExclude);
-                    break;
-                case "circle":
-                    ApplyFilterValue(CircleTextBox, CircleExcludeCheckBox, value, isExclude);
-                    break;
-                case "va":
-                    ApplyFilterValue(VaTextBox, VaExcludeCheckBox, value, isExclude);
-                    break;
-                case "duration":
-                    ApplyFilterValue(DurationTextBox, DurationExcludeCheckBox, value, isExclude);
-                    break;
-                case "rate":
-                    ApplyFilterValue(RateTextBox, RateExcludeCheckBox, value, isExclude);
-                    break;
-                case "price":
-                    ApplyFilterValue(PriceTextBox, PriceExcludeCheckBox, value, isExclude);
-                    break;
-                case "sell":
-                    ApplyFilterValue(SellTextBox, SellExcludeCheckBox, value, isExclude);
-                    break;
-                case "age":
-                    ApplyFilterValue(AgeTextBox, AgeExcludeCheckBox, value, isExclude);
-                    break;
-                case "lang":
-                    ApplyFilterValue(LangTextBox, LangExcludeCheckBox, value, isExclude);
-                    break;
-            }
-        }
-    }
-
-    private static void ApplyFilterValue(TextBox textBox, CheckBox excludeCheckBox, string value, bool isExclude)
-    {
-        textBox.Text = SearchFilterValuePolicy.MergeDistinct(textBox.Text, value);
-
-        if (isExclude)
-        {
-            excludeCheckBox.IsChecked = true;
         }
     }
 
