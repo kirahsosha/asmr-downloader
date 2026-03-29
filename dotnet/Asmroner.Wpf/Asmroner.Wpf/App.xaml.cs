@@ -58,7 +58,7 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<ISyncService, Asmroner.Wpf.Services.SyncService>();
                 services.AddSingleton<StartupEndpointWarmupService>();
 
-                services.AddSingleton<DashboardView>();
+                services.AddSingleton<SearchView>();
                 services.AddSingleton<DownloadView>();
                 services.AddSingleton<SettingsView>();
                 services.AddSingleton<MainWindow>();
@@ -74,7 +74,7 @@ public partial class App : System.Windows.Application
         var startupEndpointWarmupService = _host.Services.GetRequiredService<StartupEndpointWarmupService>();
         _ = startupEndpointWarmupService.StartInBackgroundAsync();
 
-        logger.LogInformation("Asmroner v0.4.2 startup completed.");
+        logger.LogInformation("Asmroner v0.4.3 startup completed.");
     }
 
     protected override void OnExit(ExitEventArgs e)

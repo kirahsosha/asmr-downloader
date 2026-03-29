@@ -56,4 +56,23 @@ public class QueryParserServiceTests
         Assert.Equal("circle:同人サークル", parsed.Filter.Circle);
         Assert.Equal("-lang:JPN", parsed.Filter.Lang);
     }
+
+    [Fact]
+    public void QueryParser_ShouldParseOptionOnlyQuery()
+    {
+        var sut = new QueryParserService();
+
+        var parsed = sut.Parse("?order=price&sort=asc&page=3&pageSize=50&subtitle=1&includeTranslationWorks=false");
+        var rebuilt = sut.BuildAsmrQuery(parsed);
+
+        Assert.Empty(parsed.PlainTexts);
+        Assert.True(string.IsNullOrWhiteSpace(parsed.Filter.Tag));
+        Assert.Equal("price", parsed.PageOptions.Order);
+        Assert.Equal("asc", parsed.PageOptions.Sort);
+        Assert.Equal("1", parsed.PageOptions.Subtitle);
+        Assert.False(parsed.PageOptions.IncludeTranslationWorks);
+        Assert.Equal(3, parsed.PageOptions.Page);
+        Assert.Equal(50, parsed.PageOptions.PageSize);
+        Assert.StartsWith("?order=price&sort=asc&page=3&pageSize=50&subtitle=1&includeTranslationWorks=false", rebuilt, StringComparison.Ordinal);
+    }
 }

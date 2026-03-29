@@ -13,7 +13,7 @@ public partial class MainWindow : Window
     private readonly ILogger<MainWindow> _logger;
 
     public MainWindow(
-        DashboardView dashboardView,
+        SearchView searchView,
         DownloadView downloadView,
         SettingsView settingsView,
         IApplicationBootstrapper bootstrapper,
@@ -25,7 +25,7 @@ public partial class MainWindow : Window
         _settingsView = settingsView;
         _logger = logger;
 
-        DashboardHost.Content = dashboardView;
+        SearchHost.Content = searchView;
         DownloadHost.Content = downloadView;
         SettingsHost.Content = settingsView;
         _settingsView.InitializationCompleted += (_, result) => ApplyBootstrapResult(result);
@@ -45,9 +45,9 @@ public partial class MainWindow : Window
     {
         if (result.IsSuccess)
         {
-            DashboardTab.IsEnabled = true;
+            SearchTab.IsEnabled = true;
             DownloadTab.IsEnabled = true;
-            MainTabControl.SelectedItem = DashboardTab;
+            MainTabControl.SelectedItem = SearchTab;
             StatusTextBlock.Text = "初始化完成，可进入主页面。";
             _logger.LogInformation("Bootstrap succeeded.");
             return;
@@ -57,7 +57,7 @@ public partial class MainWindow : Window
 
         if (result.RequiresSetup)
         {
-            DashboardTab.IsEnabled = false;
+            SearchTab.IsEnabled = false;
             DownloadTab.IsEnabled = false;
             StatusTextBlock.Text = string.IsNullOrWhiteSpace(result.ErrorMessage)
                 ? "检测到配置缺失，请先完成设置。"
@@ -66,7 +66,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        DashboardTab.IsEnabled = false;
+        SearchTab.IsEnabled = false;
         DownloadTab.IsEnabled = false;
         StatusTextBlock.Text = string.IsNullOrWhiteSpace(result.ErrorMessage)
             ? "初始化失败，请检查设置页后重试。"

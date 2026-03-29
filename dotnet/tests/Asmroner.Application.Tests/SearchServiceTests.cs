@@ -65,6 +65,22 @@ public class SearchServiceTests
         Assert.Empty(result.Items);
     }
 
+    [Fact]
+    public async Task SearchService_ShouldSearch_WhenOnlyPageOptionsProvided()
+    {
+        var parser = new QueryParserService();
+        var apiClient = new PagedSearchApiClient();
+        var sut = new SearchService(apiClient, parser);
+
+        var result = await sut.SearchAsync("?order=release&sort=desc&page=1&pageSize=2&subtitle=0&includeTranslationWorks=true", 2);
+
+        Assert.Single(apiClient.Calls);
+        Assert.Equal(6, result.TotalCount);
+        Assert.Equal(2, result.ReturnedCount);
+        Assert.Equal("RJ1001", result.Items[0].SourceId);
+        Assert.Equal("RJ1002", result.Items[1].SourceId);
+    }
+
     private sealed class EmptySearchApiClient : IAsmrApiClient
     {
         public Task<WorkInfoDto> GetWorkInfoAsync(string id, CancellationToken cancellationToken = default)

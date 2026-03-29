@@ -1,4 +1,4 @@
-<UserControl x:Class="Asmroner.Wpf.Views.DashboardView"
+<UserControl x:Class="Asmroner.Wpf.Views.SearchView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -229,6 +229,7 @@
                                   Width="96"
                                   Margin="0,0,12,6"
                                   Style="{StaticResource FieldComboBoxStyle}"
+                                  SelectionChanged="OnOrderChanged"
                                   SelectedIndex="0">
                             <ComboBoxItem Tag="release"
                                           Content="日期"/>
@@ -250,6 +251,7 @@
                                   Width="96"
                                   Margin="0,0,12,6"
                                   Style="{StaticResource FieldComboBoxStyle}"
+                                  SelectionChanged="OnSortChanged"
                                   SelectedIndex="0">
                             <ComboBoxItem Tag="desc"
                                           Content="降序"/>
@@ -263,6 +265,7 @@
                                   Width="96"
                                   Margin="0,0,12,6"
                                   Style="{StaticResource FieldComboBoxStyle}"
+                                  SelectionChanged="OnSubtitleChanged"
                                   SelectedIndex="0">
                             <ComboBoxItem Tag="0"
                                           Content="不限"/>

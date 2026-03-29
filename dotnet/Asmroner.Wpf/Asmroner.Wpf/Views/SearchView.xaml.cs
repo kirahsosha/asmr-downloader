@@ -11,7 +11,7 @@ using Asmroner.Wpf.ViewModels;
 
 namespace Asmroner.Wpf.Views;
 
-public partial class DashboardView : UserControl
+public partial class SearchView : UserControl
 {
     private static readonly char[] FilterSeparators = [' ', '\t', '\r', '\n', ';', ','];
 
@@ -22,7 +22,7 @@ public partial class DashboardView : UserControl
     private readonly IDownloadService _downloadService;
     private readonly IUiStateStore _uiStateStore;
     private readonly IAppPathService _appPathService;
-    private readonly ILogger<DashboardView> _logger;
+    private readonly ILogger<SearchView> _logger;
 
     private IReadOnlyList<SearchWorkItem> _results = Array.Empty<SearchWorkItem>();
     private IReadOnlyList<SearchWorkItem> _popularResults = Array.Empty<SearchWorkItem>();
@@ -31,8 +31,9 @@ public partial class DashboardView : UserControl
     private int _totalCount;
     private bool _isPopularMode;
     private bool _isApplyingSearchUiState;
+    private bool _suppressSearchOptionSelectionChanged = true;
 
-    public DashboardView()
+    public SearchView()
         : this(
             null!,
             null!,
@@ -45,7 +46,7 @@ public partial class DashboardView : UserControl
     {
     }
 
-    public DashboardView(
+    public SearchView(
         ISearchService searchService,
         IAsmrApiClient asmrApiClient,
         ISearchExportService searchExportService,
@@ -53,7 +54,7 @@ public partial class DashboardView : UserControl
         IDownloadService downloadService,
         IUiStateStore uiStateStore,
         IAppPathService appPathService,
-        ILogger<DashboardView> logger)
+        ILogger<SearchView> logger)
     {
         _searchService = searchService;
         _asmrApiClient = asmrApiClient;
@@ -70,6 +71,7 @@ public partial class DashboardView : UserControl
         RegisterSearchUiAutosaveHandlers();
 
         Loaded += async (_, _) => await LoadSearchUiStateAsync();
+        _suppressSearchOptionSelectionChanged = false;
     }
 
     private async Task LoadSearchUiStateAsync()
@@ -254,9 +256,9 @@ public partial class DashboardView : UserControl
         await ExecuteSearchAsync();
     }
 
-    private async Task ExecuteSearchAsync()
+    private async Task ExecuteSearchAsync(bool allowOptionOnlyQuery = false)
     {
-        var rawQuery = BuildEffectiveQuery();
+        var rawQuery = BuildEffectiveQuery(allowOptionOnlyQuery);
         if (string.IsNullOrWhiteSpace(rawQuery))
         {
             StatusTextBlock.Text = "请输入关键词，或填写至少一个高级筛选条件。";
@@ -393,10 +395,18 @@ public partial class DashboardView : UserControl
     {
         QueryTextBox.Text = string.Empty;
 
-        OrderComboBox.SelectedIndex = 0;
-        SortComboBox.SelectedIndex = 0;
-        SubtitleComboBox.SelectedIndex = 0;
-        PageSizeComboBox.SelectedIndex = 0;
+        _suppressSearchOptionSelectionChanged = true;
+        try
+        {
+            OrderComboBox.SelectedIndex = 0;
+            SortComboBox.SelectedIndex = 0;
+            SubtitleComboBox.SelectedIndex = 0;
+            PageSizeComboBox.SelectedIndex = 0;
+        }
+        finally
+        {
+            _suppressSearchOptionSelectionChanged = false;
+        }
 
         _isPopularMode = false;
         _popularResults = Array.Empty<SearchWorkItem>();
@@ -425,7 +435,7 @@ public partial class DashboardView : UserControl
             return;
         }
 
-        await ExecuteSearchAsync();
+        await ExecuteSearchAsync(ShouldAllowOptionOnlyQuery());
     }
 
     private async void OnNextPageClicked(object sender, System.Windows.RoutedEventArgs e)
@@ -445,7 +455,7 @@ public partial class DashboardView : UserControl
             return;
         }
 
-        await ExecuteSearchAsync();
+        await ExecuteSearchAsync(ShouldAllowOptionOnlyQuery());
     }
 
     private async void OnGoPageClicked(object sender, System.Windows.RoutedEventArgs e)
@@ -465,11 +475,50 @@ public partial class DashboardView : UserControl
             return;
         }
 
-        await ExecuteSearchAsync();
+        await ExecuteSearchAsync(ShouldAllowOptionOnlyQuery());
+    }
+
+    private async void OnOrderChanged(object sender, SelectionChangedEventArgs e)
+    {
+        await OnSearchOptionChangedAsync();
+    }
+
+    private async void OnSortChanged(object sender, SelectionChangedEventArgs e)
+    {
+        await OnSearchOptionChangedAsync();
+    }
+
+    private async void OnSubtitleChanged(object sender, SelectionChangedEventArgs e)
+    {
+        await OnSearchOptionChangedAsync();
+    }
+
+    private async Task OnSearchOptionChangedAsync()
+    {
+        if (_suppressSearchOptionSelectionChanged)
+        {
+            return;
+        }
+
+        _currentPage = 1;
+
+        if (_isPopularMode)
+        {
+            RenderPopularPage();
+            StatusTextBlock.Text = BuildPopularPageStatusText();
+            return;
+        }
+
+        await ExecuteSearchAsync(allowOptionOnlyQuery: true);
     }
 
     private async void OnPageSizeChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (_suppressSearchOptionSelectionChanged)
+        {
+            return;
+        }
+
         var newPageSize = ReadPageSize();
         if (newPageSize == _pageSize)
         {
@@ -486,13 +535,7 @@ public partial class DashboardView : UserControl
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(QueryTextBox.Text) || HasAdvancedFilter())
-        {
-            await ExecuteSearchAsync();
-            return;
-        }
-
-        UpdatePaginationInfo();
+        await ExecuteSearchAsync(allowOptionOnlyQuery: true);
     }
 
     private async Task ExportAsync(string extension)
@@ -589,7 +632,7 @@ public partial class DashboardView : UserControl
         return $"热门查询：第 {_currentPage}/{GetTotalPages()} 页，当前 {_results.Count} 条 / 总计 {_totalCount} 条。";
     }
 
-    private string BuildEffectiveQuery()
+    private string BuildEffectiveQuery(bool allowOptionOnlyQuery = false)
     {
         var plain = QueryTextBox.Text.Trim();
         var filters = BuildAdvancedFilterTokens();
@@ -614,7 +657,7 @@ public partial class DashboardView : UserControl
             builder.Append(string.Join(',', filters));
         }
 
-        if (builder.Length == 0)
+        if (builder.Length == 0 && !allowOptionOnlyQuery)
         {
             return string.Empty;
         }
@@ -729,6 +772,14 @@ public partial class DashboardView : UserControl
             || !string.IsNullOrWhiteSpace(SellTextBox.Text)
             || !string.IsNullOrWhiteSpace(AgeTextBox.Text)
             || !string.IsNullOrWhiteSpace(LangTextBox.Text);
+    }
+
+    private bool ShouldAllowOptionOnlyQuery()
+    {
+        return !string.IsNullOrWhiteSpace(QueryTextBox.Text)
+            || HasAdvancedFilter()
+            || _totalCount > 0
+            || _results.Count > 0;
     }
 
     private int GetTotalPages()

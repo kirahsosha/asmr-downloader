@@ -14,7 +14,7 @@ public class MainWindowXamlTests
         Assert.Contains("Height=\"720\"", content, StringComparison.Ordinal);
         Assert.Contains("MinWidth=\"1280\"", content, StringComparison.Ordinal);
         Assert.Contains("MinHeight=\"720\"", content, StringComparison.Ordinal);
-        Assert.Contains("Title=\"Asmroner v0.4.2\"", content, StringComparison.Ordinal);
+        Assert.Contains("Title=\"Asmroner v0.4.3\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
         Assert.NotNull(doc.Root);
