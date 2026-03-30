@@ -28,7 +28,7 @@ public partial class MainWindow : Window
         SearchHost.Content = searchView;
         DownloadHost.Content = downloadView;
         SettingsHost.Content = settingsView;
-        _settingsView.InitializationCompleted += (_, result) => ApplyBootstrapResult(result);
+        _settingsView.InitializationCompleted += (_, result) => ApplyBootstrapResult(result, navigateToSearchOnSuccess: false);
 
         Loaded += OnLoaded;
 
@@ -38,16 +38,16 @@ public partial class MainWindow : Window
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         var result = await _bootstrapper.InitializeAsync();
-        ApplyBootstrapResult(result);
+        ApplyBootstrapResult(result, navigateToSearchOnSuccess: true);
     }
 
-    private void ApplyBootstrapResult(BootstrapResult result)
+    private void ApplyBootstrapResult(BootstrapResult result, bool navigateToSearchOnSuccess)
     {
         if (result.IsSuccess)
         {
             SearchTab.IsEnabled = true;
             DownloadTab.IsEnabled = true;
-            MainTabControl.SelectedItem = SearchTab;
+            MainTabControl.SelectedItem = navigateToSearchOnSuccess ? SearchTab : SettingsTab;
             StatusTextBlock.Text = "初始化完成，可进入主页面。";
             _logger.LogInformation("Bootstrap succeeded.");
             return;

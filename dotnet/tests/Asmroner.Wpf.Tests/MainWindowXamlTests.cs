@@ -14,9 +14,19 @@ public class MainWindowXamlTests
         Assert.Contains("Height=\"720\"", content, StringComparison.Ordinal);
         Assert.Contains("MinWidth=\"1280\"", content, StringComparison.Ordinal);
         Assert.Contains("MinHeight=\"720\"", content, StringComparison.Ordinal);
-        Assert.Contains("Title=\"Asmroner v0.4.4\"", content, StringComparison.Ordinal);
+        Assert.Contains("Title=\"Asmroner\"", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("Title=\"Asmroner v", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
         Assert.NotNull(doc.Root);
+    }
+
+    [Fact]
+    public void MainWindowXaml_ShouldNotContainVersionInWindowTitle()
+    {
+        var xamlPath = XamlTestPathLocator.Locate("MainWindow.xaml", "dotnet", "Asmroner.Wpf", "Asmroner.Wpf");
+        var content = File.ReadAllText(xamlPath);
+
+        Assert.DoesNotContain("Title=\"Asmroner v", content, StringComparison.Ordinal);
     }
 }

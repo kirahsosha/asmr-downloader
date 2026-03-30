@@ -17,7 +17,7 @@ public class SettingsViewXamlTests
         Assert.Contains("x:Name=\"StatusTextBlock\"", content, StringComparison.Ordinal);
         Assert.DoesNotContain("FileFilterTextBox", content, StringComparison.Ordinal);
         Assert.DoesNotContain("GlobalSearchRuleTextBox", content, StringComparison.Ordinal);
-        Assert.Contains("Text=\"版本：v0.4.4\"", content, StringComparison.Ordinal);
+        Assert.Contains("Text=\"版本：v0.4.5\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
         Assert.NotNull(doc.Root);

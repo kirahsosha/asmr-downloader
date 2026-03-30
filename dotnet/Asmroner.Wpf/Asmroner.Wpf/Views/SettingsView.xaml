@@ -249,7 +249,7 @@
                 <TextBlock Margin="2,6,0,0"
                            Foreground="#FF6F8095"
                            FontSize="12"
-                           Text="版本：v0.4.4"/>
+                           Text="版本：v0.4.5"/>
             </StackPanel>
         </ScrollViewer>
     </Grid>

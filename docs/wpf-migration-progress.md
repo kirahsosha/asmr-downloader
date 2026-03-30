@@ -1,6 +1,6 @@
 ﻿# asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.4.4
+当前跟踪版本：v0.4.5
 
 AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 
@@ -115,6 +115,7 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 | 2026-03-16 | 阶段 4 | 下载流程 RunSingleAsync 仍报 API 调用失败 400 Bad Request，问题待继续定位。                                                                                                                                                        | 阶段 4 下载链路稳定性受影响                  | AI + 用户 | 已解决   | 2026-03-16   | 2026-03-16   |
 | 2026-03-17 | 阶段 4 | 在 Search 页面选择并点击"加入下载队列"时，如果该任务已存在且状态为 Canceled，仅通过 `_queuedStatusOverrides` 将枚举值更新为 Pending，但 `DownloadTaskRowViewModel.StatusText` 未同步更新，导致 Download 页面行仍显示"已取消"文本。 | Download 页面行状态文本与实际排队状态不一致  | AI + 用户 | 已解决   | 2026-03-27   | 2026-03-27   |
 | 2026-03-29 | 阶段 4 | Download 页面重启后，“只下载高清音频”“文件筛选”与未完成队列恢复项仍处于未通过，需补齐恢复链路与回归验证。                                                                                                                          | 阶段 4 状态持久化与重启恢复验证不闭环        | AI + 用户 | 已解决   | 2026-03-29   | 2026-03-29   |
+| 2026-03-30 | 阶段 1 | 在 Settings 页面点击“保存并重新初始化”后，初始化成功仍会自动切换到 Search 页签，导致设置页流程被中断。                                                                                                                             | Settings 配置闭环与页面停留行为不一致        | AI + 用户 | 已解决   | 2026-03-30   | 2026-03-30   |
 
 ## 1.5 变更与验证记录
 
@@ -807,6 +808,19 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 4. DoD 判定：是。代码改动与自动化回归已闭环；章节 4 对应手工验证项按约束保持未勾选。
 5. 下次计划：由用户执行 Search 手工回归，重点验证“多选后右键未选中行不改变选中集”“导出选中无选中时回退导出全部”“右键浏览器打开命中项准确”。
 
+### 1.5.69 2026-03-30，v0.4.5 对齐 + Settings 重初始化停留修复
+
+1. 变更摘要：
+ - **章节复核**：已复核章节 1.2/1.3/1.4；阶段状态维持不变，并在 1.4 新增本轮缺陷记录与解决结果。
+ - **版本升级**：Core/Application/Infrastructure/Wpf 项目版本、Settings 版本文案、启动日志与 README 统一升级到 `v0.4.5`。
+ - **界面调整**：主窗口标题移除版本号，仅保留 `Asmroner`；版本信息仅在 Settings 页面展示。
+ - **缺陷修复**：修复“保存并重新初始化”成功后强制跳转 Search 的问题，改为 Settings 触发成功后保持在 Settings 页面。
+ - **测试同步**：更新 WPF XAML 断言并新增主窗口“标题不含版本号”测试样例；章节 4 对应项按规则保持未勾选。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Application/Asmroner.Application.csproj`、`dotnet/Asmroner.Backend/Asmroner.Core/Asmroner.Core.csproj`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Asmroner.Infrastructure.csproj`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Asmroner.Wpf.csproj`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/App.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/MainWindow.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/MainWindow.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml`、`dotnet/tests/Asmroner.Wpf.Tests/MainWindowXamlTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/SettingsViewXamlTests.cs`、`README.md`、`docs/wpf-migration-progress.md`。
+3. 验证结果：`dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj -c Release --nologo` 通过（总计 114，失败 0，成功 114）；`dotnet test dotnet/Asmroner.sln -c Release --nologo` 通过（总计 204，失败 0，成功 204）。
+4. DoD 判定：是。版本升级、界面规则调整与导航修复均已完成，自动化回归通过。
+5. 下次计划：由用户执行章节 4.1 的手工回归项（重初始化停留行为与版本展示规则）并按实际结果勾选。
+
 ## 1.6 维护规则
 
 - 每次代码提交后更新第 16.2 节状态表。
@@ -825,7 +839,7 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-03-30 的 `dotnet test dotnet/Asmroner.sln`（203/203）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-03-30 的 `dotnet test dotnet/Asmroner.sln`（204/204）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
@@ -975,9 +989,10 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 
 #### 2.1.18 Wpf.Tests / MainWindowXamlTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                              | 输入                            | 期望输出                                            |
-| ------ | ------ | ------ | --------------------------------------------------- | ------------------------------- | --------------------------------------------------- |
-| [x]    | [x]    | 阶段 4 | `MainWindowXaml_ShouldUse1280x720DefaultWindowSize` | 解析 `MainWindow.xaml` 文本/XML | 默认与最小窗口尺寸为 `1280x720`，且 XAML 可被解析。 |
+| 已创建 | 已通过 | 阶段   | 样例名                                                | 输入                            | 期望输出                                                                     |
+| ------ | ------ | ------ | ----------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 4 | `MainWindowXaml_ShouldUse1280x720DefaultWindowSize`   | 解析 `MainWindow.xaml` 文本/XML | 默认与最小窗口尺寸为 `1280x720`，主窗口标题为 `Asmroner`，且 XAML 可被解析。 |
+| [x]    | [x]    | 阶段 4 | `MainWindowXaml_ShouldNotContainVersionInWindowTitle` | 解析 `MainWindow.xaml` 文本     | 标题不包含版本号前缀（例如 `Asmroner v`）。                                  |
 
 #### 2.1.19 Wpf.Tests / SearchViewXamlTests.cs
 
@@ -1283,7 +1298,8 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 | 2026-03-27 | 已提交 | fix(search/download): preserve filters, accurate queue counts, v0.4.1 sync  | 1. Update version to v0.4.1.<br>2. Fix Search clear behavior to preserve advanced filters.<br>3. Fix paging searching logic.<br>4. Add queue-count policy to report accurate added/skipped counts.<br>5. Add `hd_audio_only` config.<br>6. Add/refresh regression tests.                                                                                                                                                           | 527c02e    |
 | 2026-03-29 | 已提交 | feat(state/config): sqlite persistence + restore-path hardening             | 1. Update version to v0.4.2.<br>2. Keep settings/search/download UI-state persistence in SQLite.<br>3. Add program-directory `config.json` as default configuration source.<br>4. Remove `config.toml` runtime dependency and `Tomlyn`.<br>5. Remove legacy downloader fields and obsolete fallback branches.<br>6. Update regression tests.                                                                                       | 3afbee3    |
 | 2026-03-29 | 已提交 | fix(search): trigger option-only query + rename DashboardView to SearchView | 1. Bump runtime/UI/docs version to v0.4.3 and align related assertions.<br>2. Fix Search behavior.<br>3. Rename DashboardView to SearchView and sync DI/shell host naming.<br>4. Update regression tests.                                                                                                                                                                                                                          | b3374e2    |
-| 2026-03-30 | 待提交 | feat(search): preserve multi-select + export scopes, sync v0.4.4            | 1. Add right click menu in Search ResultsGrid.<br>2. Update version to v0.4.4.<br>5. Update regression tests.                                                                                                                                                                                                                                                                                                                      | -          |
+| 2026-03-30 | 已提交 | feat(search): preserve multi-select + export scopes, sync v0.4.4            | 1. Add right click menu in Search ResultsGrid.<br>2. Update version to v0.4.4.<br>3. Update regression tests.                                                                                                                                                                                                                                                                                                                      | 83c84fa    |
+| 2026-03-30 | 待提交 | fix(settings): stay on settings after reinit, sync v0.4.5                   | 1. Update version to v0.4.5.<br>2. Remove version from main window title.<br>3. Fix Settings saving success path to stay on Settings tab.<br>4. Update regression tests.                                                                                                                                                                                                                                                           | -          |
 
 ---
 
@@ -1306,9 +1322,10 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 程序目录 `config.json` 可作为默认配置来源；当 SQLite 中无配置记录时，应用可读取该默认配置并完成设置页加载。
 - [x] SQLite 中存在旧单行 `AppConfig`（`Id=1`）时，应用启动后会自动迁移到 `user/downloader/limit` 分段结构并可继续使用。
 - [x] 在 Settings 页面修改有效配置后，“保存并重新初始化”可成功完成，状态提示明确，应用进入可用状态。
+- [x] 在 Settings 页面点击“保存并重新初始化”后，当前页应保持在 Settings，不应自动跳转到 Search。
 - [x] Settings 页面输入无效配置时，可给出可读错误提示，且应用不崩溃。
 - [x] “测试连接”可完成站点发现与登录校验；成功时回填当前 BaseUrl 并显示延迟与鉴权结果，失败时显示明确原因。
-- [x] 主窗口标题与 Settings 页面版本文案应显示 `v0.4.4`。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.4.5。
 
 ### 4.2 Search 功能
 
