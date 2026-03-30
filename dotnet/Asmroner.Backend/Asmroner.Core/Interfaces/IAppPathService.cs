@@ -10,5 +10,7 @@ public interface IAppPathService
 
     string DefaultSyncDataDirectory { get; }
 
+    string LogsDirectory { get; }
+
     void EnsureMetadataDirectory();
 }

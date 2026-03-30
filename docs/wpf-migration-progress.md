@@ -1,8 +1,8 @@
 ﻿# asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.4.5
+当前跟踪版本：v0.4.6
 
-AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
+AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 ## 1. 项目进度跟踪清单
 
@@ -821,6 +821,41 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 4. DoD 判定：是。版本升级、界面规则调整与导航修复均已完成，自动化回归通过。
 5. 下次计划：由用户执行章节 4.1 的手工回归项（重初始化停留行为与版本展示规则）并按实际结果勾选。
 
+### 1.5.70 2026-03-30，v0.4.6 版本升级 + NLog 结构化日志封装
+
+1. 变更摘要：
+ - **章节复核**：已复核章节 1.2/1.3/1.4；阶段状态维持不变。
+ - **版本升级**：Core/Application/Infrastructure/Wpf 项目版本、启动日志统一升级到 `v0.4.6`。
+ - **日志封装**：引入 `NLog 5.3.2`，新建 `IAppLogService` 接口（Core）与 `NLogAppLogService` 实现（Infrastructure）；以编程式配置替代 XML 配置文件，日志以 JSON Lines 格式写入滚动文件（`~/.asmroner-data/logs/`），文件超过 10 MB 或日期变更时自动归档；`IAppPathService` 新增 `LogsDirectory` 属性，`App.xaml.cs` 在 `Host.Build()` 后立即调用 `logService.Configure()`，`ConfigureLogging` 改用 `AddNLog()` 桥接到 MEL。
+ - **测试同步**：新建 `NLogAppLogServiceTests`（5 个 Fact：FileTarget 存在性/JsonLayout/归档大小/按天归档/目录自动创建）与 `AppPathServiceTests`（`LogsDirectory_ShouldBeUnderMetadataDirectory`）共 6 个新测试样例；`DownloadServiceTestDoubles.TestAppPathService` 补全 `LogsDirectory` 接口成员。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Asmroner.Core.csproj`、`dotnet/Asmroner.Backend/Asmroner.Application/Asmroner.Application.csproj`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Asmroner.Infrastructure.csproj`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Asmroner.Wpf.csproj`、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IAppPathService.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IAppLogService.cs`（新建）、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/AppPathService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/NLogAppLogService.cs`（新建）、`dotnet/Asmroner.Wpf/Asmroner.Wpf/App.xaml.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/NLogAppLogServiceTests.cs`（新建）、`dotnet/tests/Asmroner.Infrastructure.Tests/AppPathServiceTests.cs`（新建）、`dotnet/tests/Asmroner.Application.Tests/DownloadServiceTestDoubles.cs`、`docs/wpf-migration-progress.md`。
+3. 验证结果：`dotnet test dotnet/Asmroner.sln` 通过（总计 210，失败 0，成功 210）。
+4. DoD 判定：是。版本升级与 NLog 日志封装均完成，自动化回归通过。
+5. 下次计划：由用户执行章节 4.1 的手工回归项（Settings 版本展示规则 v0.4.6）并按实际结果勾选。
+
+### 1.5.71 2026-03-30，NLog 升级至 6.1.1 + NLogAppLogService 代码优化
+
+1. 变更摘要：
+ - **NLog 版本升级**：`NLog` 由 `5.3.2` 升至 `6.1.1`（Infrastructure、Infrastructure.Tests），`NLog.Extensions.Logging` 由 `5.3.2` 升至 `6.1.2`（Wpf），与当前最新稳定版对齐。
+ - **NLogAppLogService 代码优化**：提取 `BuildFileTarget` 为 `internal static` 方法以支持单元测试直接构造；新增 `LogManager.ReconfigExistingLoggers()` 调用确保存量 Logger 实例立即生效；JSON 时间戳改用 `${longdate}`；归档文件迁移至 `archive/` 子目录，扩展名统一为 `.json`；新增 `ConcurrentWrites = true` 与 `KeepFileOpen = true` 优化写入性能；`NLogAppLogServiceTests` 补充第 5 个 Fact：`Configure_ShouldCreateLogDirectory_WhenNotExists`。
+ - **章节复核**：章节 1.2/1.3/1.4 状态无需变动；章节 2.1 基线维持 210/210。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Asmroner.Infrastructure.csproj`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Asmroner.Wpf.csproj`、`dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/NLogAppLogService.cs`。
+3. 验证结果：`dotnet test dotnet/Asmroner.sln` 通过（总计 210，失败 0，成功 210）。
+4. DoD 判定：是。NLog 版本对齐与代码结构优化完成，回归通过。
+5. 下次计划：由用户执行章节 4.1 的手工回归项并按实际结果勾选。
+
+### 1.5.72 2026-03-30，全量切换为 NLog 静态日志器 + 移除 `ILogger<T>` 注入
+
+1. 变更摘要：
+ - **日志实现统一**：将 Infrastructure/WPF 中剩余 `ILogger<T>` 注入改为 `NLog.LogManager.GetCurrentClassLogger()` 静态日志器，覆盖 `ApiEndpointUrlService`、`AuthService`、`ConnectivityProbeService`、`StartupEndpointWarmupService`、`MainWindow`、`SettingsView`、`SearchView`、`DownloadView`、`App.xaml.cs`。
+ - **依赖收敛**：移除 WPF 项目中的 `Microsoft.Extensions.Logging.Console` 与 `Microsoft.Extensions.Logging.Debug` 包引用；保留 `NLog.Extensions.Logging` 作为桥接。
+ - **测试同步**：移除相关测试中的 `NullLogger<T>.Instance` 构造参数，匹配新构造函数签名；`NLogAppLogServiceTests` 新增 `Configure_ShouldWriteLogEntry_WhenStaticLoggerIsUsed`，验证静态 logger 可落盘写入。
+ - **回归结果**：`dotnet build dotnet/Asmroner.sln --configuration Debug` 成功（0 错误）；五个测试程序集直接执行通过，总计 211，失败 0。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/ApiEndpointUrlService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/AuthService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/ConnectivityProbeService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/StartupEndpointWarmupService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/MainWindow.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/App.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Asmroner.Wpf.csproj`、`dotnet/tests/Asmroner.Infrastructure.Tests/NLogAppLogServiceTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/ApiEndpointUrlServiceTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/AuthServiceTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/ConnectivityProbeServiceTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/StartupEndpointWarmupServiceTests.cs`。
+3. 验证结果：`dotnet build dotnet/Asmroner.sln --configuration Debug` 通过；`dotnet dotnet/tests/Asmroner.Core.Tests/bin/Debug/net8.0/Asmroner.Core.Tests.dll`、`dotnet dotnet/tests/Asmroner.Infrastructure.Tests/bin/Debug/net8.0/Asmroner.Infrastructure.Tests.dll`、`dotnet dotnet/tests/Asmroner.IntegrationTests/bin/Debug/net8.0/Asmroner.IntegrationTests.dll`、`dotnet dotnet/tests/Asmroner.Application.Tests/bin/Debug/net8.0/Asmroner.Application.Tests.dll`、`dotnet dotnet/tests/Asmroner.Wpf.Tests/bin/Debug/net8.0-windows/Asmroner.Wpf.Tests.dll` 全部通过（总计 211，失败 0，成功 211）。
+4. DoD 判定：是。日志体系统一到 NLog 静态日志器，编译与自动化回归通过。
+5. 下次计划：由用户执行章节 4.1 受影响项（启动与 Settings 操作路径）手工回归并按结果重新勾选。
+
 ## 1.6 维护规则
 
 - 每次代码提交后更新第 16.2 节状态表。
@@ -839,7 +874,7 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-03-30 的 `dotnet test dotnet/Asmroner.sln`（204/204）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-03-30 的 `dotnet test dotnet/Asmroner.sln`（210/210）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
@@ -1130,7 +1165,7 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 | [x]    | [x]    | 阶段 3 | `MergeDistinct_ShouldAppendValue_WhenMissing`   | 已有值 `tag1`，新增值 `tag2`    | 合并结果为 `tag1,tag2`           |
 | [x]    | [x]    | 阶段 3 | `MergeDistinct_ShouldNotDuplicateExistingValue` | 已有值 `tag1;tag2`，新增 `tag2` | 命中重复值时不追加，保持原值不变 |
 
-#### 2.1.35 Wpf.Tests / DownloadTaskStatusExtensionsTests.cs （新建）
+#### 2.1.35 Wpf.Tests / DownloadTaskStatusExtensionsTests.cs
 
 | 已创建 | 已通过 | 阶段   | 样例名                                                                | 输入                                                    | 期望输出                                                               |
 | ------ | ------ | ------ | --------------------------------------------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -1138,7 +1173,7 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 | [x]    | [x]    | 阶段 4 | `GetSortOrder_ReturnsCorrectSortOrder`（Theory，6 inline cases）      | Pending/Queued/Running/Completed/Failed/Canceled 枚举值 | 返回对应排序优先级：3/2/1/0/4/5                                        |
 | [x]    | [x]    | 阶段 4 | `GetSortOrder_OrdersStatusesCorrectly`                                | 无序的 6 个枚举值输入                                   | 按排序优先级递增排列：Completed→Running→Queued→Pending→Failed→Canceled |
 
-#### 2.1.36 Infrastructure.Tests / AsmrApiOptionsProviderTests.cs（新建）
+#### 2.1.36 Infrastructure.Tests / AsmrApiOptionsProviderTests.cs
 
 | 已创建 | 已通过 | 阶段   | 样例名                                                                      | 输入                                                         | 期望输出                                              |
 | ------ | ------ | ------ | --------------------------------------------------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------- |
@@ -1146,7 +1181,7 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 | [x]    | [x]    | 阶段 2 | `AsmrApiOptionsProvider_ShouldFallbackToDefaults_WhenConfiguredUrlsMissing` | 空 `api_url` 与空列表字段                                    | 回退默认 API 地址、默认候选地址与默认发布源地址       |
 | [x]    | [x]    | 阶段 2 | `AsmrApiOptionsProvider_ShouldIgnoreInvalidUrls_InConfiguredLists`          | 列表中混入非法 URL                                           | 仅保留合法 URL 项，非法项被忽略                       |
 
-#### 2.1.37 Infrastructure.Tests / ApiEndpointUrlServiceTests.cs（新建）
+#### 2.1.37 Infrastructure.Tests / ApiEndpointUrlServiceTests.cs
 
 | 已创建 | 已通过 | 阶段   | 样例名                                                                | 输入                               | 期望输出                          |
 | ------ | ------ | ------ | --------------------------------------------------------------------- | ---------------------------------- | --------------------------------- |
@@ -1154,20 +1189,20 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 | [x]    | [x]    | 阶段 2 | `DiscoverAndPersistAsync_ShouldSkipSave_WhenConfigMissing`            | 配置不存在，发现结果返回新 BaseUrl | 不写入配置文件，返回发现结果      |
 | [x]    | [x]    | 阶段 2 | `GetCurrentBaseUrlAsync_ShouldReturnDefault_WhenConfigMissingOrEmpty` | 配置缺失或 `api_url` 为空白        | 返回默认 API 基础地址             |
 
-#### 2.1.38 Infrastructure.Tests / ConnectivityProbeServiceTests.cs（新建）
+#### 2.1.38 Infrastructure.Tests / ConnectivityProbeServiceTests.cs
 
 | 已创建 | 已通过 | 阶段   | 样例名                                                             | 输入                       | 期望输出                              |
 | ------ | ------ | ------ | ------------------------------------------------------------------ | -------------------------- | ------------------------------------- |
 | [x]    | [x]    | 阶段 2 | `ProbeAsync_ShouldDiscoverAndAuthenticate_WhenDependenciesSucceed` | Discover 成功 + 登录成功   | 返回可达且鉴权成功，包含 BaseUrl/延迟 |
 | [x]    | [x]    | 阶段 2 | `ProbeAsync_ShouldReturnFailureResult_WhenAuthenticationThrows`    | Discover 成功 + 登录抛异常 | 返回不可达结果并携带失败消息          |
 
-#### 2.1.39 Infrastructure.Tests / Existing suite updates（本轮补充）
+#### 2.1.39 Infrastructure.Tests / Existing suite updates
 
 - [x]/[x] 阶段 2 `AsmrApiClient_ShouldUseCurrentBaseUrlService_WithoutDiscovery`（`AsmrApiClientTests.cs`）：验证客户端请求链路仅使用当前 BaseUrl 服务，不触发 Discover。
 - [x]/[x] 阶段 2 `AuthService_ShouldUseCurrentBaseUrlService_WithoutDiscovery`（`AuthServiceTests.cs`）：验证登录链路仅使用当前 BaseUrl 服务，不触发 Discover。
 - [x]/[x] 阶段 2 `EndpointDiscoveryService_ShouldUseConfiguredPublishSources_ForDynamicCandidates`（`EndpointDiscoveryServiceTests.cs`）：验证发布源地址来自配置，且可动态发现候选 API。
 
-#### 2.1.40 Wpf.Tests / StartupEndpointWarmupServiceTests.cs（新建）
+#### 2.1.40 Wpf.Tests / StartupEndpointWarmupServiceTests.cs
 
 | 已创建 | 已通过 | 阶段   | 样例名                                                               | 输入                  | 期望输出                                     |
 | ------ | ------ | ------ | -------------------------------------------------------------------- | --------------------- | -------------------------------------------- |
@@ -1179,14 +1214,14 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 ---
 
 
-#### 2.1.41 Wpf.Tests / DownloadTaskRowViewModelTests.cs（新建）
+#### 2.1.41 Wpf.Tests / DownloadTaskRowViewModelTests.cs
 
 | 已创建 | 已通过 | 阶段    | 样例名                                                                                   | 输入                       | 期望输出                                      |
 | ------ | ------ | ------- | ---------------------------------------------------------------------------------------- | -------------------------- | --------------------------------------------- |
 | [x]    | [x]    | 阶段 4+ | `From_ShouldSetStatusSortOrder_MatchingGetSortOrder`（全 6 状态 Theory）                 | 各 DownloadTaskStatus 枚举 | `vm.StatusSortOrder == status.GetSortOrder()` |
 | [x]    | [x]    | 阶段 4+ | `CreatePending_ShouldSetStatusSortOrder_MatchingGetSortOrder`（Queued/Pending/Canceled） | 各待定状态                 | `vm.StatusSortOrder == status.GetSortOrder()` |
 
-#### 2.1.42 Wpf.Tests / DownloadEnqueueDuplicatePolicyTests.cs（新建）
+#### 2.1.42 Wpf.Tests / DownloadEnqueueDuplicatePolicyTests.cs
 
 | 已创建 | 已通过 | 阶段    | 样例名                                                                                | 输入                             | 期望输出                 |
 | ------ | ------ | ------- | ------------------------------------------------------------------------------------- | -------------------------------- | ------------------------ |
@@ -1196,7 +1231,7 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 | [x]    | [x]    | 阶段 4+ | `FilterAlreadyPresent_ShouldReturnAll_WhenNoExistingTasks`                            | 空任务列表，入队 2 项            | 返回所有 2 项            |
 | [x]    | [x]    | 阶段 4+ | `FilterAlreadyPresent_ShouldReturnEmpty_WhenAllAlreadyExist`                          | 全部已存在                       | 返回空列表               |
 
-#### 2.1.43 Application.Tests / SearchImportServiceTests.cs（新建）
+#### 2.1.43 Application.Tests / SearchImportServiceTests.cs
 
 | 已创建 | 已通过 | 阶段    | 样例名                                                  | 输入                           | 期望输出                                   |
 | ------ | ------ | ------- | ------------------------------------------------------- | ------------------------------ | ------------------------------------------ |
@@ -1208,7 +1243,7 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 | [x]    | [x]    | 阶段 4+ | `ParseJsonAsync_ShouldReturnEmpty_ForEmptyJsonArray`    | `[]`                           | 返回空列表                                 |
 | [x]    | [x]    | 阶段 4+ | `ParseJsonAsync_ShouldSkipEntries_WithEmptySourceId`    | 含空 sourceId 的条目           | 过滤空 sourceId，只返回有效项              |
 
-#### 2.1.44 Wpf.Tests / SearchPagingPolicyTests.cs（新建）
+#### 2.1.44 Wpf.Tests / SearchPagingPolicyTests.cs
 
 | 已创建 | 已通过 | 阶段    | 样例名                                             | 输入                                  | 期望输出                        |
 | ------ | ------ | ------- | -------------------------------------------------- | ------------------------------------- | ------------------------------- |
@@ -1216,14 +1251,14 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 | [x]    | [x]    | 阶段 4+ | `CanJump_ShouldReturnFalse_WhenOnlySinglePage`     | totalPages=1                          | 返回 false（禁用跳页）          |
 | [x]    | [x]    | 阶段 4+ | `CanJump_ShouldReturnTrue_WhenMultiplePages`       | totalPages=2                          | 返回 true（允许跳页）           |
 
-#### 2.1.45 Wpf.Tests / SearchQueueCountPolicyTests.cs（新建）
+#### 2.1.45 Wpf.Tests / SearchQueueCountPolicyTests.cs
 
 | 已创建 | 已通过 | 阶段    | 样例名                                                         | 输入                                   | 期望输出                                            |
 | ------ | ------ | ------- | -------------------------------------------------------------- | -------------------------------------- | --------------------------------------------------- |
 | [x]    | [x]    | 阶段 4+ | `Build_ShouldCountSkippedFromExistingQueuedAndInputDuplicates` | 混合输入重复 + 已在队列 + 已在任务列表 | `ToEnqueue` 与 `SkippedCount` 均与去重/跳过规则一致 |
 | [x]    | [x]    | 阶段 4+ | `Build_ShouldReturnEmpty_WhenInputInvalid`                     | 空字符串与空白输入                     | 返回空队列且跳过数为 0                              |
 
-#### 2.1.46 Infrastructure.Tests / UiStateStoreTests.cs（新建）
+#### 2.1.46 Infrastructure.Tests / UiStateStoreTests.cs
 
 | 已创建 | 已通过 | 阶段    | 样例名                                                                 | 输入                                              | 期望输出                                          |
 | ------ | ------ | ------- | ---------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------- |
@@ -1231,7 +1266,7 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 | [x]    | [x]    | 阶段 4+ | `LoadDownloadUiStateAsync_ShouldReturnDefaults_WhenNoUiStatePersisted` | 无 UI 状态记录                                    | 返回默认状态：`fileFilter=空`、`hdAudioOnly=true` |
 | [x]    | [x]    | 阶段 4+ | `SaveUnfinishedQueueAsync_ShouldNormalizeDeduplicate_AndClear`         | 混合 URL/RJID/重复/空白的未完成队列并执行清空操作 | 存储结果规范化去重，清空后读取为空                |
 
-#### 2.1.47 Wpf.Tests / DownloadUnfinishedQueueSnapshotPolicyTests.cs（新建）
+#### 2.1.47 Wpf.Tests / DownloadUnfinishedQueueSnapshotPolicyTests.cs
 
 | 已创建 | 已通过 | 阶段   | 样例名                                                             | 输入                                             | 期望输出                                                            |
 | ------ | ------ | ------ | ------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------- |
@@ -1239,7 +1274,7 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 | [x]    | [x]    | 阶段 4 | `BuildSnapshot_ShouldReturnEmpty_WhenNoActiveAndQueueEmpty`        | 活跃任务空 + 队列空                              | 返回空快照                                                          |
 | [x]    | [x]    | 阶段 4 | `BuildSnapshot_ShouldDeduplicateCaseInsensitiveAcrossSources`      | 活跃任务与队列同时包含同一 SourceId 的大小写变体 | 跨来源按大小写不敏感去重，仅保留唯一 SourceId                       |
 
-#### 2.1.48 Wpf.Tests / SearchWorkPageUrlPolicyTests.cs（新建）
+#### 2.1.48 Wpf.Tests / SearchWorkPageUrlPolicyTests.cs
 
 | 已创建 | 已通过 | 阶段   | 样例名                                                       | 输入                                     | 期望输出                                        |
 | ------ | ------ | ------ | ------------------------------------------------------------ | ---------------------------------------- | ----------------------------------------------- |
@@ -1249,7 +1284,7 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 | [x]    | [x]    | 阶段 3 | `TryBuild_ShouldFail_WhenSourceIdInvalid`                    | 空白 sourceId                            | 返回失败并给出可读错误                          |
 | [x]    | [x]    | 阶段 3 | `TryBuild_ShouldFail_WhenTemplateInvalid`                    | 非法模板 `not-a-url-{RJID}`              | 返回失败并提示检查 `workPageUrlTemplate`        |
 
-#### 2.1.49 Wpf.Tests / SearchExportScopePolicyTests.cs（新建）
+#### 2.1.49 Wpf.Tests / SearchExportScopePolicyTests.cs
 
 | 已创建 | 已通过 | 阶段   | 样例名                                                                    | 输入                                | 期望输出                                           |
 | ------ | ------ | ------ | ------------------------------------------------------------------------- | ----------------------------------- | -------------------------------------------------- |
@@ -1257,6 +1292,12 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 | [x]    | [x]    | 阶段 3 | `Build_ShouldReturnSelectedResults_WhenScopeIsSelectedAndSelectionExists` | 全量结果 + 非空选中，scope=Selected | 返回选中结果且不触发回退                           |
 | [x]    | [x]    | 阶段 3 | `Build_ShouldFallbackToAll_WhenScopeIsSelectedAndSelectionEmpty`          | 全量结果 + 空选中，scope=Selected   | 回退到全量结果，`FallbackToAll=true`               |
 | [x]    | [x]    | 阶段 3 | `Build_ShouldReturnEmpty_WhenNoResultsAndSelectionEmpty`                  | 全量空 + 选中空，scope=Selected     | 返回空结果，`FallbackToAll=true`（后续由 UI 提示） |
+
+#### 2.1.50 Infrastructure.Tests / NLogAppLogServiceTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                 | 输入                                    | 期望输出                                    |
+| ------ | ------ | ------ | ------------------------------------------------------ | --------------------------------------- | ------------------------------------------- |
+| [x]    | [x]    | 阶段 1 | `Configure_ShouldWriteLogEntry_WhenStaticLoggerIsUsed` | 调用 `Configure` 后使用静态 logger 写入 | 目标日志文件存在且包含 `test-message-` 文本 |
 
 ### 2.2 测试覆盖分析
 
@@ -1299,7 +1340,8 @@ AI约束策略：章节1.5.1到1.5.64的文本不加入分析上下文
 | 2026-03-29 | 已提交 | feat(state/config): sqlite persistence + restore-path hardening             | 1. Update version to v0.4.2.<br>2. Keep settings/search/download UI-state persistence in SQLite.<br>3. Add program-directory `config.json` as default configuration source.<br>4. Remove `config.toml` runtime dependency and `Tomlyn`.<br>5. Remove legacy downloader fields and obsolete fallback branches.<br>6. Update regression tests.                                                                                       | 3afbee3    |
 | 2026-03-29 | 已提交 | fix(search): trigger option-only query + rename DashboardView to SearchView | 1. Bump runtime/UI/docs version to v0.4.3 and align related assertions.<br>2. Fix Search behavior.<br>3. Rename DashboardView to SearchView and sync DI/shell host naming.<br>4. Update regression tests.                                                                                                                                                                                                                          | b3374e2    |
 | 2026-03-30 | 已提交 | feat(search): preserve multi-select + export scopes, sync v0.4.4            | 1. Add right click menu in Search ResultsGrid.<br>2. Update version to v0.4.4.<br>3. Update regression tests.                                                                                                                                                                                                                                                                                                                      | 83c84fa    |
-| 2026-03-30 | 待提交 | fix(settings): stay on settings after reinit, sync v0.4.5                   | 1. Update version to v0.4.5.<br>2. Remove version from main window title.<br>3. Fix Settings saving success path to stay on Settings tab.<br>4. Update regression tests.                                                                                                                                                                                                                                                           | -          |
+| 2026-03-30 | 已提交 | fix(settings): stay on settings after reinit, sync v0.4.5                   | 1. Update version to v0.4.5.<br>2. Remove version from main window title.<br>3. Fix Settings saving success path to stay on Settings tab.<br>4. Update regression tests.                                                                                                                                                                                                                                                           | 0f014d6    |
+| 2026-03-30 | 待提交 | v0.4.6: replace ILogger injections with static NLog logger                  | 1. Update version to v0.4.6.<br>2. Replace Logging with NLog 6.1.1.<br>3. JSON format, size/date rolling, archive to subdirectory.<br>4. Update regression tests.                                                                                                                                                                                                                                                                  | -          |
 
 ---
 
@@ -1325,7 +1367,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 在 Settings 页面点击“保存并重新初始化”后，当前页应保持在 Settings，不应自动跳转到 Search。
 - [x] Settings 页面输入无效配置时，可给出可读错误提示，且应用不崩溃。
 - [x] “测试连接”可完成站点发现与登录校验；成功时回填当前 BaseUrl 并显示延迟与鉴权结果，失败时显示明确原因。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.4.5。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.4.6。
 
 ### 4.2 Search 功能
 

@@ -1,23 +1,22 @@
 using Asmroner.Core.Api;
 using Asmroner.Core.Interfaces;
-using Microsoft.Extensions.Logging;
+using NLog;
 
 namespace Asmroner.Infrastructure.Services;
 
 public sealed class ConnectivityProbeService : IConnectivityProbeService
 {
+    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
+
     private readonly IApiEndpointUrlService _apiEndpointUrlService;
     private readonly IAuthService _authService;
-    private readonly ILogger<ConnectivityProbeService> _logger;
 
     public ConnectivityProbeService(
         IApiEndpointUrlService apiEndpointUrlService,
-        IAuthService authService,
-        ILogger<ConnectivityProbeService> logger)
+        IAuthService authService)
     {
         _apiEndpointUrlService = apiEndpointUrlService;
         _authService = authService;
-        _logger = logger;
     }
 
     public async Task<ConnectivityProbeResult> ProbeAsync(CancellationToken cancellationToken = default)
@@ -36,12 +35,12 @@ public sealed class ConnectivityProbeService : IConnectivityProbeService
                 Message = "连接正常。",
             };
 
-            _logger.LogInformation("Connectivity probe succeeded for {BaseUrl} with latency {LatencyMs} ms.", result.BaseUrl, result.LatencyMs);
+            _logger.Info("Connectivity probe succeeded for {BaseUrl} with latency {LatencyMs} ms.", result.BaseUrl, result.LatencyMs);
             return result;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Connectivity probe failed.");
+            _logger.Warn(ex, "Connectivity probe failed.");
             return new ConnectivityProbeResult
             {
                 IsReachable = false,

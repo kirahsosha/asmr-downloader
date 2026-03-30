@@ -3,17 +3,18 @@ using System.Windows;
 using Asmroner.Core.Configuration;
 using Asmroner.Core.Initialization;
 using Asmroner.Core.Interfaces;
-using Microsoft.Extensions.Logging;
+using NLog;
 
 namespace Asmroner.Wpf.Views;
 
 public partial class SettingsView : UserControl
 {
+    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
+
     private readonly IConfigurationService _configurationService;
     private readonly IApplicationBootstrapper _bootstrapper;
     private readonly IAppPathService _appPathService;
     private readonly IConnectivityProbeService _connectivityProbeService;
-    private readonly ILogger<SettingsView> _logger;
 
     private string _apiCandidateUrls = new DownloaderOptions().ApiCandidateUrls;
     private string _publishSourceUrls = new DownloaderOptions().PublishSourceUrls;
@@ -23,14 +24,12 @@ public partial class SettingsView : UserControl
         IConfigurationService configurationService,
         IApplicationBootstrapper bootstrapper,
         IAppPathService appPathService,
-        IConnectivityProbeService connectivityProbeService,
-        ILogger<SettingsView> logger)
+        IConnectivityProbeService connectivityProbeService)
     {
         _configurationService = configurationService;
         _bootstrapper = bootstrapper;
         _appPathService = appPathService;
         _connectivityProbeService = connectivityProbeService;
-        _logger = logger;
 
         InitializeComponent();
         Loaded += OnLoaded;
@@ -82,7 +81,7 @@ public partial class SettingsView : UserControl
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Saving configuration failed.");
+            _logger.Error(ex, "Saving configuration failed.");
             StatusTextBlock.Text = $"保存失败: {ex.Message}";
         }
         finally
@@ -122,7 +121,7 @@ public partial class SettingsView : UserControl
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Connectivity probe failed.");
+            _logger.Error(ex, "Connectivity probe failed.");
             StatusTextBlock.Text = $"测试失败: {ex.Message}";
         }
         finally

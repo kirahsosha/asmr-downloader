@@ -2,7 +2,6 @@ using System.Diagnostics;
 using Asmroner.Core.Api;
 using Asmroner.Core.Interfaces;
 using Asmroner.Wpf.Services;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Asmroner.Wpf.Tests;
 
@@ -14,7 +13,6 @@ public class StartupEndpointWarmupServiceTests
         var endpointService = new SlowApiEndpointUrlService();
         var sut = new StartupEndpointWarmupService(
             endpointService,
-            NullLogger<StartupEndpointWarmupService>.Instance,
             TimeSpan.FromSeconds(5));
 
         var stopwatch = Stopwatch.StartNew();
@@ -37,7 +35,6 @@ public class StartupEndpointWarmupServiceTests
         var endpointService = new RecordingApiEndpointUrlService();
         var sut = new StartupEndpointWarmupService(
             endpointService,
-            NullLogger<StartupEndpointWarmupService>.Instance,
             TimeSpan.FromSeconds(1));
 
         await sut.StartInBackgroundAsync();
@@ -51,7 +48,6 @@ public class StartupEndpointWarmupServiceTests
         var endpointService = new ThrowingApiEndpointUrlService();
         var sut = new StartupEndpointWarmupService(
             endpointService,
-            NullLogger<StartupEndpointWarmupService>.Instance,
             TimeSpan.FromSeconds(1));
 
         var exception = await Record.ExceptionAsync(() => sut.StartInBackgroundAsync());
@@ -66,7 +62,6 @@ public class StartupEndpointWarmupServiceTests
         var endpointService = new TimeoutAwareApiEndpointUrlService();
         var sut = new StartupEndpointWarmupService(
             endpointService,
-            NullLogger<StartupEndpointWarmupService>.Instance,
             TimeSpan.FromMilliseconds(50));
 
         var stopwatch = Stopwatch.StartNew();

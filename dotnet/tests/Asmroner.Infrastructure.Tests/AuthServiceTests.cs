@@ -3,7 +3,7 @@ using System.Net;
 using System.Text;
 using Asmroner.Core.Api;
 using Asmroner.Infrastructure.Services;
-using Microsoft.Extensions.Logging.Abstractions;
+
 
 namespace Asmroner.Infrastructure.Tests;
 
@@ -24,8 +24,7 @@ public class AuthServiceTests
                     Password = string.Empty,
                 },
             }),
-            new TokenStore(),
-            NullLogger<AuthService>.Instance);
+            new TokenStore());
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => sut.LoginAsync());
 
@@ -54,8 +53,7 @@ public class AuthServiceTests
                     Password = "secret",
                 },
             }),
-            tokenStore,
-            NullLogger<AuthService>.Instance);
+            tokenStore);
 
         var token = await sut.LoginAsync();
         var stored = await tokenStore.GetAsync();
@@ -85,8 +83,7 @@ public class AuthServiceTests
                     Password = "bad",
                 },
             }),
-            new TokenStore(),
-            NullLogger<AuthService>.Instance);
+            new TokenStore());
 
         var ex = await Assert.ThrowsAsync<AsmrApiException>(() => sut.LoginAsync());
 
@@ -115,8 +112,7 @@ public class AuthServiceTests
                     Password = "secret",
                 },
             }),
-            new TokenStore(),
-            NullLogger<AuthService>.Instance);
+            new TokenStore());
 
         _ = await sut.LoginAsync();
 

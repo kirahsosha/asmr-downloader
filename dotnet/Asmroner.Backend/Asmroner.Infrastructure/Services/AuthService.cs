@@ -2,7 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Asmroner.Core.Api;
 using Asmroner.Core.Interfaces;
-using Microsoft.Extensions.Logging;
+using NLog;
 
 namespace Asmroner.Infrastructure.Services;
 
@@ -10,25 +10,23 @@ public sealed class AuthService : IAuthService
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(10);
+    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IApiEndpointUrlService _apiEndpointUrlService;
     private readonly IConfigurationService _configurationService;
     private readonly ITokenStore _tokenStore;
-    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         IHttpClientFactory httpClientFactory,
         IApiEndpointUrlService apiEndpointUrlService,
         IConfigurationService configurationService,
-        ITokenStore tokenStore,
-        ILogger<AuthService> logger)
+        ITokenStore tokenStore)
     {
         _httpClientFactory = httpClientFactory;
         _apiEndpointUrlService = apiEndpointUrlService;
         _configurationService = configurationService;
         _tokenStore = tokenStore;
-        _logger = logger;
     }
 
     public bool IsAuthenticated => _tokenStore.GetAsync().GetAwaiter().GetResult() is not null;
@@ -82,7 +80,7 @@ public sealed class AuthService : IAuthService
         };
 
         await _tokenStore.SetAsync(token, cancellationToken);
-        _logger.LogInformation("Auth login succeeded against {BaseUrl}.", currentBaseUrl);
+        _logger.Info("Auth login succeeded against {BaseUrl}.", currentBaseUrl);
         return token;
     }
 

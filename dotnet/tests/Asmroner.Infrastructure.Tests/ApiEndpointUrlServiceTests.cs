@@ -2,7 +2,7 @@ using Asmroner.Core.Api;
 using Asmroner.Core.Configuration;
 using Asmroner.Core.Interfaces;
 using Asmroner.Infrastructure.Services;
-using Microsoft.Extensions.Logging.Abstractions;
+
 
 namespace Asmroner.Infrastructure.Tests;
 
@@ -21,8 +21,7 @@ public class ApiEndpointUrlServiceTests
 
         var sut = new ApiEndpointUrlService(
             configService,
-            new StubInfrastructureEndpointDiscoveryService("https://new.example.com"),
-            NullLogger<ApiEndpointUrlService>.Instance);
+            new StubInfrastructureEndpointDiscoveryService("https://new.example.com"));
 
         var result = await sut.DiscoverAndPersistAsync();
 
@@ -38,8 +37,7 @@ public class ApiEndpointUrlServiceTests
         var configService = new RecordingConfigurationService(initialConfig: null);
         var sut = new ApiEndpointUrlService(
             configService,
-            new StubInfrastructureEndpointDiscoveryService("https://new.example.com"),
-            NullLogger<ApiEndpointUrlService>.Instance);
+            new StubInfrastructureEndpointDiscoveryService("https://new.example.com"));
 
         var result = await sut.DiscoverAndPersistAsync();
 
@@ -58,8 +56,7 @@ public class ApiEndpointUrlServiceTests
                     ApiUrl = " ",
                 },
             }),
-            new StubInfrastructureEndpointDiscoveryService("https://unused.example.com"),
-            NullLogger<ApiEndpointUrlService>.Instance);
+            new StubInfrastructureEndpointDiscoveryService("https://unused.example.com"));
 
         var baseUrl = await sut.GetCurrentBaseUrlAsync();
 

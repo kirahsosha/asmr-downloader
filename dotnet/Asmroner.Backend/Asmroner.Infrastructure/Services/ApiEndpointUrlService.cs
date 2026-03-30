@@ -1,26 +1,24 @@
 using Asmroner.Core.Api;
 using Asmroner.Core.Configuration;
 using Asmroner.Core.Interfaces;
-using Microsoft.Extensions.Logging;
+using NLog;
 
 namespace Asmroner.Infrastructure.Services;
 
 public sealed class ApiEndpointUrlService : IApiEndpointUrlService
 {
     private static readonly DownloaderOptions Defaults = new();
+    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     private readonly IConfigurationService _configurationService;
     private readonly IEndpointDiscoveryService _endpointDiscoveryService;
-    private readonly ILogger<ApiEndpointUrlService> _logger;
 
     public ApiEndpointUrlService(
         IConfigurationService configurationService,
-        IEndpointDiscoveryService endpointDiscoveryService,
-        ILogger<ApiEndpointUrlService> logger)
+        IEndpointDiscoveryService endpointDiscoveryService)
     {
         _configurationService = configurationService;
         _endpointDiscoveryService = endpointDiscoveryService;
-        _logger = logger;
     }
 
     public async Task<string> GetCurrentBaseUrlAsync(CancellationToken cancellationToken = default)
@@ -43,7 +41,7 @@ public sealed class ApiEndpointUrlService : IApiEndpointUrlService
         var config = await _configurationService.LoadAsync(cancellationToken);
         if (config is null)
         {
-            _logger.LogInformation("Skip persisting discovered api url because configuration file does not exist.");
+            _logger.Info("Skip persisting discovered api url because configuration file does not exist.");
             return CreateResultWithBaseUrl(result, discoveredBaseUrl);
         }
 
@@ -55,7 +53,7 @@ public sealed class ApiEndpointUrlService : IApiEndpointUrlService
 
         config.Downloader.ApiUrl = discoveredBaseUrl;
         await _configurationService.SaveAsync(config, cancellationToken);
-        _logger.LogInformation("Persisted discovered api url {BaseUrl}.", discoveredBaseUrl);
+        _logger.Info("Persisted discovered api url {BaseUrl}.", discoveredBaseUrl);
 
         return CreateResultWithBaseUrl(result, discoveredBaseUrl);
     }

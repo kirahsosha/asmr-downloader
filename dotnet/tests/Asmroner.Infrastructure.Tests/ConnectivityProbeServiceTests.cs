@@ -1,7 +1,7 @@
 using Asmroner.Core.Api;
 using Asmroner.Core.Interfaces;
 using Asmroner.Infrastructure.Services;
-using Microsoft.Extensions.Logging.Abstractions;
+
 
 namespace Asmroner.Infrastructure.Tests;
 
@@ -12,7 +12,7 @@ public class ConnectivityProbeServiceTests
     {
         var endpointService = new RecordingApiEndpointUrlService("https://api.example.com", latencyMs: 23);
         var authService = new RecordingAuthService(new ApiToken { AccessToken = "jwt-token" });
-        var sut = new ConnectivityProbeService(endpointService, authService, NullLogger<ConnectivityProbeService>.Instance);
+        var sut = new ConnectivityProbeService(endpointService, authService);
 
         var result = await sut.ProbeAsync();
 
@@ -29,7 +29,7 @@ public class ConnectivityProbeServiceTests
     {
         var endpointService = new RecordingApiEndpointUrlService("https://api.example.com", latencyMs: 5);
         var authService = new RecordingAuthService(token: null, throwOnLogin: true);
-        var sut = new ConnectivityProbeService(endpointService, authService, NullLogger<ConnectivityProbeService>.Instance);
+        var sut = new ConnectivityProbeService(endpointService, authService);
 
         var result = await sut.ProbeAsync();
 

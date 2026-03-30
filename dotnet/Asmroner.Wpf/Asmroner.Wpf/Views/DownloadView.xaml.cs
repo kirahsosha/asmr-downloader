@@ -8,7 +8,7 @@ using Asmroner.Core.Configuration;
 using Asmroner.Core.Download;
 using Asmroner.Core.Interfaces;
 using Asmroner.Wpf.ViewModels;
-using Microsoft.Extensions.Logging;
+using NLog;
 using Microsoft.Win32;
 
 namespace Asmroner.Wpf.Views;
@@ -16,6 +16,7 @@ namespace Asmroner.Wpf.Views;
 public partial class DownloadView : UserControl
 {
     private const int RetryAllMaxConcurrency = 2;
+    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     private readonly IAsmrApiClient _asmrApiClient;
     private readonly IDownloadService _downloadService;
@@ -24,13 +25,12 @@ public partial class DownloadView : UserControl
     private readonly IConfigurationService _configurationService;
     private readonly IAppPathService _appPathService;
     private readonly ISearchImportService _importService;
-    private readonly ILogger<DownloadView> _logger;
     private readonly ConcurrentDictionary<string, string> _queuedWorkInfoTitles = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, DownloadTaskStatus> _queuedStatusOverrides = new(StringComparer.OrdinalIgnoreCase);
     private bool _isApplyingDownloadUiState;
 
     public DownloadView()
-        : this(null!, null!, null!, null!, null!, null!, null!, null!)
+        : this(null!, null!, null!, null!, null!, null!, null!)
     {
     }
 
@@ -41,8 +41,7 @@ public partial class DownloadView : UserControl
         IUiStateStore uiStateStore,
         IConfigurationService configurationService,
         IAppPathService appPathService,
-        ISearchImportService importService,
-        ILogger<DownloadView> logger)
+        ISearchImportService importService)
     {
         _asmrApiClient = asmrApiClient;
         _downloadService = downloadService;
@@ -51,7 +50,6 @@ public partial class DownloadView : UserControl
         _configurationService = configurationService;
         _appPathService = appPathService;
         _importService = importService;
-        _logger = logger;
 
         InitializeComponent();
         Loaded += async (_, _) =>
@@ -101,7 +99,7 @@ public partial class DownloadView : UserControl
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to restore unfinished queue.");
+            _logger.Warn(ex, "Failed to restore unfinished queue.");
         }
     }
 
@@ -129,7 +127,7 @@ public partial class DownloadView : UserControl
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to persist download UI state.");
+            _logger.Warn(ex, "Failed to persist download UI state.");
         }
     }
 
@@ -569,7 +567,7 @@ public partial class DownloadView : UserControl
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to open download directory.");
+            _logger.Error(ex, "Failed to open download directory.");
             StatusTextBlock.Text = $"打开下载目录失败：{ex.Message}";
         }
     }
@@ -613,7 +611,7 @@ public partial class DownloadView : UserControl
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to persist unfinished queue snapshot.");
+            _logger.Warn(ex, "Failed to persist unfinished queue snapshot.");
         }
     }
 
@@ -715,7 +713,7 @@ public partial class DownloadView : UserControl
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Fetch work info failed for {SourceId} before enqueue.", sourceId);
+                _logger.Warn(ex, "Fetch work info failed for {SourceId} before enqueue.", sourceId);
             }
             finally
             {
@@ -764,7 +762,7 @@ public partial class DownloadView : UserControl
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, logMessage);
+            _logger.Error(ex, logMessage);
             StatusTextBlock.Text = $"{failurePrefix}：{ex.Message}";
         }
         finally

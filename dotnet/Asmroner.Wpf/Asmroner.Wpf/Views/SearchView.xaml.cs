@@ -5,7 +5,7 @@ using Asmroner.Core.Api;
 using Asmroner.Core.Configuration;
 using Asmroner.Core.Interfaces;
 using Asmroner.Core.Search;
-using Microsoft.Extensions.Logging;
+using NLog;
 using Microsoft.Win32;
 using System.Windows;
 using System.Windows.Controls;
@@ -18,6 +18,7 @@ namespace Asmroner.Wpf.Views;
 public partial class SearchView : UserControl
 {
     private static readonly char[] FilterSeparators = [' ', '\t', '\r', '\n', ';', ','];
+    private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     private readonly ISearchService _searchService;
     private readonly IAsmrApiClient _asmrApiClient;
@@ -27,7 +28,6 @@ public partial class SearchView : UserControl
     private readonly IUiStateStore _uiStateStore;
     private readonly IConfigurationService _configurationService;
     private readonly IAppPathService _appPathService;
-    private readonly ILogger<SearchView> _logger;
 
     private IReadOnlyList<SearchWorkItem> _results = Array.Empty<SearchWorkItem>();
     private IReadOnlyList<SearchWorkItem> _popularResults = Array.Empty<SearchWorkItem>();
@@ -48,7 +48,6 @@ public partial class SearchView : UserControl
             null!,
             null!,
             null!,
-            null!,
             null!)
     {
     }
@@ -61,8 +60,7 @@ public partial class SearchView : UserControl
         IDownloadService downloadService,
         IUiStateStore uiStateStore,
         IConfigurationService configurationService,
-        IAppPathService appPathService,
-        ILogger<SearchView> logger)
+        IAppPathService appPathService)
     {
         _searchService = searchService;
         _asmrApiClient = asmrApiClient;
@@ -72,7 +70,6 @@ public partial class SearchView : UserControl
         _uiStateStore = uiStateStore;
         _configurationService = configurationService;
         _appPathService = appPathService;
-        _logger = logger;
 
         InitializeComponent();
         _pageSize = ReadPageSize();
@@ -121,7 +118,7 @@ public partial class SearchView : UserControl
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to restore search UI state.");
+            _logger.Warn(ex, "Failed to restore search UI state.");
         }
         finally
         {
@@ -189,7 +186,7 @@ public partial class SearchView : UserControl
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to persist search UI state.");
+            _logger.Warn(ex, "Failed to persist search UI state.");
         }
     }
 
@@ -253,7 +250,7 @@ public partial class SearchView : UserControl
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to auto-resize window on advanced filter expanded.");
+            _logger.Warn(ex, "Failed to auto-resize window on advanced filter expanded.");
         }
     }
 
@@ -288,7 +285,7 @@ public partial class SearchView : UserControl
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Search failed for query: {Query}", rawQuery);
+            _logger.Error(ex, "Search failed for query: {Query}", rawQuery);
             StatusTextBlock.Text = $"搜索失败：{ex.Message}";
         }
         finally
@@ -402,7 +399,7 @@ public partial class SearchView : UserControl
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to open search work page for {SourceId}.", target.SourceId);
+            _logger.Error(ex, "Failed to open search work page for {SourceId}.", target.SourceId);
             StatusTextBlock.Text = $"打开浏览器失败：{ex.Message}";
         }
     }
@@ -468,7 +465,7 @@ public partial class SearchView : UserControl
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to persist unfinished queue snapshot from search view.");
+            _logger.Warn(ex, "Failed to persist unfinished queue snapshot from search view.");
         }
     }
 
@@ -501,7 +498,7 @@ public partial class SearchView : UserControl
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Query popular works failed.");
+            _logger.Error(ex, "Query popular works failed.");
             StatusTextBlock.Text = $"查询热门作品失败：{ex.Message}";
         }
         finally
@@ -711,7 +708,7 @@ public partial class SearchView : UserControl
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Export failed.");
+            _logger.Error(ex, "Export failed.");
             StatusTextBlock.Text = $"导出失败：{ex.Message}";
         }
         finally
