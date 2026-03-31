@@ -3,6 +3,7 @@ using System.Windows;
 using Asmroner.Core.Configuration;
 using Asmroner.Core.Initialization;
 using Asmroner.Core.Interfaces;
+using Asmroner.Wpf.Services;
 using NLog;
 
 namespace Asmroner.Wpf.Views;
@@ -39,6 +40,8 @@ public partial class SettingsView : UserControl
 
     private async void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
     {
+        VersionTextBlock.Text = AppVersionInfo.BuildSettingsVersionText();
+
         var config = await _configurationService.LoadAsync() ?? new AppConfig
         {
             Downloader =

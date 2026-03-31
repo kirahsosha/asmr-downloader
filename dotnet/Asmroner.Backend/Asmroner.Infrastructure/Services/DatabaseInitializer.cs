@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Asmroner.Core.Configuration;
+using Asmroner.Core.Constants;
 using Asmroner.Core.Interfaces;
 using Microsoft.Data.Sqlite;
 
@@ -7,15 +8,15 @@ namespace Asmroner.Infrastructure.Services;
 
 public sealed class DatabaseInitializer : IDatabaseInitializer
 {
-    private const string AppConfigTableName = "AppConfig";
-    private const string AppConfigLegacyTableName = "AppConfigLegacy";
-    private const string AppConfigKeyColumn = "ConfigKey";
-    private const string AppConfigJsonColumn = "JsonValue";
-    private const string UiStateTableName = "UiState";
+    private const string AppConfigTableName = AsmronerConstants.Storage.AppConfig.TableName;
+    private const string AppConfigLegacyTableName = AsmronerConstants.Storage.AppConfig.LegacyTableName;
+    private const string AppConfigKeyColumn = AsmronerConstants.Storage.AppConfig.KeyColumn;
+    private const string AppConfigJsonColumn = AsmronerConstants.Storage.AppConfig.JsonColumn;
+    private const string UiStateTableName = AsmronerConstants.Storage.UiState.TableName;
 
-    private const string UserSectionKey = "user";
-    private const string DownloaderSectionKey = "downloader";
-    private const string LimitSectionKey = "limit";
+    private const string UserSectionKey = AsmronerConstants.Storage.AppConfig.SectionKeys.User;
+    private const string DownloaderSectionKey = AsmronerConstants.Storage.AppConfig.SectionKeys.Downloader;
+    private const string LimitSectionKey = AsmronerConstants.Storage.AppConfig.SectionKeys.Limit;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -59,11 +60,7 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
     private static async Task DropUnusedLegacyTablesAsync(SqliteConnection connection, CancellationToken cancellationToken)
     {
         await using var command = connection.CreateCommand();
-        command.CommandText =
-            """
-            DROP TABLE IF EXISTS MetadataWork;
-            DROP TABLE IF EXISTS WorkSyncInfo;
-            """;
+        command.CommandText = AsmronerConstants.SqliteQueries.BuildDropLegacySyncTables();
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -83,7 +80,7 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
             return;
         }
 
-        if (columns.Contains("Id", StringComparer.OrdinalIgnoreCase))
+        if (columns.Contains(AsmronerConstants.Storage.Columns.LegacyId, StringComparer.OrdinalIgnoreCase))
         {
             await MigrateLegacyAppConfigTableAsync(connection, cancellationToken);
             return;
@@ -92,7 +89,7 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
         await using var resetTransaction = connection.BeginTransaction();
         await ExecuteNonQueryAsync(
             connection,
-            $"DROP TABLE IF EXISTS {AppConfigTableName};",
+            AsmronerConstants.SqliteQueries.BuildDropTable(AppConfigTableName),
             resetTransaction,
             cancellationToken);
         await CreateAppConfigTableAsync(connection, resetTransaction, cancellationToken);
@@ -102,14 +99,7 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
     private static async Task EnsureUiStateTableAsync(SqliteConnection connection, CancellationToken cancellationToken)
     {
         await using var command = connection.CreateCommand();
-        command.CommandText =
-            $"""
-            CREATE TABLE IF NOT EXISTS {UiStateTableName} (
-                StateKey TEXT PRIMARY KEY,
-                JsonValue TEXT NOT NULL,
-                UpdatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
-            """;
+        command.CommandText = AsmronerConstants.SqliteQueries.BuildCreateUiStateTable();
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -120,7 +110,9 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
 
         await using (var readCommand = connection.CreateCommand())
         {
-            readCommand.CommandText = $"SELECT {AppConfigJsonColumn} FROM {AppConfigTableName} WHERE Id = 1 LIMIT 1;";
+            readCommand.CommandText = AsmronerConstants.SqliteQueries.BuildSelectLegacyConfigJson(
+                AppConfigTableName,
+                AppConfigJsonColumn);
             var legacyJson = await readCommand.ExecuteScalarAsync(cancellationToken) as string;
             if (!string.IsNullOrWhiteSpace(legacyJson))
             {
@@ -143,12 +135,12 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
 
         await ExecuteNonQueryAsync(
             connection,
-            $"DROP TABLE IF EXISTS {AppConfigLegacyTableName};",
+            AsmronerConstants.SqliteQueries.BuildDropTable(AppConfigLegacyTableName),
             transaction,
             cancellationToken);
         await ExecuteNonQueryAsync(
             connection,
-            $"ALTER TABLE {AppConfigTableName} RENAME TO {AppConfigLegacyTableName};",
+            AsmronerConstants.SqliteQueries.BuildRenameTable(AppConfigTableName, AppConfigLegacyTableName),
             transaction,
             cancellationToken);
 
@@ -180,7 +172,7 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
 
         await ExecuteNonQueryAsync(
             connection,
-            $"DROP TABLE IF EXISTS {AppConfigLegacyTableName};",
+            AsmronerConstants.SqliteQueries.BuildDropTable(AppConfigLegacyTableName),
             transaction,
             cancellationToken);
 
@@ -287,14 +279,10 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
         SqliteTransaction? transaction,
         CancellationToken cancellationToken)
     {
-        var sql =
-            $"""
-            CREATE TABLE IF NOT EXISTS {AppConfigTableName} (
-                {AppConfigKeyColumn} TEXT PRIMARY KEY,
-                {AppConfigJsonColumn} TEXT NOT NULL,
-                UpdatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
-            """;
+        var sql = AsmronerConstants.SqliteQueries.BuildCreateAppConfigTable(
+            AppConfigTableName,
+            AppConfigKeyColumn,
+            AppConfigJsonColumn);
 
         await ExecuteNonQueryAsync(connection, sql, transaction, cancellationToken);
     }
@@ -308,14 +296,10 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
     {
         await using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText =
-            $"""
-            INSERT INTO {AppConfigTableName} ({AppConfigKeyColumn}, {AppConfigJsonColumn}, UpdatedAt)
-            VALUES (@key, @json, CURRENT_TIMESTAMP)
-            ON CONFLICT({AppConfigKeyColumn}) DO UPDATE SET
-                {AppConfigJsonColumn} = excluded.{AppConfigJsonColumn},
-                UpdatedAt = CURRENT_TIMESTAMP;
-            """;
+        command.CommandText = AsmronerConstants.SqliteQueries.BuildUpsertAppConfigSection(
+            AppConfigTableName,
+            AppConfigKeyColumn,
+            AppConfigJsonColumn);
         command.Parameters.AddWithValue("@key", sectionKey);
         command.Parameters.AddWithValue("@json", sectionJson);
         await command.ExecuteNonQueryAsync(cancellationToken);
@@ -339,7 +323,7 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
         CancellationToken cancellationToken)
     {
         await using var command = connection.CreateCommand();
-        command.CommandText = "SELECT COUNT(1) FROM sqlite_master WHERE type='table' AND name=@name;";
+        command.CommandText = AsmronerConstants.SqliteQueries.CountTableByName;
         command.Parameters.AddWithValue("@name", tableName);
         return Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken)) > 0;
     }
@@ -352,7 +336,7 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
         var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         await using var command = connection.CreateCommand();
-        command.CommandText = $"PRAGMA table_info({tableName});";
+        command.CommandText = AsmronerConstants.SqliteQueries.BuildPragmaTableInfo(tableName);
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
         while (await reader.ReadAsync(cancellationToken))

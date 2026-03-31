@@ -11,6 +11,7 @@ public partial class MainWindow : Window
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     private readonly IApplicationBootstrapper _bootstrapper;
+    private readonly DownloadView _downloadView;
     private readonly SettingsView _settingsView;
 
     public MainWindow(
@@ -22,6 +23,7 @@ public partial class MainWindow : Window
         InitializeComponent();
 
         _bootstrapper = bootstrapper;
+        _downloadView = downloadView;
         _settingsView = settingsView;
 
         SearchHost.Content = searchView;
@@ -48,6 +50,7 @@ public partial class MainWindow : Window
             DownloadTab.IsEnabled = true;
             MainTabControl.SelectedItem = navigateToSearchOnSuccess ? SearchTab : SettingsTab;
             StatusTextBlock.Text = "初始化完成，可进入主页面。";
+            _downloadView.StartUnfinishedQueueMetadataRefreshInBackground();
             _logger.Info("Bootstrap succeeded.");
             return;
         }

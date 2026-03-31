@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Asmroner.Core.Api;
+using Asmroner.Core.Constants;
 using Asmroner.Core.Interfaces;
 using Asmroner.Core.Utils;
 
@@ -9,9 +10,7 @@ namespace Asmroner.Infrastructure.Services;
 public sealed class AsmrApiClient : IAsmrApiClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(10);
-    private const string ApiRequestFailedCode = "api_request_failed";
-    private const string ApiResponseEmptyCode = "api_response_empty";
+    private static readonly TimeSpan RequestTimeout = AsmronerConstants.Api.RequestTimeout;
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IApiEndpointUrlService _apiEndpointUrlService;
@@ -89,7 +88,7 @@ public sealed class AsmrApiClient : IAsmrApiClient
         using var response = await client.SendAsync(request, timeoutCancellation.Token);
         if (!response.IsSuccessStatusCode)
         {
-            throw await CreateExceptionAsync(response, ApiRequestFailedCode, timeoutCancellation.Token);
+            throw await CreateExceptionAsync(response, AsmronerConstants.Api.ErrorCodes.RequestFailed, timeoutCancellation.Token);
         }
 
         return await ReadAsRequiredAsync<T>(response, timeoutCancellation.Token);
@@ -137,7 +136,7 @@ public sealed class AsmrApiClient : IAsmrApiClient
         {
             throw new AsmrApiException(new ApiError
             {
-                Code = ApiResponseEmptyCode,
+                Code = AsmronerConstants.Api.ErrorCodes.ResponseEmpty,
                 HttpStatus = (int)response.StatusCode,
                 Message = "API 返回为空。",
             });

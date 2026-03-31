@@ -111,6 +111,30 @@
             <Setter Property="FontWeight"
                     Value="SemiBold"/>
         </Style>
+
+        <Style x:Key="TaskGridHeaderStyle"
+               TargetType="DataGridColumnHeader">
+            <Setter Property="Background"
+                    Value="#FFE6F0FB"/>
+            <Setter Property="Foreground"
+                    Value="#FF224E7D"/>
+            <Setter Property="FontWeight"
+                    Value="Bold"/>
+            <Setter Property="Padding"
+                    Value="8,6"/>
+            <Setter Property="BorderBrush"
+                    Value="#FFD1E1F1"/>
+            <Setter Property="BorderThickness"
+                    Value="1,1,1,1"/>
+        </Style>
+
+        <Style x:Key="TaskGridCellStyle"
+               TargetType="DataGridCell">
+            <Setter Property="Padding"
+                    Value="8,6"/>
+            <Setter Property="BorderThickness"
+                    Value="0"/>
+        </Style>
     </UserControl.Resources>
 
     <Grid Margin="12"
@@ -282,6 +306,7 @@
             <DataGrid x:Name="TaskGrid"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
+                      CanUserReorderColumns="True"
                       SelectionChanged="OnTaskSelectionChanged"
                       SelectionMode="Extended"
                       SelectionUnit="FullRow"
@@ -290,44 +315,29 @@
                       AlternatingRowBackground="#FFF3F8FE"
                       HeadersVisibility="Column"
                       BorderThickness="0"
+                      ColumnHeaderStyle="{StaticResource TaskGridHeaderStyle}"
+                      CellStyle="{StaticResource TaskGridCellStyle}"
                       HorizontalScrollBarVisibility="Auto"
                       VerticalScrollBarVisibility="Auto">
-                <DataGrid.Resources>
-                    <Style TargetType="DataGridColumnHeader">
-                        <Setter Property="Background"
-                                Value="#FFE6F0FB"/>
-                        <Setter Property="Foreground"
-                                Value="#FF224E7D"/>
-                        <Setter Property="FontWeight"
-                                Value="Bold"/>
-                        <Setter Property="Padding"
-                                Value="8,6"/>
-                    </Style>
-                    <Style TargetType="DataGridCell">
-                        <Setter Property="Padding"
-                                Value="8,6"/>
-                        <Setter Property="BorderThickness"
-                                Value="0"/>
-                    </Style>
-                </DataGrid.Resources>
                 <DataGrid.Columns>
-                    <DataGridTextColumn Width="100"
+                    <DataGridTextColumn Width="110"
                                         Header="作品ID"
                                         Binding="{Binding SourceId}"/>
-                    <DataGridTextColumn Width="220"
+                    <DataGridTextColumn Width="300"
                                         Header="标题"
                                         Binding="{Binding Title}"/>
-                    <DataGridTextColumn Width="68"
+                    <DataGridTextColumn Width="50"
                                         Header="状态"
+                                        CanUserResize="False"
                                         Binding="{Binding StatusText}"
                                         SortMemberPath="StatusSortOrder"/>
-                    <DataGridTextColumn Width="85"
+                    <DataGridTextColumn Width="96"
                                         Header="进度"
                                         Binding="{Binding ProgressText}"/>
-                    <DataGridTextColumn Width="240"
+                    <DataGridTextColumn Width="320"
                                         Header="下载目录"
                                         Binding="{Binding TargetDirectory}"/>
-                    <DataGridTextColumn Width="220"
+                    <DataGridTextColumn Width="300"
                                         Header="错误信息"
                                         Binding="{Binding ErrorMessage}"/>
                 </DataGrid.Columns>

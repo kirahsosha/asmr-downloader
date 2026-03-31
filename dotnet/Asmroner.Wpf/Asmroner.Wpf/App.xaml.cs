@@ -60,6 +60,7 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<IDownloadService, Asmroner.Application.Services.DownloadService>();
                 services.AddSingleton<ISyncService, Asmroner.Wpf.Services.SyncService>();
                 services.AddSingleton<StartupEndpointWarmupService>();
+                services.AddSingleton<StartupUnfinishedQueueMetadataRefreshService>();
 
                 services.AddSingleton<SearchView>();
                 services.AddSingleton<DownloadView>();
@@ -80,7 +81,7 @@ public partial class App : System.Windows.Application
         var startupEndpointWarmupService = _host.Services.GetRequiredService<StartupEndpointWarmupService>();
         _ = startupEndpointWarmupService.StartInBackgroundAsync();
 
-        _logger.Info("Asmroner v0.4.6 startup completed.");
+        _logger.Info(AppVersionInfo.BuildStartupCompletedMessage());
     }
 
     protected override void OnExit(ExitEventArgs e)

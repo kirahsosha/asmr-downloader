@@ -126,6 +126,22 @@
                     Value="#FFD2E5FF"/>
         </Style>
 
+        <Style x:Key="ResultGridHeaderStyle"
+               TargetType="DataGridColumnHeader">
+            <Setter Property="Background"
+                    Value="#FFE9F3FF"/>
+            <Setter Property="Foreground"
+                    Value="#FF24507A"/>
+            <Setter Property="FontWeight"
+                    Value="SemiBold"/>
+            <Setter Property="Padding"
+                    Value="8,6"/>
+            <Setter Property="BorderBrush"
+                    Value="#FFD7E8FA"/>
+            <Setter Property="BorderThickness"
+                    Value="1,1,1,1"/>
+        </Style>
+
         <Style x:Key="ResultGridStyle"
                TargetType="DataGrid">
             <Setter Property="BorderThickness"
@@ -138,25 +154,14 @@
                     Value="#FFF3F8FE"/>
             <Setter Property="HeadersVisibility"
                     Value="Column"/>
+            <Setter Property="CanUserReorderColumns"
+                    Value="True"/>
             <Setter Property="HorizontalScrollBarVisibility"
                     Value="Auto"/>
             <Setter Property="VerticalScrollBarVisibility"
                     Value="Auto"/>
-        </Style>
-
-        <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background"
-                    Value="#FFE9F3FF"/>
-            <Setter Property="Foreground"
-                    Value="#FF24507A"/>
-            <Setter Property="FontWeight"
-                    Value="SemiBold"/>
-            <Setter Property="Padding"
-                    Value="8,6"/>
-            <Setter Property="BorderBrush"
-                    Value="#FFD7E8FA"/>
-            <Setter Property="BorderThickness"
-                    Value="0,0,0,1"/>
+            <Setter Property="ColumnHeaderStyle"
+                    Value="{StaticResource ResultGridHeaderStyle}"/>
         </Style>
     </UserControl.Resources>
 
@@ -470,6 +475,7 @@
                           Grid.Row="0"
                           Margin="0,0,0,8"
                           AutoGenerateColumns="False"
+                          CanUserReorderColumns="True"
                           IsReadOnly="True"
                           SelectionMode="Extended"
                           SelectionUnit="FullRow"
@@ -495,16 +501,18 @@
                         <DataGridTextColumn Width="120"
                                             Header="ID"
                                             Binding="{Binding SourceId}"/>
-                        <DataGridTextColumn Width="*"
+                        <DataGridTextColumn Width="360"
                                             Header="标题"
                                             Binding="{Binding Title}"/>
-                        <DataGridCheckBoxColumn Width="80"
+                        <DataGridCheckBoxColumn Width="42"
                                                 Header="字幕"
+                                                CanUserResize="False"
                                                 Binding="{Binding HasSubtitle}"/>
-                        <DataGridTextColumn Width="120"
+                        <DataGridTextColumn Width="75"
                                             Header="日期"
+                                            CanUserResize="False"
                                             Binding="{Binding Release}"/>
-                        <DataGridTextColumn Width="200"
+                        <DataGridTextColumn Width="260"
                                             Header="标签"
                                             Binding="{Binding Tags}"/>
                     </DataGrid.Columns>

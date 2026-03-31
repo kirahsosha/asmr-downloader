@@ -10,6 +10,9 @@ public sealed class StartupEndpointWarmupService
 
     private readonly IApiEndpointUrlService _apiEndpointUrlService;
     private readonly TimeSpan _timeout;
+    private readonly object _startLock = new();
+
+    private Task? _warmupTask;
 
     public StartupEndpointWarmupService(
         IApiEndpointUrlService apiEndpointUrlService,
@@ -21,7 +24,18 @@ public sealed class StartupEndpointWarmupService
     }
 
     public Task StartInBackgroundAsync(CancellationToken cancellationToken = default)
-        => Task.Run(() => WarmupAsync(cancellationToken), CancellationToken.None);
+    {
+        Task warmupTask;
+        lock (_startLock)
+        {
+            _warmupTask ??= Task.Run(() => WarmupAsync(CancellationToken.None), CancellationToken.None);
+            warmupTask = _warmupTask;
+        }
+
+        return cancellationToken.CanBeCanceled
+            ? warmupTask.WaitAsync(cancellationToken)
+            : warmupTask;
+    }
 
     private async Task WarmupAsync(CancellationToken cancellationToken)
     {

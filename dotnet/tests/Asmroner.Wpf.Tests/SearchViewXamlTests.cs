@@ -86,4 +86,28 @@ public class SearchViewXamlTests
         Assert.Contains("Click=\"OnContextMenuExportSelectedJsonClicked\"", content, StringComparison.Ordinal);
         Assert.Contains("Click=\"OnContextMenuOpenWorkPageClicked\"", content, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void SearchViewXaml_ShouldUseHeaderBorders_AndLockSubtitleAndDateColumnWidths()
+    {
+        var xamlPath = XamlTestPathLocator.Locate("SearchView.xaml", "dotnet", "Asmroner.Wpf", "Asmroner.Wpf", "Views");
+        var content = File.ReadAllText(xamlPath);
+
+        Assert.Contains("x:Key=\"ResultGridHeaderStyle\"", content, StringComparison.Ordinal);
+        Assert.Contains("Value=\"1,1,1,1\"", content, StringComparison.Ordinal);
+        Assert.Contains("Property=\"HorizontalScrollBarVisibility\"", content, StringComparison.Ordinal);
+        Assert.Contains("CanUserReorderColumns=\"True\"", content, StringComparison.Ordinal);
+
+        var doc = XDocument.Parse(content);
+        XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+        var subtitleColumn = doc.Descendants(presentation + "DataGridCheckBoxColumn")
+            .First(column => string.Equals((string?)column.Attribute("Header"), "字幕", StringComparison.Ordinal));
+        var releaseColumn = doc.Descendants(presentation + "DataGridTextColumn")
+            .First(column => string.Equals((string?)column.Attribute("Header"), "日期", StringComparison.Ordinal));
+
+        Assert.Equal("42", (string?)subtitleColumn.Attribute("Width"));
+        Assert.Equal("False", (string?)subtitleColumn.Attribute("CanUserResize"));
+        Assert.Equal("75", (string?)releaseColumn.Attribute("Width"));
+        Assert.Equal("False", (string?)releaseColumn.Attribute("CanUserResize"));
+    }
 }

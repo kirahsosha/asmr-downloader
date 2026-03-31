@@ -43,6 +43,27 @@ public class StartupEndpointWarmupServiceTests
     }
 
     [Fact]
+    public async Task StartInBackgroundAsync_ShouldReuseInFlightWarmupTask_AndDiscoverOnce()
+    {
+        var endpointService = new SlowApiEndpointUrlService();
+        var sut = new StartupEndpointWarmupService(
+            endpointService,
+            TimeSpan.FromSeconds(5));
+
+        var firstWarmupTask = sut.StartInBackgroundAsync();
+        await endpointService.Started.Task.WaitAsync(TimeSpan.FromSeconds(1));
+
+        var secondWarmupTask = sut.StartInBackgroundAsync();
+
+        Assert.Same(firstWarmupTask, secondWarmupTask);
+
+        endpointService.Complete();
+        await Task.WhenAll(firstWarmupTask, secondWarmupTask);
+
+        Assert.Equal(1, endpointService.DiscoverCallCount);
+    }
+
+    [Fact]
     public async Task StartInBackgroundAsync_ShouldNotThrow_WhenDiscoveryFails()
     {
         var endpointService = new ThrowingApiEndpointUrlService();

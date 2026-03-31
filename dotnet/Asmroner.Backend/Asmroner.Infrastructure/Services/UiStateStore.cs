@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Asmroner.Core.Configuration;
+using Asmroner.Core.Constants;
 using Asmroner.Core.Interfaces;
 using Asmroner.Core.Utils;
 using Microsoft.Data.Sqlite;
@@ -8,10 +9,10 @@ namespace Asmroner.Infrastructure.Services;
 
 public sealed class UiStateStore : IUiStateStore
 {
-    private const string TableName = "UiState";
-    private const string SearchStateKey = "search";
-    private const string DownloadStateKey = "download";
-    private const string UnfinishedQueueKey = "unfinished_queue";
+    private const string TableName = AsmronerConstants.Storage.UiState.TableName;
+    private const string SearchStateKey = AsmronerConstants.Storage.UiState.StateKeys.Search;
+    private const string DownloadStateKey = AsmronerConstants.Storage.UiState.StateKeys.Download;
+    private const string UnfinishedQueueKey = AsmronerConstants.Storage.UiState.StateKeys.UnfinishedQueue;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -97,7 +98,7 @@ public sealed class UiStateStore : IUiStateStore
         await EnsureTableAsync(connection, cancellationToken);
 
         await using var command = connection.CreateCommand();
-        command.CommandText = $"DELETE FROM {TableName} WHERE StateKey = @key;";
+        command.CommandText = AsmronerConstants.SqliteQueries.BuildDeleteUiStateByKey();
         command.Parameters.AddWithValue("@key", UnfinishedQueueKey);
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -113,14 +114,7 @@ public sealed class UiStateStore : IUiStateStore
         var json = JsonSerializer.Serialize(state, JsonOptions);
 
         await using var command = connection.CreateCommand();
-        command.CommandText =
-            $"""
-            INSERT INTO {TableName} (StateKey, JsonValue, UpdatedAt)
-            VALUES (@key, @json, CURRENT_TIMESTAMP)
-            ON CONFLICT(StateKey) DO UPDATE SET
-                JsonValue = excluded.JsonValue,
-                UpdatedAt = CURRENT_TIMESTAMP;
-            """;
+        command.CommandText = AsmronerConstants.SqliteQueries.BuildUpsertUiState();
         command.Parameters.AddWithValue("@key", key);
         command.Parameters.AddWithValue("@json", json);
         await command.ExecuteNonQueryAsync(cancellationToken);
@@ -136,7 +130,7 @@ public sealed class UiStateStore : IUiStateStore
         await EnsureTableAsync(connection, cancellationToken);
 
         await using var command = connection.CreateCommand();
-        command.CommandText = $"SELECT JsonValue FROM {TableName} WHERE StateKey = @key LIMIT 1;";
+        command.CommandText = AsmronerConstants.SqliteQueries.BuildSelectUiStateJson();
         command.Parameters.AddWithValue("@key", key);
 
         var result = await command.ExecuteScalarAsync(cancellationToken) as string;
@@ -151,14 +145,7 @@ public sealed class UiStateStore : IUiStateStore
     private static async Task EnsureTableAsync(SqliteConnection connection, CancellationToken cancellationToken)
     {
         await using var command = connection.CreateCommand();
-        command.CommandText =
-            $"""
-            CREATE TABLE IF NOT EXISTS {TableName} (
-                StateKey TEXT PRIMARY KEY,
-                JsonValue TEXT NOT NULL,
-                UpdatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
-            """;
+        command.CommandText = AsmronerConstants.SqliteQueries.BuildCreateUiStateTable();
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }

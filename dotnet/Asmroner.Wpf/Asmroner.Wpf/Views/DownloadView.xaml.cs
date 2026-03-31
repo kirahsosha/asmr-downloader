@@ -5,8 +5,10 @@ using System.Windows;
 using System.Windows.Controls;
 using Asmroner.Core.Api;
 using Asmroner.Core.Configuration;
+using Asmroner.Core.Constants;
 using Asmroner.Core.Download;
 using Asmroner.Core.Interfaces;
+using Asmroner.Wpf.Services;
 using Asmroner.Wpf.ViewModels;
 using NLog;
 using Microsoft.Win32;
@@ -15,7 +17,7 @@ namespace Asmroner.Wpf.Views;
 
 public partial class DownloadView : UserControl
 {
-    private const int RetryAllMaxConcurrency = 2;
+    private const int RetryAllMaxConcurrency = AsmronerConstants.Download.RetryAllMaxConcurrency;
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
     private readonly IAsmrApiClient _asmrApiClient;
@@ -25,12 +27,13 @@ public partial class DownloadView : UserControl
     private readonly IConfigurationService _configurationService;
     private readonly IAppPathService _appPathService;
     private readonly ISearchImportService _importService;
+    private readonly StartupUnfinishedQueueMetadataRefreshService _startupUnfinishedQueueMetadataRefreshService;
     private readonly ConcurrentDictionary<string, string> _queuedWorkInfoTitles = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, DownloadTaskStatus> _queuedStatusOverrides = new(StringComparer.OrdinalIgnoreCase);
     private bool _isApplyingDownloadUiState;
 
     public DownloadView()
-        : this(null!, null!, null!, null!, null!, null!, null!)
+        : this(null!, null!, null!, null!, null!, null!, null!, null!)
     {
     }
 
@@ -41,7 +44,8 @@ public partial class DownloadView : UserControl
         IUiStateStore uiStateStore,
         IConfigurationService configurationService,
         IAppPathService appPathService,
-        ISearchImportService importService)
+        ISearchImportService importService,
+        StartupUnfinishedQueueMetadataRefreshService startupUnfinishedQueueMetadataRefreshService)
     {
         _asmrApiClient = asmrApiClient;
         _downloadService = downloadService;
@@ -50,6 +54,7 @@ public partial class DownloadView : UserControl
         _configurationService = configurationService;
         _appPathService = appPathService;
         _importService = importService;
+        _startupUnfinishedQueueMetadataRefreshService = startupUnfinishedQueueMetadataRefreshService;
 
         InitializeComponent();
         Loaded += async (_, _) =>
@@ -63,6 +68,11 @@ public partial class DownloadView : UserControl
         FilterTextBox.TextChanged += OnDownloadUiStateChanged;
         HdAudioOnlyCheckBox.Checked += OnDownloadUiStateChanged;
         HdAudioOnlyCheckBox.Unchecked += OnDownloadUiStateChanged;
+    }
+
+    public void StartUnfinishedQueueMetadataRefreshInBackground()
+    {
+        _ = RefreshUnfinishedQueueMetadataInBackgroundAsync();
     }
 
     private async Task LoadDownloadUiStateAsync()
@@ -100,6 +110,24 @@ public partial class DownloadView : UserControl
         catch (Exception ex)
         {
             _logger.Warn(ex, "Failed to restore unfinished queue.");
+        }
+    }
+
+    private async Task RefreshUnfinishedQueueMetadataInBackgroundAsync()
+    {
+        try
+        {
+            var updatedCount = await _startupUnfinishedQueueMetadataRefreshService.StartInBackgroundAsync();
+            if (updatedCount <= 0)
+            {
+                return;
+            }
+
+            await Dispatcher.InvokeAsync(RefreshView);
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn(ex, "Failed to refresh unfinished queue metadata in background.");
         }
     }
 
@@ -708,7 +736,7 @@ public partial class DownloadView : UserControl
     private async Task<IReadOnlyDictionary<string, WorkInfoDto>> ResolveWorkInfoAsync(IReadOnlyList<string> sourceIds)
     {
         var result = new ConcurrentDictionary<string, WorkInfoDto>(StringComparer.OrdinalIgnoreCase);
-        using var limiter = new SemaphoreSlim(4);
+        using var limiter = new SemaphoreSlim(AsmronerConstants.Download.WorkInfoFetchMaxConcurrency);
 
         var jobs = sourceIds.Select(async sourceId =>
         {

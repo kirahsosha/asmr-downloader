@@ -1,6 +1,6 @@
-﻿# asmr-downloader WPF 项目进度跟踪
+# asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.4.7
+当前跟踪版本：v0.4.8
 
 AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
@@ -118,6 +118,7 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 | 2026-03-30 | 阶段 1 | 在 Settings 页面点击“保存并重新初始化”后，初始化成功仍会自动切换到 Search 页签，导致设置页流程被中断。                                                                                                                             | Settings 配置闭环与页面停留行为不一致        | AI + 用户 | 已解决   | 2026-03-30   | 2026-03-30   |
 | 2026-03-31 | 阶段 4 | Search 页面导出 CSV/JSON 后每次调用 `Process.Start("explorer.exe", "/select,...")` 都会打开新的资源管理器窗口，导致连续多次导出到同一目录时产生重复窗口。                                                                          | 导出体验：大量重复资源管理器窗口堆积         | AI + 用户 | 已解决   | 2026-03-31   | 2026-03-31   |
 | 2026-03-31 | 阶段 4 | Download 页面导入 CSV/JSON 时，导入数量/跳过数量的计算仅参考下载任务列表，未同时纳入待下载队列中的 SourceId 与导入内容自身的重复项，导致二次导入同一文件或文件内含重复记录时，状态消息中的导入数量与跳过数量不准确。               | Download 导入计数显示不准确                  | AI + 用户 | 已解决   | 2026-03-31   | 2026-03-31   |
+| 2026-03-31 | 阶段 4 | 程序启动恢复 Download 未完成队列时，后台标题补拉请求会失败，导致列表标题持续空白。且失败后不会自动重试，启动后标题会长期缺失。                                                                                                     | Download 启动后的列表可读性                  | AI + 用户 | 已解决   | 2026-03-31   | 2026-03-31   |
 
 ## 1.5 变更与验证记录
 
@@ -901,6 +902,44 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 4. DoD 判定：是。Download 导入计数与跳过计数已和实际队列状态对齐；新增回归样例通过。
 5. 下次计划：由用户执行章节 4.3 导入 CSV/JSON 手工回归，验证二次导入同一文件时提示数量准确。
 
+### 1.5.76 2026-03-31，v0.4.8：常量集中化 + 启动未完成队列元数据后台刷新
+
+1. 变更摘要：
+ - **版本升级与动态版本文案**：Core/Application/Infrastructure/Wpf 四个运行时项目统一升级到 `0.4.8`；新增 `AppVersionInfo`，Settings 页面版本文案与启动完成日志统一改为读取程序集三段式版本号，移除硬编码 `v0.4.6`。
+ - **常量与 SQLite 查询集中化**：新增 `AsmronerConstants`，集中维护应用名、版本前缀、API 超时/错误码、下载并发/超时、SQLite 表名/列名/section key，以及 `AppConfig`/`UiState` 相关重复查询；`AsmrApiClient`、`ConfigurationService`、`DatabaseInitializer`、`UiStateStore`、`DownloadView` 等改为从新类获取常量与 query。
+ - **启动后台补拉未完成队列标题**：新增 `StartupUnfinishedQueueMetadataRefreshService`；主窗口 bootstrap 成功后，对 Download 未完成队列仅补拉“缺失标题/空标题”的作品信息，写回预取缓存并刷新 Download 列表，保证启动路径非阻塞。
+ - **测试同步**：新增 `AppVersionInfoTests`（2 条）与 `StartupUnfinishedQueueMetadataRefreshServiceTests`（4 条），并更新 `SettingsViewXamlTests` 以适配动态版本文案。
+ - **章节复核**：章节 1.2/1.3/1.4 状态无需变更；章节 2.1 基线更新为 219/219 并追加 2.1.51、2.1.52；章节 3.1 新增一条待提交记录；章节 4.1/4.3/4.4 受影响项重置为未勾选。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Constants/AsmronerConstants.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/AsmrApiClient.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/ConfigurationService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/DatabaseInitializer.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/UiStateStore.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/AppVersionInfo.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/StartupUnfinishedQueueMetadataRefreshService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/MainWindow.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml.cs`、`dotnet/tests/Asmroner.Wpf.Tests/AppVersionInfoTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/StartupUnfinishedQueueMetadataRefreshServiceTests.cs`。
+3. 验证结果：VS Code 测试运行器全量通过（总计 219，失败 0，成功 219）。
+4. DoD 判定：是。v0.4.8 版本升级、常量/query 集中化、启动未完成队列元数据后台刷新与自动化回归均已完成。
+5. 下次计划：由用户执行章节 4.1/4.3/4.4 受影响项手工回归，并按结果重新勾选。
+
+### 1.5.77 2026-03-31，v0.4.8：启动补拉修复 + Search/Download 列表 UI 调整
+
+1. 变更摘要：
+ - **启动补拉缺陷修复**：`StartupEndpointWarmupService` 改为复用同一 in-flight warmup 任务，避免启动期间重复站点发现；`StartupUnfinishedQueueMetadataRefreshService` 在补拉未完成队列标题前先等待 warmup 完成，并在 warmup 失败时继续后续刷新，修复重启后标题长期空白的问题。
+ - **Search 列表 UI 调整**：Search 结果表新增统一列头边框样式，显式启用列重排；字幕列与日期列改为固定默认宽度且禁止拖拽改宽，标题/标签列扩宽，数据过宽时依赖横向滚动查看完整内容。
+ - **Download 列表 UI 调整**：Download 任务表新增统一列头/单元格样式，显式启用列重排；状态列与进度列改为固定默认宽度且禁止拖拽改宽，目录/错误等长文本列扩宽，数据过宽时通过横向滚动查看。
+ - **测试同步**：新增 `StartupEndpointWarmupServiceTests` 1 条、`StartupUnfinishedQueueMetadataRefreshServiceTests` 2 条、`SearchViewXamlTests` 1 条、`DownloadViewXamlTests` 1 条，共补齐 5 条回归样例。
+ - **章节复核**：章节 1.2/1.3 状态无需变更；章节 1.4 追加本轮已解决缺陷；章节 2.1 基线更新为 226/226，并更新 2.1.17、2.1.19、2.1.40、2.1.52；章节 3.1 合并现有 `v0.4.8` 待提交行；章节 4.1/4.2/4.3 受影响项重置为未勾选。
+2. 关键文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/StartupEndpointWarmupService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/StartupUnfinishedQueueMetadataRefreshService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml`、`dotnet/tests/Asmroner.Wpf.Tests/StartupEndpointWarmupServiceTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/StartupUnfinishedQueueMetadataRefreshServiceTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/SearchViewXamlTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/DownloadViewXamlTests.cs`。
+3. 验证结果：先执行 WPF 相关定向回归（总计 16，失败 0，成功 16），再执行 VS Code 测试运行器全量回归（总计 226，失败 0，成功 226）。
+4. DoD 判定：是。启动补拉缺陷修复、Search/Download 列表 UI 调整与自动化回归均已完成；章节 4 的受影响手工回归项已按约束重置为未勾选，待用户验证后重新勾选。
+5. 下次计划：由用户执行章节 4.1/4.2/4.3 受影响项手工回归，重点验证重启恢复后的标题补拉、Search/Download 列表固定列宽与横向滚动体验。
+
+### 1.5.78 2026-04-01，v0.4.8：列宽微调
+
+1. 变更摘要：
+ - **Search 列宽微调**：Search 结果表字幕列宽度调整为 `42`，日期列宽度调整为 `75`，继续保持不可拖拽改宽。
+ - **Download 列宽微调**：Download 任务表状态列宽度调整为 `50` 且继续锁定；进度列保留 `96` 默认宽度，但取消显式锁定，允许手动调整列宽。
+ - **测试同步**：更新 `SearchViewXamlTests` 与 `DownloadViewXamlTests` 断言，并回归启动 warmup/未完成队列补拉测试，确认本轮 UI 调整未影响既有启动修复。
+ - **章节复核**：章节 2.1 基线更新为 2026-04-01 的 226/226，并更新 2.1.17、2.1.19；章节 3.1 继续合并到同一条 `v0.4.8` 待提交记录；章节 4.2/4.3 受影响手工项重置为未勾选。
+2. 关键文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml`、`dotnet/tests/Asmroner.Wpf.Tests/SearchViewXamlTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/DownloadViewXamlTests.cs`、`docs/wpf-migration-progress.md`。
+3. 验证结果：先执行定向回归（`SearchViewXamlTests.cs`、`DownloadViewXamlTests.cs`、`StartupEndpointWarmupServiceTests.cs`、`StartupUnfinishedQueueMetadataRefreshServiceTests.cs`），总计 20，失败 0，成功 20；再执行 VS Code 测试运行器全量回归，总计 226，失败 0，成功 226。
+4. DoD 判定：是。本轮列宽微调、断言更新与启动补拉缺陷说明同步均已完成。
+5. 下次计划：由用户执行章节 4.2/4.3 受影响项手工回归，重点验证 Search 字幕/日期列宽、Download 状态/进度列宽交互，以及重启后缺失标题后台补拉。
+
 ## 1.6 维护规则
 
 - 每次代码提交后更新第 16.2 节状态表。
@@ -919,7 +958,7 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-03-31 的 `dotnet test dotnet/Asmroner.sln`（213/213）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-01 的 VS Code 测试运行器全量回归（226/226）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
@@ -1068,10 +1107,11 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 #### 2.1.17 Wpf.Tests / DownloadViewXamlTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                   | 输入                                | 期望输出                                       |
-| ------ | ------ | ------ | ------------------------------------------------------------------------ | ----------------------------------- | ---------------------------------------------- |
-| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldContainBeautifiedStyleResources_AndCoreControls` | 解析 `DownloadView.xaml` 的文本/XML | 关键样式资源与核心控件存在，且 XAML 可被解析。 |
-| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldNotContainStagePrefixText`                       | 解析 `DownloadView.xaml` 文本       | 页面不再包含“阶段 ”前缀文案。                  |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                                    | 输入                                | 期望输出                                                                                                       |
+| ------ | ------ | ------ | ----------------------------------------------------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldContainBeautifiedStyleResources_AndCoreControls`                  | 解析 `DownloadView.xaml` 的文本/XML | 关键样式资源与核心控件存在，且 XAML 可被解析。                                                                 |
+| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldNotContainStagePrefixText`                                        | 解析 `DownloadView.xaml` 文本       | 页面不再包含“阶段 ”前缀文案。                                                                                  |
+| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldUseHeaderBorders_AndLockStatusWidthWhileLeavingProgressResizable` | 解析 `DownloadView.xaml` 文本/XML   | 列头显示边框；状态列宽保持 `50` 且不可拖拽改宽；进度列宽保持 `96` 且允许调整；数据过宽时支持横向滚动与列重排。 |
 
 #### 2.1.18 Wpf.Tests / MainWindowXamlTests.cs
 
@@ -1082,14 +1122,15 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 #### 2.1.19 Wpf.Tests / SearchViewXamlTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                             | 输入                            | 期望输出                                           |
-| ------ | ------ | ------ | ------------------------------------------------------------------ | ------------------------------- | -------------------------------------------------- |
-| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldContainUnifiedCardStyles_AndCoreControls`    | 解析 `SearchView.xaml` 文本/XML | 卡片化样式资源与核心控件存在，且 XAML 可被解析。   |
-| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldUseAlignedComboBoxStyles`                    | 解析 `SearchView.xaml` 文本/XML | 下拉框与选项项样式包含对齐设置，且 XAML 可被解析。 |
-| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldNotContainStagePrefixText`                   | 解析 `SearchView.xaml` 文本     | 页面不再包含“阶段 ”前缀文案。                      |
-| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldUseSearchViewClassName`                      | 解析 `SearchView.xaml` 文本     | `x:Class` 为 `Asmroner.Wpf.Views.SearchView`。     |
-| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldWireSelectionChangedHandlersForQueryOptions` | 解析 `SearchView.xaml` 文本     | 排序/方向/字幕/页大小下拉均绑定 `SelectionChanged` |
-| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldContainResultsGridContextMenuItems`          | 解析 `SearchView.xaml` 文本     | 结果表格包含右键菜单六项操作及对应事件绑定         |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                     | 输入                            | 期望输出                                                                                 |
+| ------ | ------ | ------ | -------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldContainUnifiedCardStyles_AndCoreControls`            | 解析 `SearchView.xaml` 文本/XML | 卡片化样式资源与核心控件存在，且 XAML 可被解析。                                         |
+| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldUseAlignedComboBoxStyles`                            | 解析 `SearchView.xaml` 文本/XML | 下拉框与选项项样式包含对齐设置，且 XAML 可被解析。                                       |
+| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldNotContainStagePrefixText`                           | 解析 `SearchView.xaml` 文本     | 页面不再包含“阶段 ”前缀文案。                                                            |
+| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldUseHeaderBorders_AndLockSubtitleAndDateColumnWidths` | 解析 `SearchView.xaml` 文本/XML | 列头显示边框；字幕/日期列宽保持 `42/75` 且不可拖拽改宽；数据过宽时支持横向滚动与列重排。 |
+| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldUseSearchViewClassName`                              | 解析 `SearchView.xaml` 文本     | `x:Class` 为 `Asmroner.Wpf.Views.SearchView`。                                           |
+| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldWireSelectionChangedHandlersForQueryOptions`         | 解析 `SearchView.xaml` 文本     | 排序/方向/字幕/页大小下拉均绑定 `SelectionChanged`                                       |
+| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldContainResultsGridContextMenuItems`                  | 解析 `SearchView.xaml` 文本     | 结果表格包含右键菜单六项操作及对应事件绑定                                               |
 
 #### 2.1.20 Wpf.Tests / SettingsViewXamlTests.cs
 
@@ -1257,12 +1298,13 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 #### 2.1.40 Wpf.Tests / StartupEndpointWarmupServiceTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                               | 输入                  | 期望输出                                     |
-| ------ | ------ | ------ | -------------------------------------------------------------------- | --------------------- | -------------------------------------------- |
-| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldReturnImmediately_WhenDiscoveryIsSlow` | Discover 慢响应       | 启动 warmup 调用快速返回，不阻塞窗口启动路径 |
-| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldInvokeDiscoverAndPersistAsync`         | 正常 discover 依赖    | 后台流程会触发一次 DiscoverAndPersist 调用   |
-| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldNotThrow_WhenDiscoveryFails`           | Discover 抛异常       | 异常被吞吐并记录，不向上抛出                 |
-| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldRespectTimeout_AndContinue`            | Discover 超时（50ms） | 超时后流程结束并继续，不阻塞应用             |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                 | 输入                         | 期望输出                                              |
+| ------ | ------ | ------ | ---------------------------------------------------------------------- | ---------------------------- | ----------------------------------------------------- |
+| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldReturnImmediately_WhenDiscoveryIsSlow`   | Discover 慢响应              | 启动 warmup 调用快速返回，不阻塞窗口启动路径          |
+| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldInvokeDiscoverAndPersistAsync`           | 正常 discover 依赖           | 后台流程会触发一次 DiscoverAndPersist 调用            |
+| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldReuseInFlightWarmupTask_AndDiscoverOnce` | 两次并发 startup warmup 调用 | 复用同一 warmup 任务，且只执行一次 DiscoverAndPersist |
+| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldNotThrow_WhenDiscoveryFails`             | Discover 抛异常              | 异常被吞吐并记录，不向上抛出                          |
+| [x]    | [x]    | 阶段 2 | `StartInBackgroundAsync_ShouldRespectTimeout_AndContinue`              | Discover 超时（50ms）        | 超时后流程结束并继续，不阻塞应用                      |
 
 ---
 
@@ -1354,6 +1396,24 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 | ------ | ------ | ------ | ------------------------------------------------------ | --------------------------------------- | ------------------------------------------- |
 | [x]    | [x]    | 阶段 1 | `Configure_ShouldWriteLogEntry_WhenStaticLoggerIsUsed` | 调用 `Configure` 后使用静态 logger 写入 | 目标日志文件存在且包含 `test-message-` 文本 |
 
+#### 2.1.51 Wpf.Tests / AppVersionInfoTests.cs
+
+| 已创建 | 已通过 | 阶段    | 样例名                                                                            | 输入                     | 期望输出                                    |
+| ------ | ------ | ------- | --------------------------------------------------------------------------------- | ------------------------ | ------------------------------------------- |
+| [x]    | [x]    | 阶段 1+ | `GetDisplayVersion_ShouldReturnThreePartAssemblyVersion`                          | 当前程序集版本 `0.4.8.0` | 返回三段式版本文本 `0.4.8`                  |
+| [x]    | [x]    | 阶段 1+ | `BuildSettingsVersionText_AndStartupMessage_ShouldUseDisplayVersionWithoutSuffix` | 动态版本文案构建         | Settings 文案与启动日志共用相同三段式版本号 |
+
+#### 2.1.52 Wpf.Tests / StartupUnfinishedQueueMetadataRefreshServiceTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                        | 输入                                         | 期望输出                                                     |
+| ------ | ------ | ------ | ----------------------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------ |
+| [x]    | [x]    | 阶段 4 | `StartInBackgroundAsync_ShouldReturnImmediately_WhenRefreshIsSlow`            | WorkInfo API 慢响应                          | 启动刷新调用立即返回，不阻塞窗口启动                         |
+| [x]    | [x]    | 阶段 4 | `RefreshAsync_ShouldReturnZero_WhenQueueEmpty`                                | 未完成队列为空                               | 返回 0，且不触发 API/缓存写入                                |
+| [x]    | [x]    | 阶段 4 | `RefreshAsync_ShouldOnlyFetchMissingOrUntitledWorkInfo_AndUpsertFetchedItems` | 队列含已缓存标题、空标题、缺失标题的混合场景 | 仅补拉缺失/空标题项，且只执行一次缓存写回                    |
+| [x]    | [x]    | 阶段 4 | `RefreshAsync_ShouldContinue_WhenSingleFetchFails`                            | 混合成功与失败的 WorkInfo 请求               | 单项失败不影响整体流程，仅成功项写回缓存                     |
+| [x]    | [x]    | 阶段 4 | `RefreshAsync_ShouldWaitForWarmupBeforeFetchingWorkInfo`                      | warmup 阻塞 + 单条缺失标题队列               | 在 warmup 完成前不发起 WorkInfo 请求，完成后再补拉并写回缓存 |
+| [x]    | [x]    | 阶段 4 | `RefreshAsync_ShouldContinue_WhenWarmupFails`                                 | warmup 抛异常 + 单条缺失标题队列             | warmup 失败时仍继续补拉作品信息并写回缓存                    |
+
 ### 2.2 测试覆盖分析
 
 - Core（模型/配置）：默认值完整性，✅ 已覆盖。
@@ -1365,6 +1425,8 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 - 格式优先级下载：`PreferFormats` 过滤轨道与留空全下载，✅ 已覆盖。
 - WorkInfo 预取复用：入队预取后下载阶段内存命中，✅ 已覆盖。
 - 未完成队列快照构建：Search/Download 共用快照规则并在入队后持久化，✅ 已覆盖。
+- 启动未完成队列元数据补拉：非阻塞启动、仅补拉缺失标题并刷新 Download 列表，✅ 已覆盖。
+- 版本文案动态化：Settings 页面与启动日志共用程序集三段式版本号，✅ 已覆盖。
 - 限流可观测性：`RateLimiter` 步骤间节流间隔，⬜ 待落地。
 
 #### 2.3 关键实现修复（作为测试补齐的附带产物）
@@ -1397,7 +1459,8 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 | 2026-03-30 | 已提交 | feat(search): preserve multi-select + export scopes, sync v0.4.4            | 1. Add right click menu in Search ResultsGrid.<br>2. Update version to v0.4.4.<br>3. Update regression tests.                                                                                                                                                                                                                                                                                                                      | 83c84fa    |
 | 2026-03-30 | 已提交 | fix(settings): stay on settings after reinit, sync v0.4.5                   | 1. Update version to v0.4.5.<br>2. Remove version from main window title.<br>3. Fix Settings saving success path to stay on Settings tab.<br>4. Update regression tests.                                                                                                                                                                                                                                                           | 0f014d6    |
 | 2026-03-30 | 已提交 | v0.4.6: replace ILogger injections with static NLog logger                  | 1. Update version to v0.4.6.<br>2. Replace Logging with NLog 6.1.1.<br>3. JSON format, size/date rolling, archive to subdirectory.<br>4. Update regression tests.                                                                                                                                                                                                                                                                  | 68c44bf    |
-| 2026-03-31 | 待提交 | v0.4.7: tags column, shell folder reuse, import count fixes                 | 1. Update version to v0.4.7.<br>2. Search DataGrid removes 评分/销量 and adds 标签 column.<br>3. CSV header `source_id,has_subtitle,release,tags,title`.<br>4. Update regression tests.                                                                                                                                                                                                                                            | -          |
+| 2026-03-31 | 已提交 | v0.4.7: tags column, shell folder reuse, import count fixes                 | 1. Update version to v0.4.7.<br>2. Search DataGrid removes 评分/销量 and adds 标签 column.<br>3. CSV header `source_id,has_subtitle,release,tags,title`.<br>4. Update regression tests.                                                                                                                                                                                                                                            | da37fcb    |
+| 2026-03-31 | 待提交 | v0.4.8: harden startup refresh and tune Search/Download columns             | 1. Update runtime version to v0.4.8.<br>2. Switch version text to dynamic assembly version.<br>3. Add centralized constants/query class.<br>4. Use startup warmup to fix blank titles after restart.<br>5. Tune Search/Download DataGrid layout.<br>6. Update regression tests.                                                                                                                                                    | -          |
 
 ---
 
@@ -1415,7 +1478,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 
 ### 4.1 启动、配置与连接
 
-- [x] 应用可正常启动，主窗口可显示 Search、Download、Settings 三个页签，且启动过程不因站点发现流程长时间阻塞。
+- [ ] 应用可正常启动，主窗口可显示 Search、Download、Settings 三个页签，且启动过程不因站点发现流程长时间阻塞。
 - [x] Settings 页面可正确加载现有配置；默认下载目录、格式优先级等字段显示完整。
 - [x] 程序目录 `config.json` 可作为默认配置来源；当 SQLite 中无配置记录时，应用可读取该默认配置并完成设置页加载。
 - [x] SQLite 中存在旧单行 `AppConfig`（`Id=1`）时，应用启动后会自动迁移到 `user/downloader/limit` 分段结构并可继续使用。
@@ -1423,11 +1486,12 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 在 Settings 页面点击“保存并重新初始化”后，当前页应保持在 Settings，不应自动跳转到 Search。
 - [x] Settings 页面输入无效配置时，可给出可读错误提示，且应用不崩溃。
 - [x] “测试连接”可完成站点发现与登录校验；成功时回填当前 BaseUrl 并显示延迟与鉴权结果，失败时显示明确原因。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.4.7。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.4.8。
 
 ### 4.2 Search 功能
 
 - [x] 仅输入基础关键词即可成功搜索，并展示结果列表（含标签列）、总数和页码信息。
+- [ ] Search 结果列表列头应显示完整边框；字幕列与日期列宽保持 `42/75` 且不可拖拽改宽，拖拽仅改变列顺序；当标题或标签过宽时可通过横向滚动查看完整数据。
 - [x] 高级筛选 `tag/circle/va/duration/rate/price/sell/age/lang` 可单独或组合生效，`反选` 语义正确。
 - [x] Search 的排序、方向、字幕、是否包含翻译作品等选项生效，翻页后条件保持不丢失。
 - [x] 上一页、下一页、跳页、页大小切换均可用，分页结果与页码信息正确。
@@ -1446,15 +1510,16 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 
 - [x] 单个 RJID 入队支持 `RJxxxx`、作品 URL、`RJ-xxxx`、纯数字等输入形式，提交后可归一化并成功入队。
 - [x] 批量入队支持逗号、分号、空格、换行混合分隔；重复项会去重，已存在任务不会重复加入。
-- [ ] 导入 CSV 与导入 JSON 可成功读取 Search 导出文件并入队，重复任务会被跳过且提示明确。
+- [x] 导入 CSV 与导入 JSON 可成功读取 Search 导出文件并入队，重复任务会被跳过且提示明确。
 - [x] 执行下载队列后，任务列表与队列计数会刷新，任务状态、进度、目标目录、错误信息显示正确。
 - [x] 状态列排序遵循业务顺序而非字母序；状态文案显示为中文且与实际状态一致。
+- [ ] Download 任务列表列头应显示完整边框；状态列宽保持 `50` 且不可拖拽改宽，进度列宽保持 `96` 且允许调整，拖拽仅改变列顺序；当目录或错误信息过宽时可通过横向滚动查看完整数据。
 - [x] “立即下载选中任务”可对 Pending、Failed、Canceled 等允许状态生效，不允许的状态不会误触发。
 - [x] “取消选中任务”可取消 Pending、Queued、Running 任务，确认提示、取消结果与列表状态一致。
 - [x] “重试失败任务”仅对单个失败任务可用；“重试全部失败任务”仅在存在失败任务时可用，并能输出正确汇总结果。
 - [x] “打开下载目录”可打开当前生效的下载目录。
 - [x] “清空任务列表”可停止运行中任务、清空下载队列并删除任务列表项，且清空后重启不会回流旧未完成队列。
-- [x] Download 页面会恢复上一次运行时的“只下载高清音频”“文件筛选”与未完成队列（`Pending/Queued/Failed` 恢复为 `Pending`）。
+- [ ] Download 页面会恢复上一次运行时的“只下载高清音频”“文件筛选”与未完成队列（`Pending/Queued/Failed` 恢复为 `Pending`），并在后台补拉缺失作品标题后刷新列表显示。
 - [x] Search 页面加入下载队列后，若未切换至 Download 页面即退出并重启，未完成队列仍可恢复。
 - [x] 文件筛选规则可生效；开启“只下载高清音频”后，在同时存在 flac/wav 与 mp3 的场景下不会重复下载 mp3。
 - [x] 新启动的失败任务不会从列表中消失；失败、取消、完成后的任务状态可被稳定追踪。
