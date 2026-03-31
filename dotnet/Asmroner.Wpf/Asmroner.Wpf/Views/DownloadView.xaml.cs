@@ -141,26 +141,28 @@ public partial class DownloadView : UserControl
             return;
         }
 
-        var allowedSingle = DownloadEnqueueDuplicatePolicy.FilterAlreadyPresent(_downloadService.GetTasks(), new[] { sourceId });
-        if (allowedSingle.Count == 0)
+        var queuePlan = BuildQueuePlan(new[] { sourceId });
+        if (queuePlan.ToEnqueue.Count == 0)
         {
-            StatusTextBlock.Text = $"该作品已在下载列表中，跳过：{sourceId}";
+            StatusTextBlock.Text = $"该作品已在下载列表或待下载队列中，跳过：{sourceId}";
             return;
         }
+
+        var enqueuedSourceId = queuePlan.ToEnqueue[0];
 
         await ExecuteGuardedAsync(
             async () =>
             {
                 StatusTextBlock.Text = "正在获取作品信息...";
 
-                var workInfos = await ResolveWorkInfoAsync(new[] { sourceId });
-                _searchStateStore.EnqueueForDownload(new[] { sourceId });
+                var workInfos = await ResolveWorkInfoAsync(new[] { enqueuedSourceId });
+                _searchStateStore.EnqueueForDownload(new[] { enqueuedSourceId });
                 _downloadService.UpsertPrefetchedWorkInfo(workInfos);
-                _queuedStatusOverrides.TryRemove(sourceId, out _);
+                _queuedStatusOverrides.TryRemove(enqueuedSourceId, out _);
                 MergeQueuedWorkInfoTitles(DownloadWorkInfoTitlePolicy.BuildNonEmptyTitleMap(workInfos));
 
                 RefreshView();
-                StatusTextBlock.Text = $"已加入单个下载：{sourceId}";
+                StatusTextBlock.Text = $"已加入单个下载：{enqueuedSourceId}";
             },
             disableRunQueue: true,
             failurePrefix: "加入单个下载失败",
@@ -182,18 +184,17 @@ public partial class DownloadView : UserControl
             {
                 StatusTextBlock.Text = $"正在获取 {sourceIds.Count} 个作品信息...";
 
-                var toEnqueue = DownloadEnqueueDuplicatePolicy.FilterAlreadyPresent(_downloadService.GetTasks(), sourceIds);
-                var skippedCount = sourceIds.Count - toEnqueue.Count;
-                if (toEnqueue.Count == 0)
+                var queuePlan = BuildQueuePlan(sourceIds);
+                if (queuePlan.ToEnqueue.Count == 0)
                 {
-                    StatusTextBlock.Text = $"已跳过全部 {skippedCount} 项（已在下载列表中）。";
+                    StatusTextBlock.Text = $"已跳过全部 {queuePlan.SkippedCount} 项。";
                     return;
                 }
 
-                var workInfos = await ResolveWorkInfoAsync(toEnqueue);
-                _searchStateStore.EnqueueForDownload(toEnqueue);
+                var workInfos = await ResolveWorkInfoAsync(queuePlan.ToEnqueue);
+                _searchStateStore.EnqueueForDownload(queuePlan.ToEnqueue);
                 _downloadService.UpsertPrefetchedWorkInfo(workInfos);
-                foreach (var sourceIdItem in toEnqueue)
+                foreach (var sourceIdItem in queuePlan.ToEnqueue)
                 {
                     _queuedStatusOverrides.TryRemove(sourceIdItem, out _);
                 }
@@ -202,9 +203,9 @@ public partial class DownloadView : UserControl
                 RefreshView();
 
                 var resolvedCount = workInfos.Count;
-                var batchStatusMsg = DownloadOperationStatusTexts.BuildBatchEnqueueResult(toEnqueue.Count, resolvedCount);
-                StatusTextBlock.Text = skippedCount > 0
-                    ? $"{batchStatusMsg}；已跳过 {skippedCount} 项（已在下载列表中）。"
+                var batchStatusMsg = DownloadOperationStatusTexts.BuildBatchEnqueueResult(queuePlan.ToEnqueue.Count, resolvedCount);
+                StatusTextBlock.Text = queuePlan.SkippedCount > 0
+                    ? $"{batchStatusMsg}；已跳过 {queuePlan.SkippedCount} 项。"
                     : batchStatusMsg;
             },
             disableRunQueue: true,
@@ -460,33 +461,32 @@ public partial class DownloadView : UserControl
                 StatusTextBlock.Text = "正在导入 CSV 文件...";
                 var items = await _importService.ParseCsvAsync(dialog.FileName);
                 var sourceIds = items.Select(static x => x.SourceId).ToArray();
-                var toEnqueue = DownloadEnqueueDuplicatePolicy.FilterAlreadyPresent(_downloadService.GetTasks(), sourceIds);
-                var skippedCount = sourceIds.Length - toEnqueue.Count;
+                var queuePlan = BuildQueuePlan(sourceIds);
 
-                if (toEnqueue.Count == 0)
+                if (queuePlan.ToEnqueue.Count == 0)
                 {
-                    StatusTextBlock.Text = $"CSV 中全部 {skippedCount} 项已在下载列表中，已跳过。";
+                    StatusTextBlock.Text = $"CSV 中全部 {queuePlan.SkippedCount} 项已存在或重复，已跳过。";
                     return;
                 }
 
-                _searchStateStore.EnqueueForDownload(toEnqueue);
+                _searchStateStore.EnqueueForDownload(queuePlan.ToEnqueue);
                 var workInfoMap = items
-                    .Where(x => toEnqueue.Contains(x.SourceId, StringComparer.OrdinalIgnoreCase))
+                    .Where(x => queuePlan.ToEnqueue.Contains(x.SourceId, StringComparer.OrdinalIgnoreCase))
                     .ToDictionary(static x => x.SourceId, static x => x);
                 _downloadService.UpsertPrefetchedWorkInfo(
                     workInfoMap.ToDictionary(
                         static kv => kv.Key,
                         static kv => new WorkInfoDto { SourceId = kv.Value.SourceId, Title = kv.Value.Title }));
 
-                foreach (var sourceId in toEnqueue)
+                foreach (var sourceId in queuePlan.ToEnqueue)
                 {
                     _queuedStatusOverrides.TryRemove(sourceId, out _);
                 }
 
                 RefreshView();
-                StatusTextBlock.Text = skippedCount > 0
-                    ? $"已从 CSV 导入 {toEnqueue.Count} 项；已跳过 {skippedCount} 项（已在下载列表中）。"
-                    : $"已从 CSV 导入 {toEnqueue.Count} 项。";
+                StatusTextBlock.Text = queuePlan.SkippedCount > 0
+                    ? $"已从 CSV 导入 {queuePlan.ToEnqueue.Count} 项；已跳过 {queuePlan.SkippedCount} 项。"
+                    : $"已从 CSV 导入 {queuePlan.ToEnqueue.Count} 项。";
             },
             disableRunQueue: true,
             failurePrefix: "导入 CSV 失败",
@@ -513,33 +513,32 @@ public partial class DownloadView : UserControl
                 StatusTextBlock.Text = "正在导入 JSON 文件...";
                 var items = await _importService.ParseJsonAsync(dialog.FileName);
                 var sourceIds = items.Select(static x => x.SourceId).ToArray();
-                var toEnqueue = DownloadEnqueueDuplicatePolicy.FilterAlreadyPresent(_downloadService.GetTasks(), sourceIds);
-                var skippedCount = sourceIds.Length - toEnqueue.Count;
+                var queuePlan = BuildQueuePlan(sourceIds);
 
-                if (toEnqueue.Count == 0)
+                if (queuePlan.ToEnqueue.Count == 0)
                 {
-                    StatusTextBlock.Text = $"JSON 中全部 {skippedCount} 项已在下载列表中，已跳过。";
+                    StatusTextBlock.Text = $"JSON 中全部 {queuePlan.SkippedCount} 项已存在或重复，已跳过。";
                     return;
                 }
 
-                _searchStateStore.EnqueueForDownload(toEnqueue);
+                _searchStateStore.EnqueueForDownload(queuePlan.ToEnqueue);
                 var workInfoMap = items
-                    .Where(x => toEnqueue.Contains(x.SourceId, StringComparer.OrdinalIgnoreCase))
+                    .Where(x => queuePlan.ToEnqueue.Contains(x.SourceId, StringComparer.OrdinalIgnoreCase))
                     .ToDictionary(static x => x.SourceId, static x => x);
                 _downloadService.UpsertPrefetchedWorkInfo(
                     workInfoMap.ToDictionary(
                         static kv => kv.Key,
                         static kv => new WorkInfoDto { SourceId = kv.Value.SourceId, Title = kv.Value.Title }));
 
-                foreach (var sourceId in toEnqueue)
+                foreach (var sourceId in queuePlan.ToEnqueue)
                 {
                     _queuedStatusOverrides.TryRemove(sourceId, out _);
                 }
 
                 RefreshView();
-                StatusTextBlock.Text = skippedCount > 0
-                    ? $"已从 JSON 导入 {toEnqueue.Count} 项；已跳过 {skippedCount} 项（已在下载列表中）。"
-                    : $"已从 JSON 导入 {toEnqueue.Count} 项。";
+                StatusTextBlock.Text = queuePlan.SkippedCount > 0
+                    ? $"已从 JSON 导入 {queuePlan.ToEnqueue.Count} 项；已跳过 {queuePlan.SkippedCount} 项。"
+                    : $"已从 JSON 导入 {queuePlan.ToEnqueue.Count} 项。";
             },
             disableRunQueue: true,
             failurePrefix: "导入 JSON 失败",
@@ -677,6 +676,14 @@ public partial class DownloadView : UserControl
 
         textBox.Text = normalized;
         textBox.SelectionStart = textBox.Text.Length;
+    }
+
+    private SearchQueueCountPlan BuildQueuePlan(IEnumerable<string> sourceIds)
+    {
+        return SearchQueueCountPolicy.Build(
+            sourceIds,
+            _downloadService.GetTasks(),
+            _searchStateStore.GetQueuedSourceIds());
     }
 
     private bool ConfirmWithQuestion(string message, string title)

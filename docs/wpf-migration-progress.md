@@ -1,6 +1,6 @@
 ﻿# asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.4.6
+当前跟踪版本：v0.4.7
 
 AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
@@ -116,6 +116,8 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 | 2026-03-17 | 阶段 4 | 在 Search 页面选择并点击"加入下载队列"时，如果该任务已存在且状态为 Canceled，仅通过 `_queuedStatusOverrides` 将枚举值更新为 Pending，但 `DownloadTaskRowViewModel.StatusText` 未同步更新，导致 Download 页面行仍显示"已取消"文本。 | Download 页面行状态文本与实际排队状态不一致  | AI + 用户 | 已解决   | 2026-03-27   | 2026-03-27   |
 | 2026-03-29 | 阶段 4 | Download 页面重启后，“只下载高清音频”“文件筛选”与未完成队列恢复项仍处于未通过，需补齐恢复链路与回归验证。                                                                                                                          | 阶段 4 状态持久化与重启恢复验证不闭环        | AI + 用户 | 已解决   | 2026-03-29   | 2026-03-29   |
 | 2026-03-30 | 阶段 1 | 在 Settings 页面点击“保存并重新初始化”后，初始化成功仍会自动切换到 Search 页签，导致设置页流程被中断。                                                                                                                             | Settings 配置闭环与页面停留行为不一致        | AI + 用户 | 已解决   | 2026-03-30   | 2026-03-30   |
+| 2026-03-31 | 阶段 4 | Search 页面导出 CSV/JSON 后每次调用 `Process.Start("explorer.exe", "/select,...")` 都会打开新的资源管理器窗口，导致连续多次导出到同一目录时产生重复窗口。                                                                          | 导出体验：大量重复资源管理器窗口堆积         | AI + 用户 | 已解决   | 2026-03-31   | 2026-03-31   |
+| 2026-03-31 | 阶段 4 | Download 页面导入 CSV/JSON 时，导入数量/跳过数量的计算仅参考下载任务列表，未同时纳入待下载队列中的 SourceId 与导入内容自身的重复项，导致二次导入同一文件或文件内含重复记录时，状态消息中的导入数量与跳过数量不准确。               | Download 导入计数显示不准确                  | AI + 用户 | 已解决   | 2026-03-31   | 2026-03-31   |
 
 ## 1.5 变更与验证记录
 
@@ -856,6 +858,49 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 4. DoD 判定：是。日志体系统一到 NLog 静态日志器，编译与自动化回归通过。
 5. 下次计划：由用户执行章节 4.1 受影响项（启动与 Settings 操作路径）手工回归并按结果重新勾选。
 
+### 1.5.73 2026-03-31，Search/Download 标签列 + 导出优化 + v0.4.7
+
+1. 变更摘要：
+ - **版本升级**：所有 .csproj（Core/Application/Infrastructure/Wpf）版本号从 0.4.6 升级到 0.4.7。
+ - **模型层**：新增 `TagDto`（id + name）；`SearchWorkDto` 新增 `Tags` 属性（`IReadOnlyList<TagDto>`）；`SearchWorkItem` 移除 `RateAverage`/`DownloadCount`，新增 `Tags`（按 `tags.id` 升序排序后用 `;` 分隔的 name 字符串）。
+ - **服务层**：`SearchService` 的 DTO->Item 映射移除评分/销量赋值，新增标签排序+拼接逻辑；`IAsmrApiClient.GetPopularAsync` 返回类型从 `IReadOnlyList<HotWorkDto>` 改为 `IReadOnlyList<SearchWorkDto>`；`AsmrApiClient.GetPopularAsync` 简化为直接返回 `result.Works`，消除信息丢失；移除 `HotWorkDto`。
+ - **导出/导入**：CSV header 从 `source_id,release,rate_average_2dp,dl_count,has_subtitle,title` 改为 `source_id,has_subtitle,release,tags,title`；JSON 导出/导入自动适配新模型；导入端解析新增 `tags` 列。
+ - **UI 层**：`SearchView.xaml` DataGrid 移除"评分"和"销量"列，新增"标签"列（200px，绑定 `Tags`）；热门作品查询结果现在可正确显示日期、字幕、标签信息。
+ - **导出后打开文件夹**：Search 页面导出 CSV/JSON 成功后自动调用 `explorer.exe /select,"<filePath>"` 打开并选中目标文件。
+ - **测试同步**：更新 `SearchExportServiceTests`/`SearchImportServiceTests`/`SearchServiceTests` 中的测试数据，适配新 CSV 格式和模型字段；更新 `DownloadServiceTestDoubles` 和 `SearchServiceTests` 中的测试替身以匹配新 `GetPopularAsync` 返回类型。
+ - **回归结果**：`dotnet build dotnet/Asmroner.sln --configuration Debug` 成功（0 错误）；全部 211 测试通过（失败 0）。
+ - **章节复核**：章节 1.2/1.3/1.4 状态无需变动；章节 2.1 基线维持 211/211；章节 4.2/4.3/4.4 受影响项重置为未勾选。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Api/TagDto.cs`（新增）、`dotnet/Asmroner.Backend/Asmroner.Core/Api/SearchResultDto.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Api/HotWorkDto.cs`（移除）、`dotnet/Asmroner.Backend/Asmroner.Core/Search/SearchQuery.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IAsmrApiClient.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/SearchService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/SearchExportService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/SearchImportService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/AsmrApiClient.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml.cs`、`dotnet/tests/Asmroner.Application.Tests/SearchExportServiceTests.cs`、`dotnet/tests/Asmroner.Application.Tests/SearchImportServiceTests.cs`、`dotnet/tests/Asmroner.Application.Tests/SearchServiceTests.cs`、`dotnet/tests/Asmroner.Application.Tests/DownloadServiceTestDoubles.cs`。
+3. 验证结果：`dotnet build dotnet/Asmroner.sln --configuration Debug` 通过（0 错误）；VS Code 测试运行器全量通过（总计 211，失败 0，成功 211）。
+4. DoD 判定：是。标签列功能完成、导出优化与打开文件夹完成、模型和测试同步更新、编译与自动化回归通过。
+5. 下次计划：由用户执行章节 4.2/4.3/4.4 受影响项手工回归并按实际结果重新勾选。
+
+### 1.5.74 2026-03-31，Bug 修复：资源管理器窗口去重 + 导入计数修正
+
+1. 变更摘要：
+ - **Bug 1  导出后重复打开资源管理器窗口**：新建 `ExplorerHelper.cs`（P/Invoke 调用 `SHParseDisplayName` + `SHOpenFolderAndSelectItems` + `ILFree`），替换 `SearchView.xaml.cs` 中 `Process.Start("explorer.exe", "/select,...")`。Windows Shell API 会复用已打开的同目录资源管理器窗口，消除连续导出时的窗口堆积。
+ - **Bug 2  Download 导入计数不准确**：在 `DownloadEnqueueDuplicatePolicy.FilterAlreadyPresent` 中，对 `incoming` 参数追加 `.Distinct(StringComparer.OrdinalIgnoreCase)`，确保去重后再过滤已有任务。所有调用方（CSV 导入、JSON 导入、Search 入队、批量入队）均受益。
+ - **新增测试**：`FilterAlreadyPresent_ShouldDeduplicateIncoming`（输入含重复及大小写重复项，期望返回 3 项去重结果）。
+ - **回归结果**：`dotnet build dotnet/Asmroner.sln --configuration Debug` 成功（0 错误）；全部 212 测试通过（失败 0）。
+ - **章节复核**：1.4 节追加 2 条已解决 bug 记录；2.1 基线更新为 212/212；4.2/4.3/4.4 受影响项保持已勾选（本次修复仅为 bug 消除，不改变功能可见行为）。
+2. 关键文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/ExplorerHelper.cs`（新增）、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/DownloadEnqueueDuplicatePolicy.cs`、`dotnet/tests/Asmroner.Wpf.Tests/DownloadEnqueueDuplicatePolicyTests.cs`。
+3. 验证结果：`dotnet build dotnet/Asmroner.sln --configuration Debug` 通过（0 错误）；VS Code 测试运行器全量通过（总计 212，失败 0，成功 212）。
+4. DoD 判定：是。两个 bug 均已修复；新增对应单元测试；编译与自动化回归通过。
+5. 下次计划：由用户执行章节 4.3 导入 CSV/JSON 手工回归，确认提示信息准确。
+
+### 1.5.75 2026-03-31，Bug 修复补充：Download 导入计数纳入待下载队列
+
+1. 变更摘要：
+ - **导入/入队计数口径收口**：`DownloadView.xaml.cs` 中单个入队、批量入队、导入 CSV、导入 JSON 四条入口统一复用 `SearchQueueCountPolicy.Build`，同时参考 `_downloadService.GetTasks()` 与 `_searchStateStore.GetQueuedSourceIds()`；修正“任务列表尚未生成行、但待下载队列已存在同批 SourceId”时的导入数量与跳过数量误报。
+ - **提示文案同步修正**：Download 页面相关状态提示不再只写“已在下载列表中”，而是改为覆盖“下载列表、待下载队列、导入内容重复”三类跳过来源，保证提示与实际计数一致。
+ - **新增测试**：`SearchQueueCountPolicyTests` 新增 `Build_ShouldSkipQueuedItems_WhenTaskListEmpty`，验证任务列表为空但队列已存在同批 SourceId 时，`ToEnqueue` 为空且 `SkippedCount` 等于输入项数。
+ - **回归结果**：VS Code 测试运行器全量通过（总计 213，失败 0，成功 213）。
+ - **章节复核**：章节 1.2/1.3 状态无需变动；章节 1.4 bug 描述已修正为最终根因；章节 2.1 基线更新为 213/213 并补充 2.1.45 新样例；章节 3.1 待提交行已合并更新；章节 4.3 导入验证项保持未勾选，待用户手工回归。
+2. 关键文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/SearchQueueCountPolicy.cs`、`dotnet/tests/Asmroner.Wpf.Tests/SearchQueueCountPolicyTests.cs`。
+3. 验证结果：VS Code 测试运行器全量通过（总计 213，失败 0，成功 213）。
+4. DoD 判定：是。Download 导入计数与跳过计数已和实际队列状态对齐；新增回归样例通过。
+5. 下次计划：由用户执行章节 4.3 导入 CSV/JSON 手工回归，验证二次导入同一文件时提示数量准确。
+
 ## 1.6 维护规则
 
 - 每次代码提交后更新第 16.2 节状态表。
@@ -874,7 +919,7 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-03-30 的 `dotnet test dotnet/Asmroner.sln`（210/210）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-03-31 的 `dotnet test dotnet/Asmroner.sln`（213/213）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
@@ -929,8 +974,10 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 #### 2.1.5 Application.Tests / SearchStateStoreTests.cs
 
-- [x]/[x] 阶段 4 `EnqueueForDownload_ShouldNormalizeSourceIdExtractedFromUrl`：输入 RJID、作品链接、API 路径、`RJ-xxxx` 与纯数字混合值入队，期望队列统一归一化为 `RJxxxx` 且去重正确。
-- [x]/[x] 阶段 4 `RemoveFromQueue_ShouldMatchNormalizedInput`：队列已有 `RJxxxx` 时使用 URL 形式出队，期望可匹配并成功移除。
+| 已创建 | 已通过 | 阶段   | 样例名                                                       | 输入                                                   | 期望输出                             |
+| ------ | ------ | ------ | ------------------------------------------------------------ | ------------------------------------------------------ | ------------------------------------ |
+| [x]    | [x]    | 阶段 4 | `EnqueueForDownload_ShouldNormalizeSourceIdExtractedFromUrl` | RJID、作品链接、API 路径、`RJ-xxxx` 与纯数字混合值入队 | 队列统一归一化为 `RJxxxx` 且去重正确 |
+| [x]    | [x]    | 阶段 4 | `RemoveFromQueue_ShouldMatchNormalizedInput`                 | 队列已有 `RJxxxx` 时使用 URL 形式出队                  | 可匹配并成功移除                     |
 
 #### 2.1.6 Application.Tests / FirstRunServiceTests.cs
 
@@ -954,12 +1001,14 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 #### 2.1.9 Infrastructure.Tests / AsmrApiClientTests.cs
 
-- [x]/[x] 阶段 2 `AsmrApiClient_ShouldMapHttpErrors`：业务请求返回 500，期望抛出 `AsmrApiException`，错误码为 `api_request_failed`。
-- [x]/[x] 阶段 4 `GetPopularAsync_ShouldUsePostAndMapWorks`：调用热门接口，期望使用 `POST /api/recommender/popular` 且正确映射返回 `works`。
-- [x]/[x] 阶段 2 `AsmrApiClient_ShouldAttachBearerToken_OnAuthorizedCalls`：已登录态调用受保护接口，期望请求头包含 `Authorization: Bearer xxx`。
-- [x]/[x] 阶段 4 `AsmrApiClient_ShouldNormalizeWorkUrlInput_ToWorkEndpointPath`：输入作品 URL 形式 id 调用 `GetWorkInfoAsync`，期望请求路径归一化为 `/api/work/{numericId}`（纯数字，无 `RJ` 前缀）并成功调用。
-- [x]/[x] 阶段 4 `AsmrApiClient_ShouldNormalizeNonCanonicalSourceId_ToNumericApiPath`：输入 `RJ-xxxx`、纯数字、`RJxxxx` 形式 id 调用 `GetWorkInfoAsync`，期望请求路径归一化为 `/api/work/{numericId}`（纯数字，无 `RJ` 前缀）。
-- [x]/[x] 阶段 4 `AsmrApiClient_SearchAsync_ShouldNotDoubleEncodeQuery`：输入已编码 query（含高级筛选 token）调用 `SearchAsync`，期望请求 URL 不出现 `%25` 二次编码序列。
+| 已创建 | 已通过 | 阶段   | 样例名                                                               | 输入                                                           | 期望输出                                                                                     |
+| ------ | ------ | ------ | -------------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 2 | `AsmrApiClient_ShouldMapHttpErrors`                                  | 业务请求返回 500                                               | 抛出 `AsmrApiException`，错误码为 `api_request_failed`                                       |
+| [x]    | [x]    | 阶段 4 | `GetPopularAsync_ShouldUsePostAndMapWorks`                           | 调用热门接口                                                   | 使用 `POST /api/recommender/popular` 且正确映射返回 `works`，包括 Release、HasSubtitle、Tags |
+| [x]    | [x]    | 阶段 2 | `AsmrApiClient_ShouldAttachBearerToken_OnAuthorizedCalls`            | 已登录态调用受保护接口                                         | 请求头包含 `Authorization: Bearer xxx`                                                       |
+| [x]    | [x]    | 阶段 4 | `AsmrApiClient_ShouldNormalizeWorkUrlInput_ToWorkEndpointPath`       | 输入作品 URL 形式 id 调用 `GetWorkInfoAsync`                   | 请求路径归一化为 `/api/work/{numericId}`（纯数字，无 `RJ` 前缀）并成功调用                   |
+| [x]    | [x]    | 阶段 4 | `AsmrApiClient_ShouldNormalizeNonCanonicalSourceId_ToNumericApiPath` | 输入 `RJ-xxxx`/纯数字/`RJxxxx` 形式 id 调用 `GetWorkInfoAsync` | 请求路径归一化为 `/api/work/{numericId}`（纯数字，无 `RJ` 前缀）                             |
+| [x]    | [x]    | 阶段 4 | `AsmrApiClient_SearchAsync_ShouldNotDoubleEncodeQuery`               | 输入已编码 query（含高级筛选 token）调用 `SearchAsync`         | 请求 URL 不出现 `%25` 二次编码序列                                                           |
 
 #### 2.1.10 Infrastructure.Tests / AuthServiceTests.cs
 
@@ -1003,9 +1052,11 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 #### 2.1.15 Wpf.Tests / DownloadInputNormalizerTests.cs
 
-- [x]/[x] 阶段 4 `NormalizeSingleInputDisplay_ShouldExtractRjIdFromWorkUrl`：单个输入框粘贴作品 URL，期望 UI 实时显示归一化 `RJxxxx`。
-- [x]/[x] 阶段 4 `NormalizeBatchInputDisplay_ShouldNormalizeAndDeduplicateSourceIds`：批量输入框混合 RJID/URL/`RJ-xxxx`/纯数字/重复值，期望 UI 实时显示为归一化且去重后的 RJID 列表。
-- [x]/[x] 阶段 4 `NormalizeBatchInputForSubmit_ShouldSupportCommaSemicolonSpaceAndNewline`：批量输入含逗号/分号/空格/换行混排，点击提交时应统一归一化并去重。
+| 已创建 | 已通过 | 阶段   | 样例名                                                                    | 输入                                            | 期望输出                                |
+| ------ | ------ | ------ | ------------------------------------------------------------------------- | ----------------------------------------------- | --------------------------------------- |
+| [x]    | [x]    | 阶段 4 | `NormalizeSingleInputDisplay_ShouldExtractRjIdFromWorkUrl`                | 单个输入框粘贴作品 URL                          | UI 实时显示归一化 `RJxxxx`              |
+| [x]    | [x]    | 阶段 4 | `NormalizeBatchInputDisplay_ShouldNormalizeAndDeduplicateSourceIds`       | 批量输入框混合 RJID/URL/`RJ-xxxx`/纯数字/重复值 | UI 实时显示为归一化且去重后的 RJID 列表 |
+| [x]    | [x]    | 阶段 4 | `NormalizeBatchInputForSubmit_ShouldSupportCommaSemicolonSpaceAndNewline` | 批量输入含逗号/分号/空格/换行混排，点击提交     | 统一归一化并去重                        |
 
 #### 2.1.16 Wpf.Tests / DownloadCommandAvailabilityTests.cs
 
@@ -1198,9 +1249,11 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 #### 2.1.39 Infrastructure.Tests / Existing suite updates
 
-- [x]/[x] 阶段 2 `AsmrApiClient_ShouldUseCurrentBaseUrlService_WithoutDiscovery`（`AsmrApiClientTests.cs`）：验证客户端请求链路仅使用当前 BaseUrl 服务，不触发 Discover。
-- [x]/[x] 阶段 2 `AuthService_ShouldUseCurrentBaseUrlService_WithoutDiscovery`（`AuthServiceTests.cs`）：验证登录链路仅使用当前 BaseUrl 服务，不触发 Discover。
-- [x]/[x] 阶段 2 `EndpointDiscoveryService_ShouldUseConfiguredPublishSources_ForDynamicCandidates`（`EndpointDiscoveryServiceTests.cs`）：验证发布源地址来自配置，且可动态发现候选 API。
+| 已创建 | 已通过 | 阶段   | 样例名                                                                                                                  | 输入           | 期望输出                                 |
+| ------ | ------ | ------ | ----------------------------------------------------------------------------------------------------------------------- | -------------- | ---------------------------------------- |
+| [x]    | [x]    | 阶段 2 | `AsmrApiClient_ShouldUseCurrentBaseUrlService_WithoutDiscovery`（`AsmrApiClientTests.cs`）                              | 客户端请求链路 | 仅使用当前 BaseUrl 服务，不触发 Discover |
+| [x]    | [x]    | 阶段 2 | `AuthService_ShouldUseCurrentBaseUrlService_WithoutDiscovery`（`AuthServiceTests.cs`）                                  | 登录链路       | 仅使用当前 BaseUrl 服务，不触发 Discover |
+| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldUseConfiguredPublishSources_ForDynamicCandidates`（`EndpointDiscoveryServiceTests.cs`） | 发布源地址配置 | 来自配置，且可动态发现候选 API           |
 
 #### 2.1.40 Wpf.Tests / StartupEndpointWarmupServiceTests.cs
 
@@ -1223,25 +1276,26 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 #### 2.1.42 Wpf.Tests / DownloadEnqueueDuplicatePolicyTests.cs
 
-| 已创建 | 已通过 | 阶段    | 样例名                                                                                | 输入                             | 期望输出                 |
-| ------ | ------ | ------- | ------------------------------------------------------------------------------------- | -------------------------------- | ------------------------ |
-| [x]    | [x]    | 阶段 4+ | `FilterAlreadyPresent_ShouldExclude_WhenSourceIdExistsWithAnyStatus`（5 状态 Theory） | 已存在各状态任务，入队同 RJID    | 返回空列表               |
-| [x]    | [x]    | 阶段 4+ | `FilterAlreadyPresent_ShouldInclude_WhenSourceIdNotInTaskList`                        | 已有 RJ001，入队 RJ002/RJ003     | 返回 [RJ002, RJ003]      |
-| [x]    | [x]    | 阶段 4+ | `FilterAlreadyPresent_ShouldIgnoreCase`                                               | 已有小写 rj001，入队 RJ001/RJ002 | 跳过 RJ001，返回 [RJ002] |
-| [x]    | [x]    | 阶段 4+ | `FilterAlreadyPresent_ShouldReturnAll_WhenNoExistingTasks`                            | 空任务列表，入队 2 项            | 返回所有 2 项            |
-| [x]    | [x]    | 阶段 4+ | `FilterAlreadyPresent_ShouldReturnEmpty_WhenAllAlreadyExist`                          | 全部已存在                       | 返回空列表               |
+| 已创建 | 已通过 | 阶段    | 样例名                                                                                | 输入                                                 | 期望输出                         |
+| ------ | ------ | ------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------- | -------------------------------- |
+| [x]    | [x]    | 阶段 4+ | `FilterAlreadyPresent_ShouldExclude_WhenSourceIdExistsWithAnyStatus`（5 状态 Theory） | 已存在各状态任务，入队同 RJID                        | 返回空列表                       |
+| [x]    | [x]    | 阶段 4+ | `FilterAlreadyPresent_ShouldInclude_WhenSourceIdNotInTaskList`                        | 已有 RJ001，入队 RJ002/RJ003                         | 返回 [RJ002, RJ003]              |
+| [x]    | [x]    | 阶段 4+ | `FilterAlreadyPresent_ShouldIgnoreCase`                                               | 已有小写 rj001，入队 RJ001/RJ002                     | 跳过 RJ001，返回 [RJ002]         |
+| [x]    | [x]    | 阶段 4+ | `FilterAlreadyPresent_ShouldReturnAll_WhenNoExistingTasks`                            | 空任务列表，入队 2 项                                | 返回所有 2 项                    |
+| [x]    | [x]    | 阶段 4+ | `FilterAlreadyPresent_ShouldReturnEmpty_WhenAllAlreadyExist`                          | 全部已存在                                           | 返回空列表                       |
+| [x]    | [x]    | 阶段 4+ | `FilterAlreadyPresent_ShouldDeduplicateIncoming`                                      | 含重复和大小写重复项 [RJ001,RJ002,rj001,RJ003,RJ002] | 返回 [RJ001,RJ002,RJ003]（3 项） |
 
 #### 2.1.43 Application.Tests / SearchImportServiceTests.cs
 
-| 已创建 | 已通过 | 阶段    | 样例名                                                  | 输入                           | 期望输出                                   |
-| ------ | ------ | ------- | ------------------------------------------------------- | ------------------------------ | ------------------------------------------ |
-| [x]    | [x]    | 阶段 4+ | `ParseCsvAsync_ShouldReturnItems_FromValidCsv`          | 有效 CSV（含标准 6 列）        | 正确解析 SourceId/Title/Release/Rate/Count |
-| [x]    | [x]    | 阶段 4+ | `ParseCsvAsync_ShouldSkipHeaderAndEmptyLines`           | 含空行的 CSV                   | 只返回有效数据行                           |
-| [x]    | [x]    | 阶段 4+ | `ParseCsvAsync_ShouldHandleQuotedTitle_WithComma`       | 标题含逗号（RFC4180 引号包裹） | 正确解析含逗号 title                       |
-| [x]    | [x]    | 阶段 4+ | `ParseCsvAsync_ShouldHandleEmbeddedDoubleQuote_InTitle` | 标题含双引号（`""`转义）       | 正确解析含引号 title                       |
-| [x]    | [x]    | 阶段 4+ | `ParseJsonAsync_ShouldDeserializeItems_FromValidJson`   | 有效 JSON 数组（camelCase）    | 正确反序列化 SourceId/Title                |
-| [x]    | [x]    | 阶段 4+ | `ParseJsonAsync_ShouldReturnEmpty_ForEmptyJsonArray`    | `[]`                           | 返回空列表                                 |
-| [x]    | [x]    | 阶段 4+ | `ParseJsonAsync_ShouldSkipEntries_WithEmptySourceId`    | 含空 sourceId 的条目           | 过滤空 sourceId，只返回有效项              |
+| 已创建 | 已通过 | 阶段    | 样例名                                                  | 输入                           | 期望输出                             |
+| ------ | ------ | ------- | ------------------------------------------------------- | ------------------------------ | ------------------------------------ |
+| [x]    | [x]    | 阶段 4+ | `ParseCsvAsync_ShouldReturnItems_FromValidCsv`          | 有效 CSV（含标准 5 列）        | 正确解析 SourceId/Title/Release/Tags |
+| [x]    | [x]    | 阶段 4+ | `ParseCsvAsync_ShouldSkipHeaderAndEmptyLines`           | 含空行的 CSV                   | 只返回有效数据行                     |
+| [x]    | [x]    | 阶段 4+ | `ParseCsvAsync_ShouldHandleQuotedTitle_WithComma`       | 标题含逗号（RFC4180 引号包裹） | 正确解析含逗号 title                 |
+| [x]    | [x]    | 阶段 4+ | `ParseCsvAsync_ShouldHandleEmbeddedDoubleQuote_InTitle` | 标题含双引号（`""`转义）       | 正确解析含引号 title                 |
+| [x]    | [x]    | 阶段 4+ | `ParseJsonAsync_ShouldDeserializeItems_FromValidJson`   | 有效 JSON 数组（camelCase）    | 正确反序列化 SourceId/Title          |
+| [x]    | [x]    | 阶段 4+ | `ParseJsonAsync_ShouldReturnEmpty_ForEmptyJsonArray`    | `[]`                           | 返回空列表                           |
+| [x]    | [x]    | 阶段 4+ | `ParseJsonAsync_ShouldSkipEntries_WithEmptySourceId`    | 含空 sourceId 的条目           | 过滤空 sourceId，只返回有效项        |
 
 #### 2.1.44 Wpf.Tests / SearchPagingPolicyTests.cs
 
@@ -1256,6 +1310,7 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 | 已创建 | 已通过 | 阶段    | 样例名                                                         | 输入                                   | 期望输出                                            |
 | ------ | ------ | ------- | -------------------------------------------------------------- | -------------------------------------- | --------------------------------------------------- |
 | [x]    | [x]    | 阶段 4+ | `Build_ShouldCountSkippedFromExistingQueuedAndInputDuplicates` | 混合输入重复 + 已在队列 + 已在任务列表 | `ToEnqueue` 与 `SkippedCount` 均与去重/跳过规则一致 |
+| [x]    | [x]    | 阶段 4+ | `Build_ShouldSkipQueuedItems_WhenTaskListEmpty`                | 任务列表为空 + 队列已含同批 SourceId   | 返回空队列且跳过数等于输入项数                      |
 | [x]    | [x]    | 阶段 4+ | `Build_ShouldReturnEmpty_WhenInputInvalid`                     | 空字符串与空白输入                     | 返回空队列且跳过数为 0                              |
 
 #### 2.1.46 Infrastructure.Tests / UiStateStoreTests.cs
@@ -1341,7 +1396,8 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 | 2026-03-29 | 已提交 | fix(search): trigger option-only query + rename DashboardView to SearchView | 1. Bump runtime/UI/docs version to v0.4.3 and align related assertions.<br>2. Fix Search behavior.<br>3. Rename DashboardView to SearchView and sync DI/shell host naming.<br>4. Update regression tests.                                                                                                                                                                                                                          | b3374e2    |
 | 2026-03-30 | 已提交 | feat(search): preserve multi-select + export scopes, sync v0.4.4            | 1. Add right click menu in Search ResultsGrid.<br>2. Update version to v0.4.4.<br>3. Update regression tests.                                                                                                                                                                                                                                                                                                                      | 83c84fa    |
 | 2026-03-30 | 已提交 | fix(settings): stay on settings after reinit, sync v0.4.5                   | 1. Update version to v0.4.5.<br>2. Remove version from main window title.<br>3. Fix Settings saving success path to stay on Settings tab.<br>4. Update regression tests.                                                                                                                                                                                                                                                           | 0f014d6    |
-| 2026-03-30 | 待提交 | v0.4.6: replace ILogger injections with static NLog logger                  | 1. Update version to v0.4.6.<br>2. Replace Logging with NLog 6.1.1.<br>3. JSON format, size/date rolling, archive to subdirectory.<br>4. Update regression tests.                                                                                                                                                                                                                                                                  | -          |
+| 2026-03-30 | 已提交 | v0.4.6: replace ILogger injections with static NLog logger                  | 1. Update version to v0.4.6.<br>2. Replace Logging with NLog 6.1.1.<br>3. JSON format, size/date rolling, archive to subdirectory.<br>4. Update regression tests.                                                                                                                                                                                                                                                                  | 68c44bf    |
+| 2026-03-31 | 待提交 | v0.4.7: tags column, shell folder reuse, import count fixes                 | 1. Update version to v0.4.7.<br>2. Search DataGrid removes 评分/销量 and adds 标签 column.<br>3. CSV header `source_id,has_subtitle,release,tags,title`.<br>4. Update regression tests.                                                                                                                                                                                                                                            | -          |
 
 ---
 
@@ -1367,20 +1423,20 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 在 Settings 页面点击“保存并重新初始化”后，当前页应保持在 Settings，不应自动跳转到 Search。
 - [x] Settings 页面输入无效配置时，可给出可读错误提示，且应用不崩溃。
 - [x] “测试连接”可完成站点发现与登录校验；成功时回填当前 BaseUrl 并显示延迟与鉴权结果，失败时显示明确原因。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.4.6。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.4.7。
 
 ### 4.2 Search 功能
 
-- [x] 仅输入基础关键词即可成功搜索，并展示结果列表、总数和页码信息。
+- [x] 仅输入基础关键词即可成功搜索，并展示结果列表（含标签列）、总数和页码信息。
 - [x] 高级筛选 `tag/circle/va/duration/rate/price/sell/age/lang` 可单独或组合生效，`反选` 语义正确。
 - [x] Search 的排序、方向、字幕、是否包含翻译作品等选项生效，翻页后条件保持不丢失。
 - [x] 上一页、下一页、跳页、页大小切换均可用，分页结果与页码信息正确。
-- [x] “查询热门作品”可返回结果并展示到结果列表。
+- [x] “查询热门作品”可返回结果并展示到结果列表，日期、字幕、标签信息正确。
 - [x] “清空”可重置关键词、排序选项、分页状态和当前结果，同时保留高级筛选输入与反选状态。
 - [x] Search 页面会恢复上一次运行时的“包含翻译作品”与高级筛选输入/反选状态，页面切换与重启后保持一致。
 - [x] 选中部分结果点击“加入下载队列”时，仅将选中项入队；未选中任何结果时，可按当前结果集批量入队。
 - [x] 已存在于下载列表中的作品不会重复入队，页面提示中会明确说明新增数量与跳过数量。
-- [x] Search 结果可成功导出全部任务到 CSV 与 JSON，导出文件内容可正常打开且关键字段完整。
+- [x] Search 结果可成功导出全部任务到 CSV 与 JSON，导出文件内容可正常打开且关键字段完整，导出后自动打开文件夹。
 - [x] Search 结果在选中行存在时可成功导出选中任务到 CSV 与 JSON；无选中行时会回退导出全部任务。
 - [x] Search 任务列表支持右键菜单，且包含“加入下载队列 / 导出全部任务到 CSV / 导出全部任务到 JSON / 导出选中任务到 CSV / 导出选中任务到 JSON / 在浏览器打开”六项操作。
 - [x] Search 结果在多选状态下右键未选中行时，不应清空或追加现有选中集合。
@@ -1390,7 +1446,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 
 - [x] 单个 RJID 入队支持 `RJxxxx`、作品 URL、`RJ-xxxx`、纯数字等输入形式，提交后可归一化并成功入队。
 - [x] 批量入队支持逗号、分号、空格、换行混合分隔；重复项会去重，已存在任务不会重复加入。
-- [x] 导入 CSV 与导入 JSON 可成功读取 Search 导出文件并入队，重复任务会被跳过且提示明确。
+- [ ] 导入 CSV 与导入 JSON 可成功读取 Search 导出文件并入队，重复任务会被跳过且提示明确。
 - [x] 执行下载队列后，任务列表与队列计数会刷新，任务状态、进度、目标目录、错误信息显示正确。
 - [x] 状态列排序遵循业务顺序而非字母序；状态文案显示为中文且与实际状态一致。
 - [x] “立即下载选中任务”可对 Pending、Failed、Canceled 等允许状态生效，不允许的状态不会误触发。
@@ -1408,6 +1464,6 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] Search 页面加入下载队列后，Download 页面可看到对应待执行任务，标题信息尽量不丢失。
 - [x] 已取消任务再次从 Search 侧或 Download 侧触发下载时，可复用原任务行并回流为待执行/执行中状态，不新增重复行。
 - [x] Search 与 Download 页面之间来回切换后，队列数量、任务状态和标题缓存保持一致，不出现旧状态残留。
-- [x] Search 导出 -> Download 导入 -> 执行下载的链路可端到端跑通。
+- [x] Search 导出 -> Download 导入 -> 执行下载的链路可端到端跑通（标签列 + 打开文件夹）。
 - [x] 重复入队防护在 Search 入队、Download 单个入队、Download 批量入队、CSV 导入、JSON 导入五条入口上行为一致。
 - [x] 连续执行“搜索 -> 入队 -> 立即下载/执行队列 -> 刷新列表 -> 重试/取消”后，应用无崩溃、无明显 UI 状态错乱。

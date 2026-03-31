@@ -10,5 +10,5 @@ public interface IAsmrApiClient
 
     Task<SearchResultDto> SearchAsync(string query, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<HotWorkDto>> GetPopularAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<SearchWorkDto>> GetPopularAsync(CancellationToken cancellationToken = default);
 }

@@ -21,6 +21,7 @@ public static class DownloadEnqueueDuplicatePolicy
             StringComparer.OrdinalIgnoreCase);
 
         return incoming
+            .Distinct(StringComparer.OrdinalIgnoreCase)
             .Where(id => !existingIds.Contains(id))
             .ToArray();
     }

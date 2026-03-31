@@ -28,6 +28,8 @@ public sealed class SearchWorkDto
 
     [JsonPropertyName("has_subtitle")]
     public bool HasSubtitle { get; init; }
+
+    public IReadOnlyList<TagDto> Tags { get; init; } = Array.Empty<TagDto>();
 }
 
 public sealed class SearchPaginationDto
@@ -40,4 +42,11 @@ public sealed class SearchPaginationDto
 
     [JsonPropertyName("totalCount")]
     public int TotalCount { get; init; }
+}
+
+public sealed class TagDto
+{
+    public int Id { get; init; }
+
+    public string Name { get; init; } = string.Empty;
 }

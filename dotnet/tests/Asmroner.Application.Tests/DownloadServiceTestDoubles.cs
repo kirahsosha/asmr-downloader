@@ -118,7 +118,7 @@ internal sealed class ScriptedApiClient : IAsmrApiClient
         throw new NotImplementedException();
     }
 
-    public Task<IReadOnlyList<HotWorkDto>> GetPopularAsync(CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<SearchWorkDto>> GetPopularAsync(CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }

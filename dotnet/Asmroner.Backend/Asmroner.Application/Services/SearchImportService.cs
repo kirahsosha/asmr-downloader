@@ -24,8 +24,7 @@ public sealed class SearchImportService : ISearchImportService
         var colSourceId = IndexOf(header, "source_id");
         var colTitle = IndexOf(header, "title");
         var colRelease = IndexOf(header, "release");
-        var colRateAvg = IndexOf(header, "rate_average_2dp");
-        var colDlCount = IndexOf(header, "dl_count");
+        var colTags = IndexOf(header, "tags");
         var colHasSub = IndexOf(header, "has_subtitle");
 
         if (colSourceId < 0)
@@ -61,11 +60,7 @@ public sealed class SearchImportService : ISearchImportService
                 SourceId = sourceId,
                 Title = colTitle >= 0 && colTitle < cols.Count ? cols[colTitle] : string.Empty,
                 Release = colRelease >= 0 && colRelease < cols.Count ? cols[colRelease] : string.Empty,
-                RateAverage = colRateAvg >= 0 && colRateAvg < cols.Count
-                    && double.TryParse(cols[colRateAvg], System.Globalization.NumberStyles.Any,
-                        System.Globalization.CultureInfo.InvariantCulture, out var rate) ? rate : 0,
-                DownloadCount = colDlCount >= 0 && colDlCount < cols.Count
-                    && int.TryParse(cols[colDlCount], out var dlCount) ? dlCount : 0,
+                Tags = colTags >= 0 && colTags < cols.Count ? cols[colTags] : string.Empty,
                 HasSubtitle = colHasSub >= 0 && colHasSub < cols.Count
                     && string.Equals(cols[colHasSub], "true", StringComparison.OrdinalIgnoreCase),
             });

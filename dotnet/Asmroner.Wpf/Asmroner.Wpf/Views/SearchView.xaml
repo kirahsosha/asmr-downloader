@@ -504,12 +504,9 @@
                         <DataGridTextColumn Width="120"
                                             Header="日期"
                                             Binding="{Binding Release}"/>
-                        <DataGridTextColumn Width="80"
-                                            Header="评分"
-                                            Binding="{Binding RateAverage}"/>
-                        <DataGridTextColumn Width="80"
-                                            Header="销量"
-                                            Binding="{Binding DownloadCount}"/>
+                        <DataGridTextColumn Width="200"
+                                            Header="标签"
+                                            Binding="{Binding Tags}"/>
                     </DataGrid.Columns>
                 </DataGrid>
 

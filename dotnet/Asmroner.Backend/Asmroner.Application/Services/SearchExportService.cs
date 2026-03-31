@@ -18,18 +18,17 @@ public sealed class SearchExportService : ISearchExportService
 
         var lines = new List<string>(items.Count + 1)
         {
-            "source_id,release,rate_average_2dp,dl_count,has_subtitle,title",
+            "source_id,title,has_subtitle,release,tags",
         };
 
         foreach (var item in items)
         {
             lines.Add(string.Join(',',
                 EscapeCsv(item.SourceId),
-                EscapeCsv(item.Release),
-                item.RateAverage.ToString("0.##"),
-                item.DownloadCount.ToString(),
+                EscapeCsv(item.Title),
                 item.HasSubtitle ? "true" : "false",
-                EscapeCsv(item.Title)));
+                EscapeCsv(item.Release),
+                EscapeCsv(item.Tags)));
         }
 
         await File.WriteAllLinesAsync(filePath, lines, Encoding.UTF8, cancellationToken);

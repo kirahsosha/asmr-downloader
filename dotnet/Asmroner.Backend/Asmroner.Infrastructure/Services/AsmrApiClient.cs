@@ -36,7 +36,7 @@ public sealed class AsmrApiClient : IAsmrApiClient
     public Task<SearchResultDto> SearchAsync(string query, CancellationToken cancellationToken = default)
         => GetAsync<SearchResultDto>(AsmrApiPaths.Search + query, cancellationToken);
 
-    public async Task<IReadOnlyList<HotWorkDto>> GetPopularAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<SearchWorkDto>> GetPopularAsync(CancellationToken cancellationToken = default)
     {
         // Go 版本使用 POST /api/recommender/popular，GET 会返回 404。
         var payload = new
@@ -50,15 +50,7 @@ public sealed class AsmrApiClient : IAsmrApiClient
         };
 
         var result = await PostAsync<SearchResultDto>(AsmrApiPaths.Popular, payload, cancellationToken);
-        return result.Works
-            .Select(static item => new HotWorkDto
-            {
-                Id = item.Id,
-                Title = item.Title,
-                SourceId = item.SourceId,
-                DownloadCount = item.DownloadCount,
-            })
-            .ToArray();
+        return result.Works;
     }
 
     private async Task<T> GetAsync<T>(string path, CancellationToken cancellationToken)

@@ -22,6 +22,18 @@ public class SearchQueueCountPolicyTests
     }
 
     [Fact]
+    public void Build_ShouldSkipQueuedItems_WhenTaskListEmpty()
+    {
+        var sourceIds = new[] { "RJ1001", "RJ1002" };
+        var queued = new[] { "RJ1001", "RJ1002" };
+
+        var plan = SearchQueueCountPolicy.Build(sourceIds, Array.Empty<DownloadTaskItem>(), queued);
+
+        Assert.Empty(plan.ToEnqueue);
+        Assert.Equal(2, plan.SkippedCount);
+    }
+
+    [Fact]
     public void Build_ShouldReturnEmpty_WhenInputInvalid()
     {
         var sourceIds = new[] { "", "   " };

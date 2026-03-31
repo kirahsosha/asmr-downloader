@@ -68,4 +68,15 @@ public class DownloadEnqueueDuplicatePolicyTests
 
         Assert.Empty(result);
     }
+
+    [Fact]
+    public void FilterAlreadyPresent_ShouldDeduplicateIncoming()
+    {
+        var existing = Array.Empty<DownloadTaskItem>();
+        var incoming = new[] { "RJ001", "RJ002", "rj001", "RJ003", "RJ002" };
+
+        var result = DownloadEnqueueDuplicatePolicy.FilterAlreadyPresent(existing, incoming);
+
+        Assert.Equal(new[] { "RJ001", "RJ002", "RJ003" }, result);
+    }
 }

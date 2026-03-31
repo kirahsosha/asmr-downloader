@@ -93,7 +93,7 @@ public class SearchServiceTests
             throw new NotImplementedException();
         }
 
-        public Task<IReadOnlyList<HotWorkDto>> GetPopularAsync(CancellationToken cancellationToken = default)
+        public Task<IReadOnlyList<SearchWorkDto>> GetPopularAsync(CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }
@@ -127,7 +127,7 @@ public class SearchServiceTests
             throw new NotImplementedException();
         }
 
-        public Task<IReadOnlyList<HotWorkDto>> GetPopularAsync(CancellationToken cancellationToken = default)
+        public Task<IReadOnlyList<SearchWorkDto>> GetPopularAsync(CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }
@@ -159,6 +159,7 @@ public class SearchServiceTests
                     DownloadCount = 10 + index,
                     RateAverage = 4.2,
                     HasSubtitle = false,
+                    Tags = new[] { new TagDto { Id = 1, Name = "tag1" } },
                 }).ToArray(),
                 Pagination = new SearchPaginationDto
                 {

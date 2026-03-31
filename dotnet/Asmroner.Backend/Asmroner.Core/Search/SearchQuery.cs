@@ -66,11 +66,9 @@ public sealed class SearchWorkItem
 
     public string Release { get; init; } = string.Empty;
 
-    public double RateAverage { get; init; }
-
-    public int DownloadCount { get; init; }
-
     public bool HasSubtitle { get; init; }
+
+    public string Tags { get; init; } = string.Empty;
 
     public string Title { get; init; } = string.Empty;
 }

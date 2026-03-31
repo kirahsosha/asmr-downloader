@@ -18,9 +18,8 @@ public class SearchExportServiceTests
             {
                 SourceId = "RJ2001",
                 Release = "2026-03-15",
-                RateAverage = 4.5,
-                DownloadCount = 321,
                 HasSubtitle = true,
+                Tags = "tag1;tag2",
                 Title = "示例作品",
             },
         };
@@ -50,18 +49,17 @@ public class SearchExportServiceTests
             new SearchWorkItem
             {
                 SourceId = "RJ7201",
-                Release = "2026-03-15",
-                RateAverage = 4.7,
-                DownloadCount = 999,
-                HasSubtitle = true,
                 Title = "A,\"B\"\nC",
+                Release = "2026-03-15",
+                HasSubtitle = true,
+                Tags = "tag1;tag2",
             },
         };
 
         await sut.ExportCsvAsync(items, outputPath);
 
         var content = await File.ReadAllTextAsync(outputPath);
-        Assert.Contains("source_id,release,rate_average_2dp,dl_count,has_subtitle,title", content);
+        Assert.Contains("source_id,title,has_subtitle,release,tags", content);
         Assert.Contains("\"A,\"\"B\"\"", content);
         Assert.Contains("C\"", content);
     }

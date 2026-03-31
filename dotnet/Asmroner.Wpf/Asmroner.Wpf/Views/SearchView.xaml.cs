@@ -11,6 +11,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using Asmroner.Wpf.Services;
 using Asmroner.Wpf.ViewModels;
 
 namespace Asmroner.Wpf.Views;
@@ -483,10 +484,9 @@ public partial class SearchView : UserControl
                 {
                     SourceId = item.SourceId,
                     Title = item.Title,
-                    DownloadCount = item.DownloadCount,
-                    Release = string.Empty,
-                    HasSubtitle = false,
-                    RateAverage = 0,
+                    Release = item.Release,
+                    HasSubtitle = item.HasSubtitle,
+                    Tags = string.Join(";", item.Tags.OrderBy(t => t.Id).Select(t => t.Name)),
                 })
                 .ToArray();
 
@@ -692,6 +692,8 @@ public partial class SearchView : UserControl
             {
                 await _searchExportService.ExportJsonAsync(exportItems, fullPath);
             }
+
+            ExplorerHelper.SelectInExplorer(fullPath);
 
             if (isSelectedScope && fallbackToAll)
             {

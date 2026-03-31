@@ -609,12 +609,9 @@
         "response": {
             "totalCount": 0,
             "pageSize": 20,
-            "first": {
-                "id": null,
-                "title": null,
-                "source_id": null,
-                "dl_count": null
-            }
+            "works": [
+                {}
+            ]
         }
     },
     "works": {
@@ -647,14 +644,14 @@
             }
         },
         "response": {
-            "totalCount": 100,
-            "pageSize": 5,
-            "first": {
-                "id": 1551159,
-                "title": "【4時間超】マイク直接耳舐め特化 耳舐め堕ち♡ 眠りながら身体が反応するASMR",
-                "source_id": "RJ01551159",
-                "dl_count": 21333
-            }
+            "pagination": {
+                "currentPage": 1,
+                "pageSize": 5,
+                "totalCount": 100
+            },
+            "works": [
+                {}
+            ]
         }
     }
 }

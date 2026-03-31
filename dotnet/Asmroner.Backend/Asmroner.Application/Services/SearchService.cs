@@ -78,11 +78,10 @@ public sealed class SearchService : ISearchService
             .Select(static work => new SearchWorkItem
             {
                 SourceId = work.SourceId,
-                Release = work.Release,
-                RateAverage = work.RateAverage,
-                DownloadCount = work.DownloadCount,
-                HasSubtitle = work.HasSubtitle,
                 Title = work.Title,
+                Release = work.Release,
+                HasSubtitle = work.HasSubtitle,
+                Tags = string.Join(";", work.Tags.OrderBy(t => t.Id).Select(t => t.Name)),
             })
             .ToArray();
 
