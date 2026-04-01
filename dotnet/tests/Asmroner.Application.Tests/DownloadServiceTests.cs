@@ -1,5 +1,6 @@
 using Asmroner.Application.Services;
 using Asmroner.Core.Download;
+using Asmroner.Core.Interfaces;
 
 namespace Asmroner.Application.Tests;
 
@@ -28,7 +29,8 @@ public class DownloadServiceTests
             new TestConfigurationService(tempRoot),
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
 
         var tasks = await sut.RunQueuedAsync();
         var task = Assert.Single(tasks);
@@ -54,7 +56,8 @@ public class DownloadServiceTests
             configService,
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
 
         var tasks = await sut.RunQueuedAsync();
 
@@ -84,7 +87,8 @@ public class DownloadServiceTests
             configService,
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
 
         var tasks = await sut.RunQueuedAsync();
 
@@ -110,7 +114,8 @@ public class DownloadServiceTests
             configService,
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new DelayRateLimiterService(delayMilliseconds: 40));
+            new DelayRateLimiterService(delayMilliseconds: 40),
+            new TestWorkInfoCache());
 
         var runTask = sut.RunQueuedAsync();
         DownloadTaskItem? target = null;
@@ -150,7 +155,8 @@ public class DownloadServiceTests
             configService,
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new DelayRateLimiterService(delayMilliseconds: 20));
+            new DelayRateLimiterService(delayMilliseconds: 20),
+            new TestWorkInfoCache());
 
         var runTask = sut.RunQueuedAsync();
 
@@ -187,7 +193,8 @@ public class DownloadServiceTests
             configService,
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new DelayRateLimiterService(delayMilliseconds: 20));
+            new DelayRateLimiterService(delayMilliseconds: 20),
+            new TestWorkInfoCache());
 
         var runTask = sut.RunQueuedAsync();
         DownloadTaskItem? queuedTask = null;
@@ -229,7 +236,8 @@ public class DownloadServiceTests
             configService,
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
 
         var tasks = await sut.RunQueuedAsync();
         var failedTask = Assert.Single(tasks);
@@ -258,7 +266,8 @@ public class DownloadServiceTests
             configService,
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
 
         var tasks = await sut.RunQueuedAsync();
 
@@ -282,7 +291,8 @@ public class DownloadServiceTests
             configService,
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
 
         var result = await sut.StartAsync("RJ4301");
 
@@ -311,7 +321,8 @@ public class DownloadServiceTests
             configService,
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
 
         var first = Assert.Single(await sut.RunQueuedAsync());
         Assert.Equal(DownloadTaskStatus.Failed, first.Status);
@@ -339,7 +350,8 @@ public class DownloadServiceTests
             configService,
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new DelayRateLimiterService(delayMilliseconds: 20));
+            new DelayRateLimiterService(delayMilliseconds: 20),
+            new TestWorkInfoCache());
 
         var runTask = sut.RunQueuedAsync();
         DownloadTaskItem? target = null;
@@ -385,7 +397,8 @@ public class DownloadServiceTests
             configService,
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new DelayRateLimiterService(delayMilliseconds: 20));
+            new DelayRateLimiterService(delayMilliseconds: 20),
+            new TestWorkInfoCache());
 
         var firstRun = sut.RunQueuedAsync();
         DownloadTaskItem? running = null;
@@ -459,7 +472,8 @@ public class DownloadServiceTests
             new TestConfigurationService(tempRoot, preferFormats: string.Empty),
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
 
         var tasks = await sut.RunQueuedAsync();
         var task = Assert.Single(tasks);
@@ -491,7 +505,8 @@ public class DownloadServiceTests
             new TestConfigurationService(tempRoot),
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
 
         var tasks = await sut.RunQueuedAsync(hdAudioOnly: true);
         var task = Assert.Single(tasks);
@@ -533,7 +548,8 @@ public class DownloadServiceTests
             new TestConfigurationService(tempRoot),
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
 
         var tasks = await sut.RunQueuedAsync(hdAudioOnly: false);
         var task = Assert.Single(tasks);
@@ -572,7 +588,8 @@ public class DownloadServiceTests
             new TestConfigurationService(tempRoot),
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
 
         sut.UpsertPrefetchedWorkInfo(new Dictionary<string, Asmroner.Core.Api.WorkInfoDto>
         {
@@ -584,7 +601,7 @@ public class DownloadServiceTests
                 Release = "2026-03-16",
                 HasSubtitle = false,
             },
-        });
+        }, WorkInfoCacheEntryLevel.Full);
 
         var tasks = await sut.RunQueuedAsync();
         var task = Assert.Single(tasks);
@@ -592,6 +609,58 @@ public class DownloadServiceTests
         Assert.Equal(DownloadTaskStatus.Completed, task.Status);
         Assert.Equal("Prefetched Title", task.Title);
         Assert.Equal(0, apiClient.WorkInfoCallCount);
+    }
+
+    [Fact]
+    public async Task RunQueuedAsync_ShouldFetchWorkInfo_WhenOnlySummaryCacheExists()
+    {
+        var tempRoot = CreateTempRoot("summary-cache-requires-full");
+        var searchStateStore = new SearchStateStore();
+        searchStateStore.EnqueueForDownload(new[] { "RJ6005" });
+
+        var apiClient = new ScriptedApiClient(
+            workInfos: new[]
+            {
+                new Asmroner.Core.Api.WorkInfoDto
+                {
+                    Id = 6005,
+                    SourceId = "RJ6005",
+                    Title = "Full Title",
+                    Release = "2026-04-02",
+                    HasSubtitle = true,
+                },
+            },
+            tracks: new[]
+            {
+                new Asmroner.Core.Api.TrackDto { Title = "audio", MediaDownloadUrl = "https://cdn.example.com/file/audio.wav" },
+            });
+
+        var sut = new DownloadService(
+            apiClient,
+            new TestConfigurationService(tempRoot),
+            searchStateStore,
+            new TestAppPathService(tempRoot),
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
+
+        sut.UpsertPrefetchedWorkInfo(new Dictionary<string, Asmroner.Core.Api.WorkInfoDto>
+        {
+            ["RJ6005"] = new Asmroner.Core.Api.WorkInfoDto
+            {
+                Id = 6005,
+                SourceId = "RJ6005",
+                Title = "Summary Title",
+                Release = "2026-04-02",
+                HasSubtitle = true,
+            },
+        });
+
+        var tasks = await sut.RunQueuedAsync();
+        var task = Assert.Single(tasks);
+
+        Assert.Equal(DownloadTaskStatus.Completed, task.Status);
+        Assert.Equal("Full Title", task.Title);
+        Assert.Equal(1, apiClient.WorkInfoCallCount);
     }
 
     [Fact]
@@ -611,7 +680,8 @@ public class DownloadServiceTests
             new TestConfigurationService(tempRoot),
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
 
         sut.UpsertPrefetchedWorkInfo(new Dictionary<string, Asmroner.Core.Api.WorkInfoDto>
         {
@@ -622,7 +692,7 @@ public class DownloadServiceTests
                 Title = "BJ Title",
                 Release = "2026-04-01",
             },
-        });
+        }, WorkInfoCacheEntryLevel.Full);
 
         var tasks = await sut.RunQueuedAsync();
         var task = Assert.Single(tasks);
@@ -652,7 +722,8 @@ public class DownloadServiceTests
             new TestConfigurationService(tempRoot, preferFormats: string.Empty),
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
 
         var tasks = await sut.RunQueuedAsync();
         var task = Assert.Single(tasks);
@@ -686,7 +757,8 @@ public class DownloadServiceTests
             new TestConfigurationService(tempRoot, preferFormats: string.Empty),
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
 
         var tasks = await sut.RunQueuedAsync();
         var task = Assert.Single(tasks);
@@ -696,6 +768,30 @@ public class DownloadServiceTests
             .ToArray();
 
         Assert.Contains("cover.png", downloadedFiles, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task ClearAllTasksAsync_ShouldKeepPrefetchedWorkInfoSnapshot_UntilProcessEnds()
+    {
+        var tempRoot = CreateTempRoot("clear-should-keep-cache");
+        var searchStateStore = new SearchStateStore();
+        var sut = CreateSut(tempRoot, new ScriptedApiClient(), searchStateStore);
+
+        sut.UpsertPrefetchedWorkInfo(new Dictionary<string, Asmroner.Core.Api.WorkInfoDto>
+        {
+            ["RJ6402"] = new Asmroner.Core.Api.WorkInfoDto
+            {
+                Id = 6402,
+                SourceId = "RJ6402",
+                Title = "Cached Title",
+            },
+        });
+
+        await sut.ClearAllTasksAsync();
+
+        var snapshot = sut.GetPrefetchedWorkInfoSnapshot();
+        Assert.True(snapshot.ContainsKey("RJ6402"));
+        Assert.Equal("Cached Title", snapshot["RJ6402"].Title);
     }
 
     [Fact]
@@ -753,7 +849,8 @@ public class DownloadServiceTests
             new TestConfigurationService(tempRoot),
             searchStateStore,
             new TestAppPathService(tempRoot),
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
     }
 
     private static string CreateTempRoot(string suffix)

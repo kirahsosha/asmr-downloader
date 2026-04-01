@@ -230,7 +230,7 @@ public partial class DownloadView : UserControl
                 var enqueuedWorkInfos = FilterWorkInfoMap(workInfos, queuePlan.ToEnqueue);
 
                 _searchStateStore.EnqueueForDownload(new[] { enqueuedSourceId });
-                _downloadService.UpsertPrefetchedWorkInfo(enqueuedWorkInfos);
+                _downloadService.UpsertPrefetchedWorkInfo(enqueuedWorkInfos, WorkInfoCacheEntryLevel.Full);
                 ClearQueuedFailureState(new[] { enqueuedSourceId });
                 MergeQueuedWorkInfoTitles(DownloadWorkInfoTitlePolicy.BuildNonEmptyTitleMap(enqueuedWorkInfos));
 
@@ -290,7 +290,7 @@ public partial class DownloadView : UserControl
 
                 var enqueuedWorkInfos = FilterWorkInfoMap(workInfos, queuePlan.ToEnqueue);
                 _searchStateStore.EnqueueForDownload(queuePlan.ToEnqueue);
-                _downloadService.UpsertPrefetchedWorkInfo(enqueuedWorkInfos);
+                _downloadService.UpsertPrefetchedWorkInfo(enqueuedWorkInfos, WorkInfoCacheEntryLevel.Full);
                 foreach (var sourceIdItem in queuePlan.ToEnqueue)
                 {
                     ClearQueuedFailureState(new[] { sourceIdItem });
@@ -598,7 +598,10 @@ public partial class DownloadView : UserControl
 
                 var enqueuedWorkInfos = FilterWorkInfoMap(workInfos, queuePlan.ToEnqueue);
                 _searchStateStore.EnqueueForDownload(queuePlan.ToEnqueue);
-                _downloadService.UpsertPrefetchedWorkInfo(enqueuedWorkInfos);
+                var cacheLevel = QueueTranslationCheckBox.IsChecked == true
+                    ? WorkInfoCacheEntryLevel.Full
+                    : WorkInfoCacheEntryLevel.Summary;
+                _downloadService.UpsertPrefetchedWorkInfo(enqueuedWorkInfos, cacheLevel);
 
                 foreach (var sourceId in queuePlan.ToEnqueue)
                 {
@@ -672,7 +675,10 @@ public partial class DownloadView : UserControl
 
                 var enqueuedWorkInfos = FilterWorkInfoMap(workInfos, queuePlan.ToEnqueue);
                 _searchStateStore.EnqueueForDownload(queuePlan.ToEnqueue);
-                _downloadService.UpsertPrefetchedWorkInfo(enqueuedWorkInfos);
+                var cacheLevel = QueueTranslationCheckBox.IsChecked == true
+                    ? WorkInfoCacheEntryLevel.Full
+                    : WorkInfoCacheEntryLevel.Summary;
+                _downloadService.UpsertPrefetchedWorkInfo(enqueuedWorkInfos, cacheLevel);
 
                 foreach (var sourceId in queuePlan.ToEnqueue)
                 {

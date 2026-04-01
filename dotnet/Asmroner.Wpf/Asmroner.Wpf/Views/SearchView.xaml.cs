@@ -376,7 +376,10 @@ public partial class SearchView : UserControl
         }
 
         _searchStateStore.EnqueueForDownload(queuePlan.ToEnqueue);
-        _downloadService.UpsertPrefetchedWorkInfo(FilterWorkInfoMap(workInfos, queuePlan.ToEnqueue));
+        var cacheLevel = QueueTranslationCheckBox.IsChecked == true
+            ? WorkInfoCacheEntryLevel.Full
+            : WorkInfoCacheEntryLevel.Summary;
+        _downloadService.UpsertPrefetchedWorkInfo(FilterWorkInfoMap(workInfos, queuePlan.ToEnqueue), cacheLevel);
 
         var queuedSourceIds = _searchStateStore.GetQueuedSourceIds();
         await PersistUnfinishedQueueSnapshotSafeAsync(queuedSourceIds);

@@ -1,0 +1,6 @@
+<Project>
+    <PropertyGroup>
+        <!-- xUnit v3 uses Microsoft Testing Platform; enable dotnet test integration to avoid VSTest fallback. -->
+        <TestingPlatformDotnetTestSupport Condition="'$(TestingPlatformDotnetTestSupport)' == ''">true</TestingPlatformDotnetTestSupport>
+    </PropertyGroup>
+</Project>

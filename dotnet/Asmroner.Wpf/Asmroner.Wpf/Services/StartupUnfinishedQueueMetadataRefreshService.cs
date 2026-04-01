@@ -94,7 +94,7 @@ public sealed class StartupUnfinishedQueueMetadataRefreshService
 
             if (refreshResult.UpdatedWorkInfos.Count > 0)
             {
-                _downloadService.UpsertPrefetchedWorkInfo(refreshResult.UpdatedWorkInfos);
+                _downloadService.UpsertPrefetchedWorkInfo(refreshResult.UpdatedWorkInfos, WorkInfoCacheEntryLevel.Full);
                 _logger.Info("Startup unfinished queue metadata refresh updated {Count} items.", refreshResult.UpdatedWorkInfos.Count);
             }
 

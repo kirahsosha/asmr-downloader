@@ -1,6 +1,6 @@
 # asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.4.9
+当前跟踪版本：v0.4.10
 
 AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
@@ -984,6 +984,20 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 4. DoD 判定：是。本轮翻译入队提示补强、启动补拉提示统一、重复后缀修复、回归测试与进度文档同步均已完成。
 5. 下次计划：由用户执行章节 4.2/4.3 受影响项手工回归，重点验证 Search/Download 提示中的翻译切换计数、启动补拉新文案，以及已带扩展名轨道标题的实际落地文件名。
 
+### 1.5.82 2026-04-02，v0.4.10：WorkInfo 共享缓存与版本同步
+
+1. 变更摘要：
+ - **版本同步**：四个运行时项目的 `Version/AssemblyVersion/FileVersion/InformationalVersion` 统一更新到 `0.4.10/0.4.10.0`，并同步更新 README 与 WPF 进度文档中的当前版本标识。
+ - **共享缓存落地**：新增基于 `IMemoryCache` 的 `IWorkInfoCache`，统一管理作品缓存，单条 TTL 为 1 小时，进程退出即失效；支持 Summary/Full 两级缓存语义与数值 `WorkId` 别名命中。
+ - **API/下载链路收口**：`CachedAsmrApiClient` 会在 Search/热门结果中预热 Summary 缓存，在详情/轨道请求阶段优先命中 Full 缓存，并在仅有摘要时按需补拉完整详情；`DownloadService` 与启动补拉服务统一改用共享缓存，不再依赖私有预取字典。
+ - **Search/Download 对齐**：Search、Download 单个/批量/导入入口会按“是否需要完整详情”写入 Summary 或 Full 缓存；清空任务列表后仅清空任务与队列，不主动清空进程内作品缓存。
+ - **测试同步**：更新 `DownloadServiceTests`、`AppVersionInfoTests`、`StartupUnfinishedQueueMetadataRefreshServiceTests`，并新增 `MemoryWorkInfoCacheTests`、`CachedAsmrApiClientTests`，覆盖缓存分级、逐条 TTL、数值 `WorkId` 复用与摘要升级为 Full 的回归路径。
+ - **章节复核**：章节 1.2/1.3/1.4 状态无需变更；章节 2.1 维持 2026-04-01 的全量回归基线 `245/245`，并更新 2.1.1/2.1.51/2.1.52，追加 2.1.56/2.1.57；章节 3.1 继续合并为单一 `v0.4.10` 待提交行；章节 4.1/4.2/4.3/4.4 受影响项重置为未勾选并补充缓存专项回归项。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IWorkInfoCache.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IDownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/DownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/MemoryWorkInfoCache.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/CachedAsmrApiClient.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/App.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/StartupUnfinishedQueueMetadataRefreshService.cs`、`dotnet/tests/Asmroner.Application.Tests/DownloadServiceTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/MemoryWorkInfoCacheTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/CachedAsmrApiClientTests.cs`、`docs/wpf-migration-progress.md`。
+3. 验证结果：执行 `rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj`、`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj`、`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj` 与 `rtk dotnet test dotnet/Asmroner.sln`，均成功完成（rtk binlog-only 模式未返回用例计数）。
+4. DoD 判定：是。本轮版本同步、WorkInfo 共享缓存、缓存驱动的 Search/Download/启动补拉链路收口、自动化回归与进度文档同步均已完成。
+5. 下次计划：由用户执行章节 4.1/4.2/4.3/4.4 受影响项手工回归，重点验证版本文案 `v0.4.10`、Search/Download 入队后的标题复用、清空任务列表后进程内缓存复用，以及重启或超过 1 小时后的按需补拉行为。
+
 ## 1.6 维护规则
 
 - 每次代码提交后更新第 16.2 节状态表。
@@ -1021,11 +1035,13 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 | [x]    | [x]    | 阶段 4  | `UpsertPrefetchedWorkInfo_ShouldExposeSnapshot_ForCrossViewTitleReuse`                    | Search 侧写入预取 WorkInfo 后读取快照               | 快照可读且包含对应标题映射                  |
 | [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldDownloadAllFormats_WhenPreferFormatsEmpty`                          | `PreferFormats` 置空且存在多种扩展名轨道            | 不限扩展名，全部下载                        |
 | [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldUsePrefetchedWorkInfo_WithoutApiWorkInfoCall`                       | 预先写入内存 WorkInfo 且 API 禁止 WorkInfo 调用     | 下载成功且不触发 WorkInfo API               |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldFetchWorkInfo_WhenOnlySummaryCacheExists`                           | 仅命中摘要缓存且允许 API 继续补拉完整详情           | 下载成功，且补拉一次 Full WorkInfo          |
 | [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldReuseCanceledTask_WhenSameSourceRequeued`                           | 已取消任务再次由 Search 入队后执行队列              | 复用原任务并回流为待执行/完成，不新增重复行 |
 | [x]    | [x]    | 阶段 4  | `CancelAsync_ShouldReturnFalse_WhenTaskDoesNotExist`                                      | 随机 `TaskId` 调取消                                | 返回 `false`                                |
 | [x]    | [x]    | 阶段 4  | `RetryFailedAsync_ShouldNotRetry_WhenTaskIsNotFailed`                                     | 任务状态为 `Completed/Canceled` 调重试              | 返回空或拒绝重试                            |
 | [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldContinueOtherTasks_WhenSingleTaskFails`                             | 批量队列中单任务失败                                | 其他任务继续完成                            |
 | [x]    | [x]    | 阶段 4+ | `ClearAllTasksAsync_ShouldStopRunningAndClearQueueAndTasks`                               | 运行中任务 + 待下载队列混合场景                     | 运行任务被停止、任务列表清空、队列清空      |
+| [x]    | [x]    | 阶段 4+ | `ClearAllTasksAsync_ShouldKeepPrefetchedWorkInfoSnapshot_UntilProcessEnds`                | 已写入作品缓存后执行 `ClearAllTasksAsync`           | 清空任务/队列后，进程内作品快照仍可读取     |
 | [x]    | [x]    | 阶段 4+ | `RunQueuedAsync_ShouldSkipTextSidecars_WhenHdAudioOnlyRemovesMp3`                         | 同路径同名 `mp3+wav+txt/lrc/ass`                    | 保留 `wav`，移除对应 `mp3/txt/lrc/ass`      |
 | [x]    | [x]    | 阶段 4+ | `RunQueuedAsync_ShouldKeepTextSidecars_WhenHdAudioOnlyIsFalse`                            | 同路径同名 `mp3+wav+txt/lrc/ass`，hdAudioOnly=false | 全部文件保留并下载                          |
 | [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldUsePrefetchedWorkId_ForNonRjTrackLookup`                            | 非 `RJ` `SourceId` + 预取 `WorkId`                  | `tracks` 查询使用数值 `WorkId` 并下载成功   |
@@ -1456,10 +1472,10 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 #### 2.1.51 Wpf.Tests / AppVersionInfoTests.cs
 
-| 已创建 | 已通过 | 阶段    | 样例名                                                                            | 输入                     | 期望输出                                    |
-| ------ | ------ | ------- | --------------------------------------------------------------------------------- | ------------------------ | ------------------------------------------- |
-| [x]    | [x]    | 阶段 1+ | `GetDisplayVersion_ShouldReturnThreePartAssemblyVersion`                          | 当前程序集版本 `0.4.9.0` | 返回三段式版本文本 `0.4.9`                  |
-| [x]    | [x]    | 阶段 1+ | `BuildSettingsVersionText_AndStartupMessage_ShouldUseDisplayVersionWithoutSuffix` | 动态版本文案构建         | Settings 文案与启动日志共用相同三段式版本号 |
+| 已创建 | 已通过 | 阶段    | 样例名                                                                            | 输入                      | 期望输出                                    |
+| ------ | ------ | ------- | --------------------------------------------------------------------------------- | ------------------------- | ------------------------------------------- |
+| [x]    | [x]    | 阶段 1+ | `GetDisplayVersion_ShouldReturnThreePartAssemblyVersion`                          | 当前程序集版本 `0.4.10.0` | 返回三段式版本文本 `0.4.10`                 |
+| [x]    | [x]    | 阶段 1+ | `BuildSettingsVersionText_AndStartupMessage_ShouldUseDisplayVersionWithoutSuffix` | 动态版本文案构建          | Settings 文案与启动日志共用相同三段式版本号 |
 
 #### 2.1.52 Wpf.Tests / StartupUnfinishedQueueMetadataRefreshServiceTests.cs
 
@@ -1467,7 +1483,7 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 | ------ | ------ | ------ | ----------------------------------------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------ |
 | [x]    | [x]    | 阶段 4 | `StartInBackgroundAsync_ShouldReturnImmediately_WhenRefreshIsSlow`            | WorkInfo API 慢响应                          | 启动刷新调用立即返回，不阻塞窗口启动                         |
 | [x]    | [x]    | 阶段 4 | `RefreshAsync_ShouldReturnZero_WhenQueueEmpty`                                | 未完成队列为空                               | 返回空结果，且不触发 API/缓存写入                            |
-| [x]    | [x]    | 阶段 4 | `RefreshAsync_ShouldOnlyFetchMissingOrUntitledWorkInfo_AndUpsertFetchedItems` | 队列含已缓存标题、空标题、缺失标题的混合场景 | 仅补拉缺失/空标题项，且只执行一次缓存写回                    |
+| [x]    | [x]    | 阶段 4 | `RefreshAsync_ShouldOnlyFetchMissingOrUntitledWorkInfo_AndUpsertFetchedItems` | 队列含已缓存标题、空标题、缺失标题的混合场景 | 仅补拉缺失/空标题项，且只执行一次 Full 级缓存写回            |
 | [x]    | [x]    | 阶段 4 | `RefreshAsync_ShouldContinue_WhenSingleFetchFails`                            | 混合成功与失败的 WorkInfo 请求               | 单项失败不影响整体流程，成功项写回缓存，失败项返回可展示错误 |
 | [x]    | [x]    | 阶段 4 | `RefreshAsync_ShouldWaitForWarmupBeforeFetchingWorkInfo`                      | warmup 阻塞 + 单条缺失标题队列               | 在 warmup 完成前不发起 WorkInfo 请求，完成后再补拉并写回缓存 |
 | [x]    | [x]    | 阶段 4 | `RefreshAsync_ShouldContinue_WhenWarmupFails`                                 | warmup 抛异常 + 单条缺失标题队列             | warmup 失败时仍继续补拉作品信息并写回缓存                    |
@@ -1498,6 +1514,23 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 | [x]    | [x]    | 阶段 4 | `Normalize_ShouldExtractBjId_FromDlsiteBooksUrl`                | `https://www.dlsite.com/books/work/.../BJ02370869` | 从 URL 中提取并归一化为 `BJ02370869`               |
 | [x]    | [x]    | 阶段 4 | `ToApiNumericId_ShouldNotTreatBjSourceIdSuffix_AsNumericWorkId` | `BJ02370869`                                       | 不误将 `BJ` 后缀数字当作 API `workId` 直接截断返回 |
 
+#### 2.1.56 Infrastructure.Tests / MemoryWorkInfoCacheTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                | 输入                               | 期望输出                                          |
+| ------ | ------ | ------ | ----------------------------------------------------- | ---------------------------------- | ------------------------------------------------- |
+| [x]    | [x]    | 阶段 4 | `TryGet_ShouldRequireFullEntry_WhenRequirementIsFull` | 仅写入 Summary 级作品缓存          | `Any` 命中，`Full` 要求不命中                     |
+| [x]    | [x]    | 阶段 4 | `Set_ShouldPreserveFullEntry_WhenSummaryArrivesLater` | 先写入 Full，后写入同作品 Summary  | 缓存保留完整作品详情，不被摘要覆盖                |
+| [x]    | [x]    | 阶段 4 | `TryGet_ShouldResolveNumericAlias_WhenWorkIdKnown`    | `BJ` 作品缓存 + 数值 `WorkId` 查找 | 可经数值 `WorkId` 命中同一作品缓存                |
+| [x]    | [x]    | 阶段 4 | `Entries_ShouldExpirePerItem_AfterConfiguredTtl`      | 两条缓存按不同时间写入并等待过期   | 逐条按 TTL 过期，先写入项先失效，后写入项仍可命中 |
+
+#### 2.1.57 Infrastructure.Tests / CachedAsmrApiClientTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                     | 输入                                               | 期望输出                                                     |
+| ------ | ------ | ------ | -------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------ |
+| [x]    | [x]    | 阶段 4 | `GetWorkInfoAsync_ShouldReturnCachedFullEntry_WithoutCallingInnerClient`   | Full 级作品缓存 + 内层 API 客户端                  | 直接返回缓存详情，不调用内层 `GetWorkInfoAsync`              |
+| [x]    | [x]    | 阶段 4 | `GetWorkInfoAsync_ShouldUseCachedNumericId_WhenSummaryWasWarmedBySearch`   | Search 结果预热 Summary + 后续详情查询             | 使用缓存内 `WorkId` 补拉完整详情并回写 Full 缓存             |
+| [x]    | [x]    | 阶段 4 | `GetTracksAsync_ShouldUseCachedNumericId_WhenPopularWarmupHasSummaryEntry` | 热门结果预热 Summary + 非 `RJ` `SourceId` 轨道查询 | `tracks` 查询复用缓存内数值 `WorkId`，避免直接用 `source_id` |
+
 ### 2.2 测试覆盖分析
 
 - Core（模型/配置）：默认值完整性，✅ 已覆盖。
@@ -1508,6 +1541,7 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 - 下载入参规范化：RJID/作品 URL 混输下的入队与 API 调用兼容，✅ 已覆盖。
 - 格式优先级下载：`PreferFormats` 过滤轨道与留空全下载，✅ 已覆盖。
 - WorkInfo 预取复用：入队预取后下载阶段内存命中，✅ 已覆盖。
+- WorkInfo 共享缓存：摘要预热、Full 升级、数值 `WorkId` 别名命中与逐条 TTL，✅ 已覆盖。
 - 未完成队列快照构建：Search/Download 共用快照规则并在入队后持久化，✅ 已覆盖。
 - 启动未完成队列元数据补拉：非阻塞启动、仅补拉缺失标题并刷新 Download 列表，✅ 已覆盖。
 - 版本文案动态化：Settings 页面与启动日志共用程序集三段式版本号，✅ 已覆盖。
@@ -1550,7 +1584,8 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 | 2026-03-30 | 已提交 | v0.4.6: replace ILogger injections with static NLog logger                  | 1. Update version to v0.4.6.<br>2. Replace Logging with NLog 6.1.1.<br>3. JSON format, size/date rolling, archive to subdirectory.<br>4. Update regression tests.                                                                                                                                                                                                                                                                  | 68c44bf    |
 | 2026-03-31 | 已提交 | v0.4.7: tags column, shell folder reuse, import count fixes                 | 1. Update version to v0.4.7.<br>2. Search DataGrid removes 评分/销量 and adds 标签 column.<br>3. CSV header `source_id,has_subtitle,release,tags,title`.<br>4. Update regression tests.                                                                                                                                                                                                                                            | da37fcb    |
 | 2026-03-31 | 已提交 | v0.4.8: harden startup refresh and tune Search/Download columns             | 1. Update runtime version to v0.4.8.<br>2. Switch version text to dynamic assembly version.<br>3. Add centralized constants/query class.<br>4. Use startup warmup to fix blank titles after restart.<br>5. Tune Search/Download DataGrid layout.<br>6. Update regression tests.                                                                                                                                                    | 0b7644c    |
-| 2026-04-01 | 待提交 | v0.4.9: translated queue, BJ/source fixes, prompt polish                    | 1. Update runtime version to v0.4.9.<br>2. Update AI-readable prompts.<br>3. Add persisted “加入翻译作品” options.<br>4. Preserve Search `WorkId`, resolve non-RJ `source_id` values via numeric work-id fallback, and fix valid browser/work/tracks paths.<br>5. Adjust UI display.<br>6. Avoid duplicate output suffixes.<br>7. Update regression tests and api samples.                                                         | -          |
+| 2026-04-01 | 已提交 | v0.4.9: translated queue, BJ/source fixes, prompt polish                    | 1. Update runtime version to v0.4.9.<br>2. Update AI-readable prompts.<br>3. Add persisted “加入翻译作品” options.<br>4. Preserve Search `WorkId`, resolve non-RJ `source_id` values via numeric work-id fallback, and fix valid browser/work/tracks paths.<br>5. Adjust UI display.<br>6. Avoid duplicate output suffixes.<br>7. Update regression tests and api samples.                                                         | eccd533    |
+| 2026-04-02 | 待提交 | v0.4.10: add shared workinfo cache                                          | 1. Update runtime/docs version to v0.4.10.<br>2. Add shared WorkInfo cache with 1-hour per-entry TTL.<br>3. Warm Summary cache from Search/Popular result and upgrade to Full details on demand for downloads/tracks.<br>4. Route Search/Download/startup refresh through the shared cache contract.<br>5. Update regression tests and progress documentation.                                                                     | -          |
 
 ---
 
@@ -1576,7 +1611,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 在 Settings 页面点击“保存并重新初始化”后，当前页应保持在 Settings，不应自动跳转到 Search。
 - [x] Settings 页面输入无效配置时，可给出可读错误提示，且应用不崩溃。
 - [x] “测试连接”可完成站点发现与登录校验；成功时回填当前 BaseUrl 并显示延迟与鉴权结果，失败时显示明确原因。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.4.9。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.4.10。
 
 ### 4.2 Search 功能
 
@@ -1630,5 +1665,6 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] Search 导出 -> Download 导入 -> 执行下载的链路可端到端跑通（标签列 + 打开文件夹）。
 - [x] 重复入队防护在 Search 入队、Download 单个入队、Download 批量入队、CSV 导入、JSON 导入五条入口上行为一致。
 - [x] Search 与 Download 页面之间来回切换、或在重启后恢复未完成队列时，若最终入队版本被切换为翻译作品，标题与 `SourceId` 显示仍保持一致，不出现原始版本与最终版本错位。
+- [x] 清空任务列表后不关闭程序，重新从 Search/Download 对同一作品入队时应优先复用进程内作品缓存；关闭程序或超过 1 小时后再次操作时仍能自动补拉并保持标题正确。
 - [x] 清空任务列表后再从 Search 页面重新入队时，状态提示与实际新增数量一致，不会出现“失败 1 项”但实际 0 项入队的误报。
 - [x] 连续执行“搜索 -> 入队 -> 立即下载/执行队列 -> 刷新列表 -> 重试/取消”后，应用无崩溃、无明显 UI 状态错乱。

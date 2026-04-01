@@ -16,23 +16,25 @@ public sealed class DownloadService : IDownloadService
     private readonly ISearchStateStore _searchStateStore;
     private readonly IAppPathService _appPathService;
     private readonly IRateLimiterService _rateLimiterService;
+    private readonly IWorkInfoCache _workInfoCache;
     private readonly object _stateLock = new();
     private readonly List<DownloadTaskItem> _tasks = new();
     private readonly Dictionary<Guid, CancellationTokenSource> _taskCancellationSources = new();
-    private readonly ConcurrentDictionary<string, WorkInfoDto> _prefetchedWorkInfo = new(StringComparer.OrdinalIgnoreCase);
 
     public DownloadService(
         IAsmrApiClient apiClient,
         IConfigurationService configurationService,
         ISearchStateStore searchStateStore,
         IAppPathService appPathService,
-        IRateLimiterService rateLimiterService)
+        IRateLimiterService rateLimiterService,
+        IWorkInfoCache workInfoCache)
     {
         _apiClient = apiClient;
         _configurationService = configurationService;
         _searchStateStore = searchStateStore;
         _appPathService = appPathService;
         _rateLimiterService = rateLimiterService;
+        _workInfoCache = workInfoCache;
     }
 
     public async Task<IReadOnlyList<DownloadTaskItem>> RunQueuedAsync(string? fileFilter = null, bool hdAudioOnly = false, CancellationToken cancellationToken = default)
@@ -212,8 +214,6 @@ public sealed class DownloadService : IDownloadService
             source.Dispose();
         }
 
-        _prefetchedWorkInfo.Clear();
-
         var queuedSourceIds = _searchStateStore.GetQueuedSourceIds();
         if (queuedSourceIds.Count > 0)
         {
@@ -223,24 +223,16 @@ public sealed class DownloadService : IDownloadService
         return Task.CompletedTask;
     }
 
-    public void UpsertPrefetchedWorkInfo(IReadOnlyDictionary<string, WorkInfoDto> workInfos)
+    public void UpsertPrefetchedWorkInfo(IReadOnlyDictionary<string, WorkInfoDto> workInfos, WorkInfoCacheEntryLevel cacheLevel = WorkInfoCacheEntryLevel.Summary)
     {
         ArgumentNullException.ThrowIfNull(workInfos);
 
-        foreach (var (sourceId, info) in workInfos)
-        {
-            if (string.IsNullOrWhiteSpace(sourceId) || info is null)
-            {
-                continue;
-            }
-
-            _prefetchedWorkInfo[sourceId] = info;
-        }
+        _workInfoCache.SetMany(workInfos, cacheLevel);
     }
 
     public IReadOnlyDictionary<string, WorkInfoDto> GetPrefetchedWorkInfoSnapshot()
     {
-        return _prefetchedWorkInfo.ToDictionary(static item => item.Key, static item => item.Value, StringComparer.OrdinalIgnoreCase);
+        return _workInfoCache.GetSnapshot();
     }
 
     private async Task RunSingleAsync(
@@ -274,10 +266,10 @@ public sealed class DownloadService : IDownloadService
         {
             runCancellationToken.ThrowIfCancellationRequested();
 
-            if (!_prefetchedWorkInfo.TryGetValue(task.SourceId, out var workInfo))
+            if (!_workInfoCache.TryGet(task.SourceId, WorkInfoCacheRequirement.Full, out var workInfo) || workInfo is null)
             {
                 workInfo = await _apiClient.GetWorkInfoAsync(task.SourceId, runCancellationToken);
-                _prefetchedWorkInfo[task.SourceId] = workInfo;
+                _workInfoCache.Set(task.SourceId, workInfo, WorkInfoCacheEntryLevel.Full);
             }
 
             lock (_stateLock)

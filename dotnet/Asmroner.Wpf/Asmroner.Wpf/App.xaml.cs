@@ -30,6 +30,7 @@ public partial class App : System.Windows.Application
             })
             .ConfigureServices(services =>
             {
+                services.AddMemoryCache();
                 services.AddSingleton<IAppLogService, NLogAppLogService>();
                 services.AddSingleton<IAppPathService, AppPathService>();
                 services.AddSingleton<IConfigurationService, Asmroner.Infrastructure.Services.ConfigurationService>();
@@ -48,7 +49,11 @@ public partial class App : System.Windows.Application
                 services.TryAddSingleton<IApiEndpointUrlService, ApiEndpointUrlService>();
                 services.TryAddSingleton<ITokenStore, TokenStore>();
                 services.TryAddSingleton<IAuthService, Asmroner.Infrastructure.Services.AuthService>();
-                services.TryAddSingleton<IAsmrApiClient, AsmrApiClient>();
+                services.TryAddSingleton<IWorkInfoCache, MemoryWorkInfoCache>();
+                services.TryAddSingleton<AsmrApiClient>();
+                services.TryAddSingleton<IAsmrApiClient>(serviceProvider => new CachedAsmrApiClient(
+                    serviceProvider.GetRequiredService<AsmrApiClient>(),
+                    serviceProvider.GetRequiredService<IWorkInfoCache>()));
                 services.TryAddSingleton<IConnectivityProbeService, ConnectivityProbeService>();
 
                 services.AddSingleton<IQueryParserService, QueryParserService>();

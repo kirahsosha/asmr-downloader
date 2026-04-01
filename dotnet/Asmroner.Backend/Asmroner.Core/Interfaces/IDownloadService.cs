@@ -17,7 +17,7 @@ public interface IDownloadService
 
     Task ClearAllTasksAsync(CancellationToken cancellationToken = default);
 
-    void UpsertPrefetchedWorkInfo(IReadOnlyDictionary<string, WorkInfoDto> workInfos);
+    void UpsertPrefetchedWorkInfo(IReadOnlyDictionary<string, WorkInfoDto> workInfos, WorkInfoCacheEntryLevel cacheLevel = WorkInfoCacheEntryLevel.Summary);
 
     IReadOnlyDictionary<string, WorkInfoDto> GetPrefetchedWorkInfoSnapshot();
 }

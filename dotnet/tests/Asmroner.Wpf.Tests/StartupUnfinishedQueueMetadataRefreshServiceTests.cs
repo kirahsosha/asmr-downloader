@@ -254,7 +254,7 @@ public class StartupUnfinishedQueueMetadataRefreshServiceTests
         public Task ClearAllTasksAsync(CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 
-        public void UpsertPrefetchedWorkInfo(IReadOnlyDictionary<string, WorkInfoDto> workInfos)
+        public void UpsertPrefetchedWorkInfo(IReadOnlyDictionary<string, WorkInfoDto> workInfos, WorkInfoCacheEntryLevel cacheLevel = WorkInfoCacheEntryLevel.Summary)
         {
             UpsertCallCount++;
             foreach (var (sourceId, workInfo) in workInfos)
