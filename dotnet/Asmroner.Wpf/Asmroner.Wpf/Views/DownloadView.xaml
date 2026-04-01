@@ -237,6 +237,12 @@
                           IsChecked="True"
                           Content="只下载高清音频"
                           ToolTip="同时存在高清音频如wav/flac和低清音频mp3时，只下载高清音频"/>
+                <CheckBox x:Name="QueueTranslationCheckBox"
+                          Margin="16,0,0,0"
+                          VerticalAlignment="Center"
+                          IsChecked="True"
+                          Content="加入翻译作品"
+                          ToolTip="加入下载队列时按 简体中文 → 繁体中文 → 日本語 的优先级选择版本"/>
             </StackPanel>
         </Border>
 

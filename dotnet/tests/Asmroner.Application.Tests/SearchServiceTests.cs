@@ -18,7 +18,9 @@ public class SearchServiceTests
         Assert.Equal(6, result.TotalCount);
         Assert.Equal(5, result.ReturnedCount);
         Assert.Equal(3, apiClient.Calls.Count);
+        Assert.Equal(100, result.Items[0].WorkId);
         Assert.Equal("RJ1001", result.Items[0].SourceId);
+        Assert.Equal(300, result.Items[4].WorkId);
         Assert.Equal("RJ1005", result.Items[4].SourceId);
     }
 

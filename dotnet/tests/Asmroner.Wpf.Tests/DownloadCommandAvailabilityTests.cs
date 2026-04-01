@@ -16,13 +16,13 @@ public class DownloadCommandAvailabilityTests
         };
 
         var runningSelection = DownloadCommandAvailability.Evaluate(
-            new[] { DownloadTaskStatus.Running },
+            new[] { CreateRow(DownloadTaskStatus.Running) },
             allTasks);
         var failedSelection = DownloadCommandAvailability.Evaluate(
-            new[] { DownloadTaskStatus.Failed },
+            new[] { CreateRow(DownloadTaskStatus.Failed, taskId: Guid.NewGuid()) },
             allTasks);
         var mixedEndedSelection = DownloadCommandAvailability.Evaluate(
-            new[] { DownloadTaskStatus.Completed, DownloadTaskStatus.Canceled },
+            new[] { CreateRow(DownloadTaskStatus.Completed), CreateRow(DownloadTaskStatus.Canceled) },
             allTasks);
 
         Assert.True(runningSelection.CanCancel);
@@ -50,7 +50,7 @@ public class DownloadCommandAvailabilityTests
         };
 
         var queuedSelection = DownloadCommandAvailability.Evaluate(
-            new[] { DownloadTaskStatus.Queued },
+            new[] { CreateRow(DownloadTaskStatus.Queued) },
             allTasks);
 
         Assert.True(queuedSelection.CanCancel);
@@ -63,7 +63,7 @@ public class DownloadCommandAvailabilityTests
     public void Evaluate_ShouldAllowCancelAndImmediateStart_WhenPendingTaskSelected()
     {
         var availability = DownloadCommandAvailability.Evaluate(
-            new[] { DownloadTaskStatus.Pending },
+            new[] { CreateRow(DownloadTaskStatus.Pending) },
             new[] { CreateTask(DownloadTaskStatus.Failed) });
 
         Assert.True(availability.CanCancel);
@@ -72,10 +72,31 @@ public class DownloadCommandAvailabilityTests
         Assert.True(availability.CanStartImmediate);
     }
 
+    [Fact]
+    public void Evaluate_ShouldDisableRetry_ForFailedPlaceholderRow()
+    {
+        var availability = DownloadCommandAvailability.Evaluate(
+            new[] { CreateRow(DownloadTaskStatus.Failed) },
+            new[] { CreateTask(DownloadTaskStatus.Failed) });
+
+        Assert.False(availability.CanRetry);
+        Assert.True(availability.CanStartImmediate);
+    }
+
     private static DownloadTaskItem CreateTask(DownloadTaskStatus status)
     {
         return new DownloadTaskItem
         {
+            SourceId = $"RJ-{status}",
+            Status = status,
+        };
+    }
+
+    private static DownloadTaskRowViewModel CreateRow(DownloadTaskStatus status, Guid? taskId = null)
+    {
+        return new DownloadTaskRowViewModel
+        {
+            TaskId = taskId ?? Guid.Empty,
             SourceId = $"RJ-{status}",
             Status = status,
         };

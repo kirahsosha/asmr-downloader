@@ -5,4 +5,6 @@ public sealed class DownloadUiState
     public string FileFilter { get; set; } = string.Empty;
 
     public bool HdAudioOnly { get; set; } = true;
+
+    public bool QueueTranslationWorks { get; set; } = true;
 }

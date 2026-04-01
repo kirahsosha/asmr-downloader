@@ -62,6 +62,8 @@ public sealed class SearchPageOptions
 
 public sealed class SearchWorkItem
 {
+    public int WorkId { get; init; }
+
     public string SourceId { get; init; } = string.Empty;
 
     public string Release { get; init; } = string.Empty;

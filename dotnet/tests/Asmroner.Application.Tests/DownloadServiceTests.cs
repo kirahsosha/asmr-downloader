@@ -595,6 +595,110 @@ public class DownloadServiceTests
     }
 
     [Fact]
+    public async Task RunQueuedAsync_ShouldUsePrefetchedWorkId_ForNonRjTrackLookup()
+    {
+        var tempRoot = CreateTempRoot("prefetched-workid");
+        var searchStateStore = new SearchStateStore();
+        searchStateStore.EnqueueForDownload(new[] { "BJ02370869" });
+
+        var apiClient = new ScriptedApiClient(tracks: new[]
+        {
+            new Asmroner.Core.Api.TrackDto { Title = "audio", MediaDownloadUrl = "https://cdn.example.com/file/audio.wav" },
+        });
+
+        var sut = new DownloadService(
+            apiClient,
+            new TestConfigurationService(tempRoot),
+            searchStateStore,
+            new TestAppPathService(tempRoot),
+            new NoopRateLimiterService());
+
+        sut.UpsertPrefetchedWorkInfo(new Dictionary<string, Asmroner.Core.Api.WorkInfoDto>
+        {
+            ["BJ02370869"] = new Asmroner.Core.Api.WorkInfoDto
+            {
+                Id = 100000062,
+                SourceId = "BJ02370869",
+                Title = "BJ Title",
+                Release = "2026-04-01",
+            },
+        });
+
+        var tasks = await sut.RunQueuedAsync();
+        var task = Assert.Single(tasks);
+
+        Assert.Equal(DownloadTaskStatus.Completed, task.Status);
+        Assert.Equal(["100000062"], apiClient.TrackRequestIds);
+    }
+
+    [Fact]
+    public async Task RunQueuedAsync_ShouldNotAppendDuplicateExtension_WhenTrackTitleAlreadyContainsExtension()
+    {
+        var tempRoot = CreateTempRoot("keep-existing-extension");
+        var searchStateStore = new SearchStateStore();
+        searchStateStore.EnqueueForDownload(new[] { "RJ6003" });
+
+        var apiClient = new ScriptedApiClient(tracks: new[]
+        {
+            new Asmroner.Core.Api.TrackDto
+            {
+                Title = "1. ジャケットイラスト.png",
+                MediaDownloadUrl = "https://cdn.example.com/file/jacket.png",
+            },
+        });
+
+        var sut = new DownloadService(
+            apiClient,
+            new TestConfigurationService(tempRoot, preferFormats: string.Empty),
+            searchStateStore,
+            new TestAppPathService(tempRoot),
+            new NoopRateLimiterService());
+
+        var tasks = await sut.RunQueuedAsync();
+        var task = Assert.Single(tasks);
+        var downloadedFiles = Directory
+            .EnumerateFiles(task.TargetDirectory, "*", SearchOption.AllDirectories)
+            .Select(Path.GetFileName)
+            .ToArray();
+
+        Assert.Contains("1. ジャケットイラスト.png", downloadedFiles, StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain("1. ジャケットイラスト.png.png", downloadedFiles, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task RunQueuedAsync_ShouldAppendExtension_WhenTrackTitleDoesNotContainExtension()
+    {
+        var tempRoot = CreateTempRoot("append-missing-extension");
+        var searchStateStore = new SearchStateStore();
+        searchStateStore.EnqueueForDownload(new[] { "RJ6004" });
+
+        var apiClient = new ScriptedApiClient(tracks: new[]
+        {
+            new Asmroner.Core.Api.TrackDto
+            {
+                Title = "cover",
+                MediaDownloadUrl = "https://cdn.example.com/file/cover.PNG",
+            },
+        });
+
+        var sut = new DownloadService(
+            apiClient,
+            new TestConfigurationService(tempRoot, preferFormats: string.Empty),
+            searchStateStore,
+            new TestAppPathService(tempRoot),
+            new NoopRateLimiterService());
+
+        var tasks = await sut.RunQueuedAsync();
+        var task = Assert.Single(tasks);
+        var downloadedFiles = Directory
+            .EnumerateFiles(task.TargetDirectory, "*", SearchOption.AllDirectories)
+            .Select(Path.GetFileName)
+            .ToArray();
+
+        Assert.Contains("cover.png", downloadedFiles, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task CancelAsync_ShouldReturnFalse_WhenTaskDoesNotExist()
     {
         var tempRoot = CreateTempRoot("cancel-missing");

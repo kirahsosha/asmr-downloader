@@ -1,5 +1,6 @@
 using System.Text;
 using System.Collections.Concurrent;
+using System.Globalization;
 using Asmroner.Core.Api;
 using Asmroner.Core.Download;
 using Asmroner.Core.Interfaces;
@@ -292,7 +293,10 @@ public sealed class DownloadService : IDownloadService
                 task.TargetDirectory = targetDirectory;
             }
 
-            var tracks = await _apiClient.GetTracksAsync(task.SourceId, runCancellationToken);
+            var trackLookupId = workInfo.Id > 0
+                ? workInfo.Id.ToString(CultureInfo.InvariantCulture)
+                : task.SourceId;
+            var tracks = await _apiClient.GetTracksAsync(trackLookupId, runCancellationToken);
             var allEntries = FlattenTracksWithPath(tracks)
                 .Where(static item => !string.IsNullOrWhiteSpace(item.Url))
                 .Where(item => IsPreferred(item.Url, preferExtensions))
@@ -342,7 +346,7 @@ public sealed class DownloadService : IDownloadService
 
                 var item = mediaEntries[index];
                 var extension = ReadExtension(item.Url);
-                var fileName = $"{SanitizePathPart(item.Title)}{extension}";
+                var fileName = BuildOutputFileName(item.Title, extension);
 
                 var subDir = string.IsNullOrEmpty(item.RelativePath)
                     ? targetDirectory
@@ -428,6 +432,14 @@ public sealed class DownloadService : IDownloadService
     private static bool IsExtension(string url, string extension)
     {
         return ReadExtension(url).Equals(extension, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string BuildOutputFileName(string title, string extension)
+    {
+        var sanitizedTitle = SanitizePathPart(title);
+        return sanitizedTitle.EndsWith(extension, StringComparison.OrdinalIgnoreCase)
+            ? sanitizedTitle
+            : sanitizedTitle + extension;
     }
 
     private static string BuildEntryKey(string relativePath, string title)

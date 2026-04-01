@@ -5,6 +5,7 @@ namespace Asmroner.Core.Utils;
 public static class SourceIdNormalizer
 {
     private static readonly Regex RjFlexiblePattern = new(@"RJ\D*(\d+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    private static readonly Regex BjFlexiblePattern = new(@"BJ\D*(\d+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     private static readonly Regex DigitsOnlyPattern = new(@"^\d+$", RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     /// <summary>
@@ -25,6 +26,12 @@ public static class SourceIdNormalizer
         if (rjMatch.Success)
         {
             return "RJ" + rjMatch.Groups[1].Value;
+        }
+
+        var bjMatch = BjFlexiblePattern.Match(decoded);
+        if (bjMatch.Success)
+        {
+            return "BJ" + bjMatch.Groups[1].Value;
         }
 
         if (DigitsOnlyPattern.IsMatch(decoded))

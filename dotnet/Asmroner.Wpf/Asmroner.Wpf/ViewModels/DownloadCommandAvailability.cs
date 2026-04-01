@@ -13,18 +13,20 @@ public sealed class DownloadCommandAvailability
     public bool CanStartImmediate { get; init; }
 
     public static DownloadCommandAvailability Evaluate(
-        IEnumerable<DownloadTaskStatus> selectedStatuses,
+        IEnumerable<DownloadTaskRowViewModel> selectedTasks,
         IEnumerable<DownloadTaskItem> allTasks)
     {
-        var selected = selectedStatuses.ToArray();
+        var selected = selectedTasks.ToArray();
         var all = allTasks.ToArray();
 
         return new DownloadCommandAvailability
         {
-            CanCancel = selected.Any(static status => status is DownloadTaskStatus.Pending or DownloadTaskStatus.Queued or DownloadTaskStatus.Running),
-            CanRetry = selected.Length == 1 && selected[0] == DownloadTaskStatus.Failed,
+            CanCancel = selected.Any(static item => item.Status is DownloadTaskStatus.Pending or DownloadTaskStatus.Queued or DownloadTaskStatus.Running),
+            CanRetry = selected.Length == 1
+                && selected[0].Status == DownloadTaskStatus.Failed
+                && selected[0].TaskId != Guid.Empty,
             CanRetryAllFailed = all.Any(static item => item.Status == DownloadTaskStatus.Failed),
-            CanStartImmediate = selected.Any(static status => status is DownloadTaskStatus.Pending or DownloadTaskStatus.Failed or DownloadTaskStatus.Canceled),
+            CanStartImmediate = selected.Any(static item => item.Status is DownloadTaskStatus.Pending or DownloadTaskStatus.Failed or DownloadTaskStatus.Canceled),
         };
     }
 }

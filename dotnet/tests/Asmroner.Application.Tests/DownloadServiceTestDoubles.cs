@@ -1,6 +1,7 @@
 using Asmroner.Core.Api;
 using Asmroner.Core.Configuration;
 using Asmroner.Core.Interfaces;
+using System.Globalization;
 
 namespace Asmroner.Application.Tests;
 
@@ -18,6 +19,7 @@ internal sealed class ScriptedApiClient : IAsmrApiClient
 
     public int WorkInfoCallCount { get; private set; }
     public int MaxObservedWorkInfoConcurrency => _maxObservedWorkInfoConcurrency;
+    public List<string> TrackRequestIds { get; } = new();
 
     public ScriptedApiClient(
         IEnumerable<string>? failOnWorkInfoIds = null,
@@ -76,6 +78,14 @@ internal sealed class ScriptedApiClient : IAsmrApiClient
                 return workInfo;
             }
 
+            var matchedByWorkId = _workInfoBySourceId.Values.FirstOrDefault(item =>
+                item.Id > 0
+                && string.Equals(item.Id.ToString(CultureInfo.InvariantCulture), id, StringComparison.OrdinalIgnoreCase));
+            if (matchedByWorkId is not null)
+            {
+                return matchedByWorkId;
+            }
+
             return new WorkInfoDto
             {
                 Id = 1,
@@ -93,6 +103,8 @@ internal sealed class ScriptedApiClient : IAsmrApiClient
 
     public Task<IReadOnlyList<TrackDto>> GetTracksAsync(string id, CancellationToken cancellationToken = default)
     {
+        TrackRequestIds.Add(id);
+
         if (_tracks.Count > 0)
         {
             return Task.FromResult(_tracks);

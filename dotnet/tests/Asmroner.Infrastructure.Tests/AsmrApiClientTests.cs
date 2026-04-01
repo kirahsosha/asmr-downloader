@@ -123,6 +123,102 @@ public class AsmrApiClientTests
     }
 
     [Fact]
+    public async Task AsmrApiClient_ShouldDeserializeTranslationMetadata_OnWorkInfoResponse()
+    {
+        var factory = new RecordingHttpClientFactory();
+        factory.Register("AsmrApi", new RecordingHttpMessageHandler(_ =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"id\":123,\"title\":\"Sample\",\"release\":\"2026-03-15\",\"has_subtitle\":true,\"source_id\":\"RJ7301\",\"work_attributes\":\"RG01020616,JPN,DLP\",\"other_language_editions_in_db\":[{\"id\":1,\"lang\":\"简体中文\",\"title\":\"中文版\",\"source_id\":\"RJ7302\",\"is_original\":false,\"source_type\":\"DLSITE\"}],\"translation_info\":{\"lang\":null,\"is_original\":true},\"language_editions\":[{\"lang\":\"JPN\",\"label\":\"日本語\",\"workno\":\"RJ7301\",\"display_order\":1}]}", Encoding.UTF8, "application/json"),
+            })));
+
+        var sut = new AsmrApiClient(
+            factory,
+            new StubApiEndpointUrlService("https://api.example.com"),
+            new StubAuthService(new ApiToken { AccessToken = "jwt-token" }));
+
+        var result = await sut.GetWorkInfoAsync("RJ7301");
+
+        Assert.Equal("RG01020616,JPN,DLP", result.WorkAttributes);
+        var otherEdition = Assert.Single(result.OtherLanguageEditionsInDb);
+        Assert.Equal("RJ7302", otherEdition.SourceId);
+        Assert.Equal("简体中文", otherEdition.Lang);
+        Assert.True(result.TranslationInfo.IsOriginal);
+        var languageEdition = Assert.Single(result.LanguageEditions);
+        Assert.Equal("JPN", languageEdition.Lang);
+    }
+
+    [Fact]
+    public async Task AsmrApiClient_ShouldResolveNonNumericSourceId_ToNumericWorkEndpointPath()
+    {
+        var requestedPaths = new List<string>();
+        var factory = new RecordingHttpClientFactory();
+        factory.Register("AsmrApi", new RecordingHttpMessageHandler(request =>
+        {
+            requestedPaths.Add(request.RequestUri!.PathAndQuery);
+
+            if (request.RequestUri.AbsolutePath.StartsWith("/api/search/", StringComparison.OrdinalIgnoreCase))
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{\"works\":[{\"id\":100000062,\"title\":\"BJ\",\"source_id\":\"BJ02370869\"}],\"pagination\":{\"currentPage\":1,\"pageSize\":20,\"totalCount\":1}}", Encoding.UTF8, "application/json"),
+                });
+            }
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"id\":100000062,\"title\":\"BJ\",\"release\":\"2026-04-01\",\"has_subtitle\":false,\"source_id\":\"BJ02370869\"}", Encoding.UTF8, "application/json"),
+            });
+        }));
+
+        var sut = new AsmrApiClient(
+            factory,
+            new StubApiEndpointUrlService("https://api.example.com"),
+            new StubAuthService(new ApiToken { AccessToken = "jwt-token" }));
+
+        var result = await sut.GetWorkInfoAsync("BJ02370869");
+
+        Assert.Equal("BJ02370869", result.SourceId);
+        Assert.Equal("/api/search/BJ02370869?order=id&sort=desc&page=1&pageSize=20&subtitle=0&includeTranslationWorks=true", requestedPaths[0]);
+        Assert.Equal("/api/work/100000062", requestedPaths[1]);
+    }
+
+    [Fact]
+    public async Task AsmrApiClient_GetTracksAsync_ShouldResolveNonNumericSourceId_ToNumericTracksEndpointPath()
+    {
+        var requestedPaths = new List<string>();
+        var factory = new RecordingHttpClientFactory();
+        factory.Register("AsmrApi", new RecordingHttpMessageHandler(request =>
+        {
+            requestedPaths.Add(request.RequestUri!.PathAndQuery);
+
+            if (request.RequestUri.AbsolutePath.StartsWith("/api/search/", StringComparison.OrdinalIgnoreCase))
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("{\"works\":[{\"id\":100000062,\"title\":\"BJ\",\"source_id\":\"BJ02370869\"}],\"pagination\":{\"currentPage\":1,\"pageSize\":20,\"totalCount\":1}}", Encoding.UTF8, "application/json"),
+                });
+            }
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("[]", Encoding.UTF8, "application/json"),
+            });
+        }));
+
+        var sut = new AsmrApiClient(
+            factory,
+            new StubApiEndpointUrlService("https://api.example.com"),
+            new StubAuthService(new ApiToken { AccessToken = "jwt-token" }));
+
+        var result = await sut.GetTracksAsync("BJ02370869");
+
+        Assert.Empty(result);
+        Assert.Equal("/api/search/BJ02370869?order=id&sort=desc&page=1&pageSize=20&subtitle=0&includeTranslationWorks=true", requestedPaths[0]);
+        Assert.Equal("/api/tracks/100000062", requestedPaths[1]);
+    }
+
+    [Fact]
     public async Task AsmrApiClient_ShouldNormalizeWorkUrlInput_ToWorkEndpointPath()
     {
         HttpRequestMessage? capturedRequest = null;

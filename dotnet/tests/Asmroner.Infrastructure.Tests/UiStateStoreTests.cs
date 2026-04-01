@@ -17,6 +17,7 @@ public class UiStateStoreTests
             var expected = new SearchUiState
             {
                 IncludeTranslationWorks = false,
+                QueueTranslationWorks = false,
                 Tag = "tag-a,tag-b",
                 TagExclude = true,
                 Circle = "circle-a",
@@ -27,10 +28,40 @@ public class UiStateStoreTests
             var actual = await store.LoadSearchUiStateAsync();
 
             Assert.False(actual.IncludeTranslationWorks);
+            Assert.False(actual.QueueTranslationWorks);
             Assert.Equal("tag-a,tag-b", actual.Tag);
             Assert.True(actual.TagExclude);
             Assert.Equal("circle-a", actual.Circle);
             Assert.Equal("zh-CN", actual.Lang);
+        }
+        finally
+        {
+            CleanupTempRoot(tempRoot);
+        }
+    }
+
+    [Fact]
+    public async Task SaveDownloadUiStateAsync_ShouldRoundTrip()
+    {
+        var tempRoot = CreateTempRoot();
+        try
+        {
+            var pathService = new AppPathService(tempRoot);
+            var store = new UiStateStore(pathService);
+
+            var expected = new DownloadUiState
+            {
+                FileFilter = "+voice;-cover",
+                HdAudioOnly = false,
+                QueueTranslationWorks = false,
+            };
+
+            await store.SaveDownloadUiStateAsync(expected);
+            var actual = await store.LoadDownloadUiStateAsync();
+
+            Assert.Equal("+voice;-cover", actual.FileFilter);
+            Assert.False(actual.HdAudioOnly);
+            Assert.False(actual.QueueTranslationWorks);
         }
         finally
         {
@@ -51,6 +82,7 @@ public class UiStateStoreTests
 
             Assert.Equal(string.Empty, actual.FileFilter);
             Assert.True(actual.HdAudioOnly);
+            Assert.True(actual.QueueTranslationWorks);
         }
         finally
         {

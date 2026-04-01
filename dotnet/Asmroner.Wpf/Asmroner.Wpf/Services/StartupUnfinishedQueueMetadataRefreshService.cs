@@ -36,11 +36,11 @@ public sealed class StartupUnfinishedQueueMetadataRefreshService
             : AsmronerConstants.Download.StartupMetadataRefreshTimeout;
     }
 
-    public Task<int> StartInBackgroundAsync(CancellationToken cancellationToken = default)
+    public Task<StartupMetadataRefreshResult> StartInBackgroundAsync(CancellationToken cancellationToken = default)
     {
         if (Interlocked.Exchange(ref _isRunning, 1) == 1)
         {
-            return Task.FromResult(0);
+            return Task.FromResult(new StartupMetadataRefreshResult());
         }
 
         return Task.Run(async () =>
@@ -56,27 +56,29 @@ public sealed class StartupUnfinishedQueueMetadataRefreshService
         }, CancellationToken.None);
     }
 
-    public async Task<int> RefreshAsync(CancellationToken cancellationToken = default)
+    public async Task<StartupMetadataRefreshResult> RefreshAsync(CancellationToken cancellationToken = default)
     {
+        IReadOnlyList<string> missingSourceIds = Array.Empty<string>();
+
         try
         {
             var unfinishedSourceIds = await _uiStateStore.LoadUnfinishedQueueAsync(cancellationToken).ConfigureAwait(false);
             if (unfinishedSourceIds.Count == 0)
             {
-                return 0;
+                return new StartupMetadataRefreshResult();
             }
 
             var prefetched = _downloadService.GetPrefetchedWorkInfoSnapshot();
-            var missingSourceIds = unfinishedSourceIds
+            missingSourceIds = unfinishedSourceIds
                 .Where(sourceId =>
                     !prefetched.TryGetValue(sourceId, out var workInfo) ||
                     string.IsNullOrWhiteSpace(workInfo.Title))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
 
-            if (missingSourceIds.Length == 0)
+            if (missingSourceIds.Count == 0)
             {
-                return 0;
+                return new StartupMetadataRefreshResult();
             }
 
             await _startupEndpointWarmupService.StartInBackgroundAsync(cancellationToken).ConfigureAwait(false);
@@ -84,33 +86,38 @@ public sealed class StartupUnfinishedQueueMetadataRefreshService
             using var timeoutCancellation = new CancellationTokenSource(_timeout);
             using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCancellation.Token);
 
-            var refreshedWorkInfos = await FetchWorkInfoMapAsync(missingSourceIds, linkedCancellation.Token).ConfigureAwait(false);
-            if (refreshedWorkInfos.Count == 0)
+            var refreshResult = await FetchWorkInfoMapAsync(missingSourceIds, linkedCancellation.Token).ConfigureAwait(false);
+            if (refreshResult.UpdatedWorkInfos.Count == 0 && refreshResult.Failures.Count == 0)
             {
-                return 0;
+                return refreshResult;
             }
 
-            _downloadService.UpsertPrefetchedWorkInfo(refreshedWorkInfos);
-            _logger.Info("Startup unfinished queue metadata refresh updated {Count} items.", refreshedWorkInfos.Count);
-            return refreshedWorkInfos.Count;
+            if (refreshResult.UpdatedWorkInfos.Count > 0)
+            {
+                _downloadService.UpsertPrefetchedWorkInfo(refreshResult.UpdatedWorkInfos);
+                _logger.Info("Startup unfinished queue metadata refresh updated {Count} items.", refreshResult.UpdatedWorkInfos.Count);
+            }
+
+            return refreshResult;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             _logger.Warn("Startup unfinished queue metadata refresh timed out after {TimeoutMs} ms.", (long)_timeout.TotalMilliseconds);
-            return 0;
+            return BuildGlobalFailureResult(missingSourceIds, $"后台更新作品信息超时（{(long)_timeout.TotalMilliseconds} ms）。");
         }
         catch (Exception ex)
         {
             _logger.Warn(ex, "Startup unfinished queue metadata refresh failed.");
-            return 0;
+            return BuildGlobalFailureResult(missingSourceIds, BuildFailureMessage(ex));
         }
     }
 
-    private async Task<IReadOnlyDictionary<string, WorkInfoDto>> FetchWorkInfoMapAsync(
+    private async Task<StartupMetadataRefreshResult> FetchWorkInfoMapAsync(
         IReadOnlyList<string> sourceIds,
         CancellationToken cancellationToken)
     {
         var result = new ConcurrentDictionary<string, WorkInfoDto>(StringComparer.OrdinalIgnoreCase);
+        var failures = new ConcurrentBag<StartupMetadataRefreshFailure>();
         using var limiter = new SemaphoreSlim(AsmronerConstants.Download.WorkInfoFetchMaxConcurrency);
 
         var jobs = sourceIds.Select(async sourceId =>
@@ -128,6 +135,11 @@ public sealed class StartupUnfinishedQueueMetadataRefreshService
             catch (Exception ex)
             {
                 _logger.Warn(ex, "Startup unfinished queue metadata refresh failed for {SourceId}.", sourceId);
+                failures.Add(new StartupMetadataRefreshFailure
+                {
+                    SourceId = sourceId,
+                    ErrorMessage = BuildFailureMessage(ex),
+                });
             }
             finally
             {
@@ -136,6 +148,61 @@ public sealed class StartupUnfinishedQueueMetadataRefreshService
         });
 
         await Task.WhenAll(jobs).ConfigureAwait(false);
-        return result;
+        return new StartupMetadataRefreshResult
+        {
+            UpdatedWorkInfos = new Dictionary<string, WorkInfoDto>(result, StringComparer.OrdinalIgnoreCase),
+            Failures = failures
+                .OrderBy(static item => item.SourceId, StringComparer.OrdinalIgnoreCase)
+                .ToArray(),
+        };
     }
+
+    private static StartupMetadataRefreshResult BuildGlobalFailureResult(
+        IReadOnlyList<string> sourceIds,
+        string errorMessage)
+    {
+        if (sourceIds.Count == 0)
+        {
+            return new StartupMetadataRefreshResult();
+        }
+
+        return new StartupMetadataRefreshResult
+        {
+            Failures = sourceIds
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(static sourceId => sourceId, StringComparer.OrdinalIgnoreCase)
+                .Select(sourceId => new StartupMetadataRefreshFailure
+                {
+                    SourceId = sourceId,
+                    ErrorMessage = errorMessage,
+                })
+                .ToArray(),
+        };
+    }
+
+    private static string BuildFailureMessage(Exception ex)
+    {
+        if (ex is AsmrApiException apiException && !string.IsNullOrWhiteSpace(apiException.Error.Message))
+        {
+            return apiException.Error.Message;
+        }
+
+        return string.IsNullOrWhiteSpace(ex.Message)
+            ? "后台更新作品信息失败。"
+            : ex.Message;
+    }
+}
+
+public sealed class StartupMetadataRefreshResult
+{
+    public IReadOnlyDictionary<string, WorkInfoDto> UpdatedWorkInfos { get; init; } = new Dictionary<string, WorkInfoDto>(StringComparer.OrdinalIgnoreCase);
+
+    public IReadOnlyList<StartupMetadataRefreshFailure> Failures { get; init; } = Array.Empty<StartupMetadataRefreshFailure>();
+}
+
+public sealed class StartupMetadataRefreshFailure
+{
+    public string SourceId { get; init; } = string.Empty;
+
+    public string ErrorMessage { get; init; } = string.Empty;
 }

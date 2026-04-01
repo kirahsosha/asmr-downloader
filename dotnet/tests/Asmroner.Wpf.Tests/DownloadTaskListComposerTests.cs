@@ -23,8 +23,9 @@ public class DownloadTaskListComposerTests
         {
             ["RJ5003"] = DownloadTaskStatus.Canceled,
         };
+        var errorMessages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        var rows = DownloadTaskListComposer.ComposeRows(activeTasks, queuedSourceIds, titles, overrides);
+        var rows = DownloadTaskListComposer.ComposeRows(activeTasks, queuedSourceIds, titles, overrides, errorMessages);
 
         Assert.Equal(3, rows.Count);
         // Rows are now sorted by status order (Running=1, Pending=3, Canceled=5), then by SourceId
@@ -74,8 +75,9 @@ public class DownloadTaskListComposerTests
         {
             ["RJ7001"] = DownloadTaskStatus.Canceled,
         };
+        var errorMessages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        var rows = DownloadTaskListComposer.ComposeRows(activeTasks, queuedSourceIds, titles, overrides);
+        var rows = DownloadTaskListComposer.ComposeRows(activeTasks, queuedSourceIds, titles, overrides, errorMessages);
 
         var row = Assert.Single(rows);
         Assert.Equal("RJ7001", row.SourceId);
@@ -96,8 +98,9 @@ public class DownloadTaskListComposerTests
             ["RJ7101"] = "prefetched-title",
         };
         var overrides = new Dictionary<string, DownloadTaskStatus>(StringComparer.OrdinalIgnoreCase);
+        var errorMessages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        var rows = DownloadTaskListComposer.ComposeRows(activeTasks, queuedSourceIds, titles, overrides);
+        var rows = DownloadTaskListComposer.ComposeRows(activeTasks, queuedSourceIds, titles, overrides, errorMessages);
 
         var row = Assert.Single(rows);
         Assert.Equal("RJ7101", row.SourceId);
@@ -121,8 +124,9 @@ public class DownloadTaskListComposerTests
             ["RJ8005"] = "pending-2",
         };
         var overrides = new Dictionary<string, DownloadTaskStatus>(StringComparer.OrdinalIgnoreCase);
+        var errorMessages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        var rows = DownloadTaskListComposer.ComposeRows(activeTasks, queuedSourceIds, titles, overrides);
+        var rows = DownloadTaskListComposer.ComposeRows(activeTasks, queuedSourceIds, titles, overrides, errorMessages);
 
         // Expected order by status sort order: Completed(0) < Pending(3) < Failed(4)
         // Within same status, by SourceId ascending
@@ -143,6 +147,34 @@ public class DownloadTaskListComposerTests
         // Failed tasks last
         Assert.Equal("RJ8003", rows[4].SourceId);
         Assert.Equal("已失败", rows[4].StatusText);
+    }
+
+    [Fact]
+    public void ComposeRows_ShouldUseQueuedFailureErrorMessage_ForPlaceholderRow()
+    {
+        var titles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["BJ02370869"] = "bj-title",
+        };
+        var overrides = new Dictionary<string, DownloadTaskStatus>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["BJ02370869"] = DownloadTaskStatus.Failed,
+        };
+        var errorMessages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["BJ02370869"] = "API 调用失败: 404 Not Found",
+        };
+
+        var rows = DownloadTaskListComposer.ComposeRows(
+            Array.Empty<DownloadTaskItem>(),
+            new[] { "BJ02370869" },
+            titles,
+            overrides,
+            errorMessages);
+
+        var row = Assert.Single(rows);
+        Assert.Equal(DownloadTaskStatus.Failed, row.Status);
+        Assert.Equal("API 调用失败: 404 Not Found", row.ErrorMessage);
     }
 
     private static DownloadTaskItem CreateTask(string sourceId, DownloadTaskStatus status, string title)

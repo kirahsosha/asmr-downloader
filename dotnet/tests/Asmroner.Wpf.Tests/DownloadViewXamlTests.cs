@@ -18,6 +18,7 @@ public class DownloadViewXamlTests
         Assert.Contains("x:Name=\"ClearTaskListButton\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"HdAudioOnlyCheckBox\"", content, StringComparison.Ordinal);
         Assert.Contains("IsChecked=\"True\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"QueueTranslationCheckBox\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"StatusTextBlock\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
@@ -55,6 +56,20 @@ public class DownloadViewXamlTests
         Assert.Equal("False", (string?)statusColumn.Attribute("CanUserResize"));
         Assert.Equal("96", (string?)progressColumn.Attribute("Width"));
         Assert.Null((string?)progressColumn.Attribute("CanUserResize"));
+    }
+
+    [Fact]
+    public void DownloadViewXaml_ShouldContainQueueTranslationCheckbox()
+    {
+        var xamlPath = XamlTestPathLocator.Locate("DownloadView.xaml", "dotnet", "Asmroner.Wpf", "Asmroner.Wpf", "Views");
+        var content = File.ReadAllText(xamlPath);
+
+        Assert.Contains("x:Name=\"QueueTranslationCheckBox\"", content, StringComparison.Ordinal);
+        Assert.Contains("Content=\"加入翻译作品\"", content, StringComparison.Ordinal);
+        Assert.Contains("IsChecked=\"True\"", content, StringComparison.Ordinal);
+        Assert.True(
+            content.IndexOf("x:Name=\"HdAudioOnlyCheckBox\"", StringComparison.Ordinal) < content.IndexOf("x:Name=\"QueueTranslationCheckBox\"", StringComparison.Ordinal),
+            "加入翻译作品复选框应位于只下载高清音频右侧。");
     }
 }
 

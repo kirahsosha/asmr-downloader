@@ -51,5 +51,6 @@ asmroner.exe
 /dotnet/Asmroner.Backend/Asmroner.Application/obj
 /dotnet/Asmroner.Backend/Asmroner.Application/bin
 /dotnet/.vs
-docs/prompts.md
+/docs/prompts.md
 /dotnet/Asmroner.Backend/Asmroner.Infrastructure/bin
+/.agents

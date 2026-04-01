@@ -9,7 +9,23 @@ public class DownloadOperationStatusTextsTests
     {
         var message = DownloadOperationStatusTexts.BuildBatchEnqueueResult(6, 4);
 
-        Assert.Equal("已加入批量下载：6 个任务（4 个已更新作品信息）。", message);
+        Assert.Equal("已加入批量下载：6 个任务（4 个已更新作品信息）", message);
+    }
+
+    [Fact]
+    public void AppendTranslationSwitchClause_ShouldAppendSwitchSummary_WhenCountPositive()
+    {
+        var message = DownloadOperationStatusTexts.AppendTranslationSwitchClause("已加入下载队列 3 项", 2);
+
+        Assert.Equal("已加入下载队列 3 项；其中 2 项已切换为翻译作品", message);
+    }
+
+    [Fact]
+    public void AppendTranslationSwitchClause_ShouldKeepOriginalMessage_WhenCountIsZero()
+    {
+        var message = DownloadOperationStatusTexts.AppendTranslationSwitchClause("已加入下载队列 3 项", 0);
+
+        Assert.Equal("已加入下载队列 3 项", message);
     }
 
     [Fact]
@@ -50,5 +66,21 @@ public class DownloadOperationStatusTextsTests
         var message = DownloadOperationStatusTexts.BuildStartSelectedResult(0, 2);
 
         Assert.Equal("没有可立即下载的任务。", message);
+    }
+
+    [Fact]
+    public void BuildWorkInfoRefreshResult_ShouldUseUpdatedCompletedText_WhenMixedResultReturned()
+    {
+        var message = DownloadOperationStatusTexts.BuildWorkInfoRefreshResult(3, 1);
+
+        Assert.Equal("作品信息更新完成：成功更新 3 项，失败 1 项。", message);
+    }
+
+    [Fact]
+    public void BuildWorkInfoRefreshResult_ShouldUseUpdatedFailureText_WhenNothingUpdated()
+    {
+        var message = DownloadOperationStatusTexts.BuildWorkInfoRefreshResult(0, 2);
+
+        Assert.Equal("作品信息更新失败：共有 2 项未能更新。", message);
     }
 }

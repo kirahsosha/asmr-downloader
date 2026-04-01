@@ -34,8 +34,9 @@ public class StartupUnfinishedQueueMetadataRefreshServiceTests
 
         apiClient.Complete("RJ1001", "示例作品");
 
-        var updatedCount = await refreshTask;
-        Assert.Equal(1, updatedCount);
+        var result = await refreshTask;
+        Assert.Equal(1, result.UpdatedWorkInfos.Count);
+        Assert.Empty(result.Failures);
         Assert.Equal("示例作品", downloadService.GetPrefetchedWorkInfoSnapshot()["RJ1001"].Title);
     }
 
@@ -48,9 +49,10 @@ public class StartupUnfinishedQueueMetadataRefreshServiceTests
         var warmupService = CreateWarmupService();
         var sut = new StartupUnfinishedQueueMetadataRefreshService(uiStateStore, downloadService, apiClient, warmupService);
 
-        var updatedCount = await sut.RefreshAsync();
+        var result = await sut.RefreshAsync();
 
-        Assert.Equal(0, updatedCount);
+        Assert.Empty(result.UpdatedWorkInfos);
+        Assert.Empty(result.Failures);
         Assert.Empty(apiClient.RequestedSourceIds);
         Assert.Equal(0, downloadService.UpsertCallCount);
     }
@@ -70,9 +72,10 @@ public class StartupUnfinishedQueueMetadataRefreshServiceTests
         var warmupService = CreateWarmupService();
         var sut = new StartupUnfinishedQueueMetadataRefreshService(uiStateStore, downloadService, apiClient, warmupService);
 
-        var updatedCount = await sut.RefreshAsync();
+        var result = await sut.RefreshAsync();
 
-        Assert.Equal(2, updatedCount);
+        Assert.Equal(2, result.UpdatedWorkInfos.Count);
+        Assert.Empty(result.Failures);
         Assert.Equal(
             new[] { "RJ1002", "RJ1003" },
             apiClient.RequestedSourceIds
@@ -95,9 +98,12 @@ public class StartupUnfinishedQueueMetadataRefreshServiceTests
         var warmupService = CreateWarmupService();
         var sut = new StartupUnfinishedQueueMetadataRefreshService(uiStateStore, downloadService, apiClient, warmupService);
 
-        var updatedCount = await sut.RefreshAsync();
+        var result = await sut.RefreshAsync();
 
-        Assert.Equal(1, updatedCount);
+        Assert.Equal(1, result.UpdatedWorkInfos.Count);
+        var failure = Assert.Single(result.Failures);
+        Assert.Equal("RJ2002", failure.SourceId);
+        Assert.Equal("mock api failure", failure.ErrorMessage);
         var snapshot = downloadService.GetPrefetchedWorkInfoSnapshot();
         Assert.True(snapshot.ContainsKey("RJ2001"));
         Assert.False(snapshot.ContainsKey("RJ2002"));
@@ -126,8 +132,9 @@ public class StartupUnfinishedQueueMetadataRefreshServiceTests
 
         endpointService.Complete();
 
-        var updatedCount = await refreshTask;
-        Assert.Equal(1, updatedCount);
+        var result = await refreshTask;
+        Assert.Equal(1, result.UpdatedWorkInfos.Count);
+        Assert.Empty(result.Failures);
         Assert.Equal(new[] { "RJ3001" }, apiClient.RequestedSourceIds.Select(static item => item.ToUpperInvariant()));
     }
 
@@ -146,11 +153,34 @@ public class StartupUnfinishedQueueMetadataRefreshServiceTests
             warmupService,
             TimeSpan.FromSeconds(5));
 
-        var updatedCount = await sut.RefreshAsync();
+        var result = await sut.RefreshAsync();
 
-        Assert.Equal(1, updatedCount);
+        Assert.Equal(1, result.UpdatedWorkInfos.Count);
+        Assert.Empty(result.Failures);
         Assert.Equal(new[] { "RJ4001" }, apiClient.RequestedSourceIds.Select(static item => item.ToUpperInvariant()));
         Assert.Equal("预热失败后仍补拉成功", downloadService.GetPrefetchedWorkInfoSnapshot()["RJ4001"].Title);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_ShouldReturnGlobalFailures_WhenTimeoutOccurs()
+    {
+        var uiStateStore = new StubUiStateStore(new[] { "RJ5001" });
+        var downloadService = new RecordingDownloadService();
+        var apiClient = new SlowAsmrApiClient();
+        var warmupService = CreateWarmupService();
+        var sut = new StartupUnfinishedQueueMetadataRefreshService(
+            uiStateStore,
+            downloadService,
+            apiClient,
+            warmupService,
+            TimeSpan.FromMilliseconds(10));
+
+        var result = await sut.RefreshAsync();
+
+        Assert.Empty(result.UpdatedWorkInfos);
+        var failure = Assert.Single(result.Failures);
+        Assert.Equal("RJ5001", failure.SourceId);
+        Assert.Contains("超时", failure.ErrorMessage, StringComparison.Ordinal);
     }
 
     private static StartupEndpointWarmupService CreateWarmupService(
@@ -298,7 +328,12 @@ public class StartupUnfinishedQueueMetadataRefreshServiceTests
         public Task<WorkInfoDto> GetWorkInfoAsync(string id, CancellationToken cancellationToken = default)
         {
             Started.TrySetResult(true);
-            using var registration = cancellationToken.Register(() => _completion.TrySetCanceled(cancellationToken));
+            var registration = cancellationToken.Register(() => _completion.TrySetCanceled(cancellationToken));
+            _ = _completion.Task.ContinueWith(
+                _ => registration.Dispose(),
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
             return _completion.Task;
         }
 

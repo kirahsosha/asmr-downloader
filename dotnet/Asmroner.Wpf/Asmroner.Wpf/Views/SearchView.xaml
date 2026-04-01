@@ -283,6 +283,13 @@
                                   VerticalAlignment="Center"
                                   IsChecked="True"
                                   Content="包含翻译作品"/>
+
+                        <CheckBox x:Name="QueueTranslationCheckBox"
+                                  Margin="10,6,0,0"
+                                  VerticalAlignment="Center"
+                                  IsChecked="True"
+                                  Content="加入翻译作品"
+                                  ToolTip="加入下载队列时按 简体中文 → 繁体中文 → 日本語 的优先级选择版本"/>
                     </WrapPanel>
                 </StackPanel>
             </Border>

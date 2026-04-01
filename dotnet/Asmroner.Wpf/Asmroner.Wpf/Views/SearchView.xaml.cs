@@ -26,6 +26,7 @@ public partial class SearchView : UserControl
     private readonly ISearchExportService _searchExportService;
     private readonly ISearchStateStore _searchStateStore;
     private readonly IDownloadService _downloadService;
+    private readonly IEnqueueWorkInfoResolver _enqueueWorkInfoResolver;
     private readonly IUiStateStore _uiStateStore;
     private readonly IConfigurationService _configurationService;
     private readonly IAppPathService _appPathService;
@@ -49,6 +50,7 @@ public partial class SearchView : UserControl
             null!,
             null!,
             null!,
+            null!,
             null!)
     {
     }
@@ -59,6 +61,7 @@ public partial class SearchView : UserControl
         ISearchExportService searchExportService,
         ISearchStateStore searchStateStore,
         IDownloadService downloadService,
+        IEnqueueWorkInfoResolver enqueueWorkInfoResolver,
         IUiStateStore uiStateStore,
         IConfigurationService configurationService,
         IAppPathService appPathService)
@@ -68,6 +71,7 @@ public partial class SearchView : UserControl
         _searchExportService = searchExportService;
         _searchStateStore = searchStateStore;
         _downloadService = downloadService;
+        _enqueueWorkInfoResolver = enqueueWorkInfoResolver;
         _uiStateStore = uiStateStore;
         _configurationService = configurationService;
         _appPathService = appPathService;
@@ -89,6 +93,7 @@ public partial class SearchView : UserControl
             var state = await _uiStateStore.LoadSearchUiStateAsync();
 
             IncludeTranslationCheckBox.IsChecked = state.IncludeTranslationWorks;
+            QueueTranslationCheckBox.IsChecked = state.QueueTranslationWorks;
 
             TagTextBox.Text = state.Tag;
             TagExcludeCheckBox.IsChecked = state.TagExclude;
@@ -131,6 +136,8 @@ public partial class SearchView : UserControl
     {
         IncludeTranslationCheckBox.Checked += OnSearchUiStateChanged;
         IncludeTranslationCheckBox.Unchecked += OnSearchUiStateChanged;
+        QueueTranslationCheckBox.Checked += OnSearchUiStateChanged;
+        QueueTranslationCheckBox.Unchecked += OnSearchUiStateChanged;
 
         TagTextBox.TextChanged += OnSearchUiStateChanged;
         TagExcludeCheckBox.Checked += OnSearchUiStateChanged;
@@ -196,6 +203,7 @@ public partial class SearchView : UserControl
         return new SearchUiState
         {
             IncludeTranslationWorks = IncludeTranslationCheckBox.IsChecked == true,
+            QueueTranslationWorks = QueueTranslationCheckBox.IsChecked == true,
             Tag = TagTextBox.Text,
             TagExclude = TagExcludeCheckBox.IsChecked == true,
             Circle = CircleTextBox.Text,
@@ -307,42 +315,83 @@ public partial class SearchView : UserControl
 
     private async void OnQueueClicked(object sender, System.Windows.RoutedEventArgs e)
     {
-        var selected = ResultsGrid.SelectedItems
+        var selectedItems = ResultsGrid.SelectedItems
             .OfType<SearchWorkItem>()
-            .Select(static item => item.SourceId)
             .ToArray();
 
-        var sourceIds = selected.Length > 0
-            ? selected
-            : _results.Select(static item => item.SourceId).ToArray();
+        var targetItems = selectedItems.Length > 0
+            ? selectedItems
+            : _results.ToArray();
 
-        if (sourceIds.Length == 0)
+        if (targetItems.Length == 0)
         {
             StatusTextBlock.Text = "当前没有可入队的搜索结果。";
             return;
         }
 
+        IReadOnlyDictionary<string, WorkInfoDto> workInfos;
+        IReadOnlyList<string> candidateSourceIds;
+        var failedCount = 0;
+        var switchedCount = 0;
+
+        if (QueueTranslationCheckBox.IsChecked == true)
+        {
+            StatusTextBlock.Text = "正在分析作品语言并准备加入下载队列...";
+            var resolution = await _enqueueWorkInfoResolver.ResolvePreferTranslatedAsync(targetItems.Select(static item => new EnqueueWorkInfoRequest
+            {
+                SourceId = item.SourceId,
+                WorkId = item.WorkId,
+            }).ToArray());
+            workInfos = resolution.WorkInfos;
+            candidateSourceIds = resolution.WorkInfos.Keys.ToArray();
+            failedCount = resolution.FailedSourceIds.Count;
+            switchedCount = resolution.SwitchedSourceCount;
+
+            if (candidateSourceIds.Count == 0)
+            {
+                StatusTextBlock.Text = failedCount > 0
+                    ? $"未能解析可入队的作品信息，失败 {failedCount} 项。"
+                    : "当前没有可入队的搜索结果。";
+                return;
+            }
+        }
+        else
+        {
+            candidateSourceIds = targetItems.Select(static item => item.SourceId).ToArray();
+            workInfos = BuildPrefetchedWorkInfoMap(candidateSourceIds);
+        }
+
         var queuePlan = SearchQueueCountPolicy.Build(
-            sourceIds,
+            candidateSourceIds,
             _downloadService.GetTasks(),
             _searchStateStore.GetQueuedSourceIds());
 
         if (queuePlan.ToEnqueue.Count == 0)
         {
-            StatusTextBlock.Text = $"所选作品均已在下载列表或队列中，跳过 {queuePlan.SkippedCount} 项。";
+            var skippedStatusText = failedCount > 0
+                ? $"所选作品均已在下载列表或队列中，跳过 {queuePlan.SkippedCount} 项；另有 {failedCount} 项解析失败。"
+                : $"所选作品均已在下载列表或队列中，跳过 {queuePlan.SkippedCount} 项。";
+            StatusTextBlock.Text = DownloadOperationStatusTexts.AppendTranslationSwitchClause(skippedStatusText.TrimEnd('。'), switchedCount) + "。";
             return;
         }
 
         _searchStateStore.EnqueueForDownload(queuePlan.ToEnqueue);
-        _downloadService.UpsertPrefetchedWorkInfo(BuildPrefetchedWorkInfoMap(queuePlan.ToEnqueue));
+        _downloadService.UpsertPrefetchedWorkInfo(FilterWorkInfoMap(workInfos, queuePlan.ToEnqueue));
 
         var queuedSourceIds = _searchStateStore.GetQueuedSourceIds();
         await PersistUnfinishedQueueSnapshotSafeAsync(queuedSourceIds);
 
         var queueCount = queuedSourceIds.Count;
-        StatusTextBlock.Text = queuePlan.SkippedCount > 0
-            ? $"已加入下载队列 {queuePlan.ToEnqueue.Count} 项，跳过 {queuePlan.SkippedCount} 项（已存在或重复），当前队列总数 {queueCount}。"
-            : $"已加入下载队列 {queuePlan.ToEnqueue.Count} 项，当前队列总数 {queueCount}。";
+        var queueStatusText = queuePlan.SkippedCount > 0
+            ? $"已加入下载队列 {queuePlan.ToEnqueue.Count} 项，跳过 {queuePlan.SkippedCount} 项（已存在或重复），当前队列总数 {queueCount}"
+            : $"已加入下载队列 {queuePlan.ToEnqueue.Count} 项，当前队列总数 {queueCount}";
+
+        if (failedCount > 0)
+        {
+            queueStatusText += $"；另有 {failedCount} 项解析失败";
+        }
+
+        StatusTextBlock.Text = DownloadOperationStatusTexts.AppendTranslationSwitchClause(queueStatusText, switchedCount) + "。";
     }
 
     private void OnContextMenuQueueClicked(object sender, RoutedEventArgs e)
@@ -384,7 +433,7 @@ public partial class SearchView : UserControl
             var config = await _configurationService.LoadAsync();
             var template = config?.Downloader.WorkPageUrlTemplate;
 
-            if (!SearchWorkPageUrlPolicy.TryBuild(template, target.SourceId, out var url, out var errorMessage))
+            if (!SearchWorkPageUrlPolicy.TryBuild(template, target.SourceId, target.WorkId, out var url, out var errorMessage))
             {
                 StatusTextBlock.Text = errorMessage;
                 return;
@@ -482,6 +531,7 @@ public partial class SearchView : UserControl
                 .Where(static item => !string.IsNullOrWhiteSpace(item.SourceId))
                 .Select(static item => new SearchWorkItem
                 {
+                    WorkId = item.Id,
                     SourceId = item.SourceId,
                     Title = item.Title,
                     Release = item.Release,
@@ -884,6 +934,7 @@ public partial class SearchView : UserControl
                     var item = group.First();
                     return new WorkInfoDto
                     {
+                        Id = item.WorkId,
                         SourceId = item.SourceId,
                         Title = item.Title,
                         Release = item.Release,
@@ -891,6 +942,16 @@ public partial class SearchView : UserControl
                     };
                 },
                 StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static IReadOnlyDictionary<string, WorkInfoDto> FilterWorkInfoMap(
+        IReadOnlyDictionary<string, WorkInfoDto> workInfos,
+        IReadOnlyCollection<string> sourceIds)
+    {
+        var targetSourceIds = sourceIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return workInfos
+            .Where(item => targetSourceIds.Contains(item.Key))
+            .ToDictionary(static item => item.Key, static item => item.Value, StringComparer.OrdinalIgnoreCase);
     }
 
     private int ReadPageSize()

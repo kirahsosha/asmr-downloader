@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Globalization;
 using Asmroner.Core.Api;
 using Asmroner.Core.Constants;
 using Asmroner.Core.Interfaces;
@@ -27,10 +28,16 @@ public sealed class AsmrApiClient : IAsmrApiClient
     }
 
     public async Task<WorkInfoDto> GetWorkInfoAsync(string id, CancellationToken cancellationToken = default)
-        => await GetAsync<WorkInfoDto>(AsmrApiPaths.Work + ToApiNumericId(id), cancellationToken);
+    {
+        var numericId = await ResolveApiNumericIdAsync(id, cancellationToken);
+        return await GetAsync<WorkInfoDto>(AsmrApiPaths.Work + numericId, cancellationToken);
+    }
 
     public async Task<IReadOnlyList<TrackDto>> GetTracksAsync(string id, CancellationToken cancellationToken = default)
-        => await GetAsync<IReadOnlyList<TrackDto>>(AsmrApiPaths.Tracks + ToApiNumericId(id), cancellationToken) ?? Array.Empty<TrackDto>();
+    {
+        var numericId = await ResolveApiNumericIdAsync(id, cancellationToken);
+        return await GetAsync<IReadOnlyList<TrackDto>>(AsmrApiPaths.Tracks + numericId, cancellationToken) ?? Array.Empty<TrackDto>();
+    }
 
     public Task<SearchResultDto> SearchAsync(string query, CancellationToken cancellationToken = default)
         => GetAsync<SearchResultDto>(AsmrApiPaths.Search + query, cancellationToken);
@@ -143,6 +150,32 @@ public sealed class AsmrApiClient : IAsmrApiClient
         }
 
         return result;
+    }
+
+    private async Task<string> ResolveApiNumericIdAsync(string raw, CancellationToken cancellationToken)
+    {
+        var numericId = ToApiNumericId(raw);
+        if (string.IsNullOrWhiteSpace(numericId) || numericId.All(char.IsDigit))
+        {
+            return numericId;
+        }
+
+        var sourceId = SourceIdNormalizer.Normalize(raw);
+        if (string.IsNullOrWhiteSpace(sourceId))
+        {
+            return numericId;
+        }
+
+        var query = string.Create(
+            CultureInfo.InvariantCulture,
+            $"{Uri.EscapeDataString(sourceId)}?order=id&sort=desc&page=1&pageSize=20&subtitle=0&includeTranslationWorks=true");
+        var result = await SearchAsync(query, cancellationToken);
+        var matched = result.Works.FirstOrDefault(work =>
+            string.Equals(SourceIdNormalizer.Normalize(work.SourceId), sourceId, StringComparison.OrdinalIgnoreCase));
+
+        return matched?.Id > 0
+            ? matched.Id.ToString(CultureInfo.InvariantCulture)
+            : numericId;
     }
 
     // asmr.one /api/work/{id} 和 /api/tracks/{id} 仅接受纯数字 id，不含 "RJ" 前缀。

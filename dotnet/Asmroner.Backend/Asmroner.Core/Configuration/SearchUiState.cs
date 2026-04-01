@@ -4,6 +4,8 @@ public sealed class SearchUiState
 {
     public bool IncludeTranslationWorks { get; set; } = true;
 
+    public bool QueueTranslationWorks { get; set; } = true;
+
     public string Tag { get; set; } = string.Empty;
 
     public bool TagExclude { get; set; }

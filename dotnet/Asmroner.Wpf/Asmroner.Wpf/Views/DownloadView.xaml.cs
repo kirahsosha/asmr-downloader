@@ -22,6 +22,7 @@ public partial class DownloadView : UserControl
 
     private readonly IAsmrApiClient _asmrApiClient;
     private readonly IDownloadService _downloadService;
+    private readonly IEnqueueWorkInfoResolver _enqueueWorkInfoResolver;
     private readonly ISearchStateStore _searchStateStore;
     private readonly IUiStateStore _uiStateStore;
     private readonly IConfigurationService _configurationService;
@@ -30,16 +31,18 @@ public partial class DownloadView : UserControl
     private readonly StartupUnfinishedQueueMetadataRefreshService _startupUnfinishedQueueMetadataRefreshService;
     private readonly ConcurrentDictionary<string, string> _queuedWorkInfoTitles = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, DownloadTaskStatus> _queuedStatusOverrides = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, string> _queuedErrorMessages = new(StringComparer.OrdinalIgnoreCase);
     private bool _isApplyingDownloadUiState;
 
     public DownloadView()
-        : this(null!, null!, null!, null!, null!, null!, null!, null!)
+        : this(null!, null!, null!, null!, null!, null!, null!, null!, null!)
     {
     }
 
     public DownloadView(
         IAsmrApiClient asmrApiClient,
         IDownloadService downloadService,
+        IEnqueueWorkInfoResolver enqueueWorkInfoResolver,
         ISearchStateStore searchStateStore,
         IUiStateStore uiStateStore,
         IConfigurationService configurationService,
@@ -49,6 +52,7 @@ public partial class DownloadView : UserControl
     {
         _asmrApiClient = asmrApiClient;
         _downloadService = downloadService;
+        _enqueueWorkInfoResolver = enqueueWorkInfoResolver;
         _searchStateStore = searchStateStore;
         _uiStateStore = uiStateStore;
         _configurationService = configurationService;
@@ -68,6 +72,8 @@ public partial class DownloadView : UserControl
         FilterTextBox.TextChanged += OnDownloadUiStateChanged;
         HdAudioOnlyCheckBox.Checked += OnDownloadUiStateChanged;
         HdAudioOnlyCheckBox.Unchecked += OnDownloadUiStateChanged;
+        QueueTranslationCheckBox.Checked += OnDownloadUiStateChanged;
+        QueueTranslationCheckBox.Unchecked += OnDownloadUiStateChanged;
     }
 
     public void StartUnfinishedQueueMetadataRefreshInBackground()
@@ -83,11 +89,13 @@ public partial class DownloadView : UserControl
             var state = await _uiStateStore.LoadDownloadUiStateAsync();
             FilterTextBox.Text = state.FileFilter;
             HdAudioOnlyCheckBox.IsChecked = state.HdAudioOnly;
+            QueueTranslationCheckBox.IsChecked = state.QueueTranslationWorks;
         }
         catch
         {
             // 配置加载失败时保持文本框为空
             HdAudioOnlyCheckBox.IsChecked = true;
+            QueueTranslationCheckBox.IsChecked = true;
         }
         finally
         {
@@ -117,13 +125,20 @@ public partial class DownloadView : UserControl
     {
         try
         {
-            var updatedCount = await _startupUnfinishedQueueMetadataRefreshService.StartInBackgroundAsync();
-            if (updatedCount <= 0)
+            var refreshResult = await _startupUnfinishedQueueMetadataRefreshService.StartInBackgroundAsync();
+            if (refreshResult.UpdatedWorkInfos.Count == 0 && refreshResult.Failures.Count == 0)
             {
                 return;
             }
 
-            await Dispatcher.InvokeAsync(RefreshView);
+            await Dispatcher.InvokeAsync(() =>
+            {
+                ApplyStartupMetadataRefreshResult(refreshResult);
+                RefreshView();
+                StatusTextBlock.Text = DownloadOperationStatusTexts.BuildWorkInfoRefreshResult(
+                    refreshResult.UpdatedWorkInfos.Count,
+                    refreshResult.Failures.Count);
+            });
         }
         catch (Exception ex)
         {
@@ -149,6 +164,7 @@ public partial class DownloadView : UserControl
             {
                 FileFilter = FilterTextBox.Text,
                 HdAudioOnly = HdAudioOnlyCheckBox.IsChecked == true,
+                QueueTranslationWorks = QueueTranslationCheckBox.IsChecked == true,
             };
 
             await _uiStateStore.SaveDownloadUiStateAsync(state);
@@ -169,28 +185,60 @@ public partial class DownloadView : UserControl
             return;
         }
 
-        var queuePlan = BuildQueuePlan(new[] { sourceId });
-        if (queuePlan.ToEnqueue.Count == 0)
-        {
-            StatusTextBlock.Text = $"该作品已在下载列表或待下载队列中，跳过：{sourceId}";
-            return;
-        }
-
-        var enqueuedSourceId = queuePlan.ToEnqueue[0];
-
         await ExecuteGuardedAsync(
             async () =>
             {
-                StatusTextBlock.Text = "正在获取作品信息...";
+                IReadOnlyDictionary<string, WorkInfoDto> workInfos;
+                IReadOnlyList<string> candidateSourceIds;
+                var failedCount = 0;
+                var switchedCount = 0;
 
-                var workInfos = await ResolveWorkInfoAsync(new[] { enqueuedSourceId });
+                if (QueueTranslationCheckBox.IsChecked == true)
+                {
+                    StatusTextBlock.Text = "正在分析作品语言并获取作品信息...";
+                    var resolution = await _enqueueWorkInfoResolver.ResolvePreferTranslatedAsync(BuildEnqueueRequests(new[] { sourceId }));
+                    workInfos = resolution.WorkInfos;
+                    candidateSourceIds = resolution.WorkInfos.Keys.ToArray();
+                    failedCount = resolution.FailedSourceIds.Count;
+                    switchedCount = resolution.SwitchedSourceCount;
+                }
+                else
+                {
+                    StatusTextBlock.Text = "正在获取作品信息...";
+                    workInfos = await ResolveWorkInfoAsync(new[] { sourceId });
+                    candidateSourceIds = workInfos.Keys.ToArray();
+                }
+
+                if (candidateSourceIds.Count == 0)
+                {
+                    StatusTextBlock.Text = failedCount > 0
+                        ? $"获取作品信息失败，跳过：{sourceId}"
+                        : "未找到可加入的作品信息。";
+                    return;
+                }
+
+                var queuePlan = BuildQueuePlan(candidateSourceIds);
+                if (queuePlan.ToEnqueue.Count == 0)
+                {
+                    StatusTextBlock.Text = DownloadOperationStatusTexts.AppendTranslationSwitchClause(
+                        $"该作品已在下载列表或待下载队列中，跳过：{candidateSourceIds[0]}",
+                        switchedCount) + "。";
+                    return;
+                }
+
+                var enqueuedSourceId = queuePlan.ToEnqueue[0];
+                var enqueuedWorkInfos = FilterWorkInfoMap(workInfos, queuePlan.ToEnqueue);
+
                 _searchStateStore.EnqueueForDownload(new[] { enqueuedSourceId });
-                _downloadService.UpsertPrefetchedWorkInfo(workInfos);
-                _queuedStatusOverrides.TryRemove(enqueuedSourceId, out _);
-                MergeQueuedWorkInfoTitles(DownloadWorkInfoTitlePolicy.BuildNonEmptyTitleMap(workInfos));
+                _downloadService.UpsertPrefetchedWorkInfo(enqueuedWorkInfos);
+                ClearQueuedFailureState(new[] { enqueuedSourceId });
+                MergeQueuedWorkInfoTitles(DownloadWorkInfoTitlePolicy.BuildNonEmptyTitleMap(enqueuedWorkInfos));
 
                 RefreshView();
-                StatusTextBlock.Text = $"已加入单个下载：{enqueuedSourceId}";
+                var statusText = failedCount > 0
+                    ? $"已加入单个下载：{enqueuedSourceId}；另有 {failedCount} 项解析失败。"
+                    : $"已加入单个下载：{enqueuedSourceId}";
+                StatusTextBlock.Text = DownloadOperationStatusTexts.AppendTranslationSwitchClause(statusText.TrimEnd('。'), switchedCount);
             },
             disableRunQueue: true,
             failurePrefix: "加入单个下载失败",
@@ -210,31 +258,54 @@ public partial class DownloadView : UserControl
         await ExecuteGuardedAsync(
             async () =>
             {
-                StatusTextBlock.Text = $"正在获取 {sourceIds.Count} 个作品信息...";
+                IReadOnlyDictionary<string, WorkInfoDto> workInfos;
+                SearchQueueCountPlan queuePlan;
+                var failedCount = 0;
+                var switchedCount = 0;
 
-                var queuePlan = BuildQueuePlan(sourceIds);
+                if (QueueTranslationCheckBox.IsChecked == true)
+                {
+                    StatusTextBlock.Text = $"正在分析 {sourceIds.Count} 个作品的语言并获取作品信息...";
+                    var resolution = await _enqueueWorkInfoResolver.ResolvePreferTranslatedAsync(BuildEnqueueRequests(sourceIds));
+                    workInfos = resolution.WorkInfos;
+                    queuePlan = BuildQueuePlan(resolution.WorkInfos.Keys.ToArray());
+                    failedCount = resolution.FailedSourceIds.Count;
+                    switchedCount = resolution.SwitchedSourceCount;
+                }
+                else
+                {
+                    StatusTextBlock.Text = $"正在获取 {sourceIds.Count} 个作品信息...";
+                    queuePlan = BuildQueuePlan(sourceIds);
+                    workInfos = await ResolveWorkInfoAsync(queuePlan.ToEnqueue);
+                }
+
                 if (queuePlan.ToEnqueue.Count == 0)
                 {
-                    StatusTextBlock.Text = $"已跳过全部 {queuePlan.SkippedCount} 项。";
+                    var statusText = failedCount > 0
+                        ? $"已跳过全部 {queuePlan.SkippedCount} 项；另有 {failedCount} 项解析失败。"
+                        : $"已跳过全部 {queuePlan.SkippedCount} 项。";
+                    StatusTextBlock.Text = DownloadOperationStatusTexts.AppendTranslationSwitchClause(statusText.TrimEnd('。'), switchedCount) + "。";
                     return;
                 }
 
-                var workInfos = await ResolveWorkInfoAsync(queuePlan.ToEnqueue);
+                var enqueuedWorkInfos = FilterWorkInfoMap(workInfos, queuePlan.ToEnqueue);
                 _searchStateStore.EnqueueForDownload(queuePlan.ToEnqueue);
-                _downloadService.UpsertPrefetchedWorkInfo(workInfos);
+                _downloadService.UpsertPrefetchedWorkInfo(enqueuedWorkInfos);
                 foreach (var sourceIdItem in queuePlan.ToEnqueue)
                 {
-                    _queuedStatusOverrides.TryRemove(sourceIdItem, out _);
+                    ClearQueuedFailureState(new[] { sourceIdItem });
                 }
-                MergeQueuedWorkInfoTitles(DownloadWorkInfoTitlePolicy.BuildNonEmptyTitleMap(workInfos));
+                MergeQueuedWorkInfoTitles(DownloadWorkInfoTitlePolicy.BuildNonEmptyTitleMap(enqueuedWorkInfos));
 
                 RefreshView();
 
-                var resolvedCount = workInfos.Count;
-                var batchStatusMsg = DownloadOperationStatusTexts.BuildBatchEnqueueResult(queuePlan.ToEnqueue.Count, resolvedCount);
+                var resolvedCount = enqueuedWorkInfos.Count;
+                var batchStatusMsg = DownloadOperationStatusTexts.AppendTranslationSwitchClause(
+                    DownloadOperationStatusTexts.BuildBatchEnqueueResult(queuePlan.ToEnqueue.Count, resolvedCount),
+                    switchedCount);
                 StatusTextBlock.Text = queuePlan.SkippedCount > 0
-                    ? $"{batchStatusMsg}；已跳过 {queuePlan.SkippedCount} 项。"
-                    : batchStatusMsg;
+                    ? $"{batchStatusMsg}；已跳过 {queuePlan.SkippedCount} 项{BuildFailedSuffix(failedCount)}。"
+                    : $"{batchStatusMsg}{BuildFailedSuffix(failedCount)}";
             },
             disableRunQueue: true,
             failurePrefix: "加入批量下载失败",
@@ -279,6 +350,7 @@ public partial class DownloadView : UserControl
                 await _downloadService.ClearAllTasksAsync();
                 await _uiStateStore.ClearUnfinishedQueueAsync();
                 _queuedStatusOverrides.Clear();
+                _queuedErrorMessages.Clear();
                 _queuedWorkInfoTitles.Clear();
 
                 RefreshView();
@@ -318,6 +390,7 @@ public partial class DownloadView : UserControl
                     {
                         _searchStateStore.RemoveFromQueue(new[] { task.SourceId });
                         _queuedStatusOverrides[task.SourceId] = DownloadTaskStatus.Canceled;
+                        _queuedErrorMessages.TryRemove(task.SourceId, out _);
                         canceledCount++;
                         continue;
                     }
@@ -439,7 +512,7 @@ public partial class DownloadView : UserControl
                 foreach (var task in selected)
                 {
                     _searchStateStore.RemoveFromQueue(new[] { task.SourceId });
-                    _queuedStatusOverrides.TryRemove(task.SourceId, out _);
+                    ClearQueuedFailureState(new[] { task.SourceId });
 
                     Guid? preferredTaskId = task.TaskId == Guid.Empty ? null : task.TaskId;
                     var started = await _downloadService.StartAsync(task.SourceId, context.FileFilter, preferredTaskId, context.HdAudioOnly);
@@ -486,35 +559,57 @@ public partial class DownloadView : UserControl
         await ExecuteGuardedAsync(
             async () =>
             {
-                StatusTextBlock.Text = "正在导入 CSV 文件...";
                 var items = await _importService.ParseCsvAsync(dialog.FileName);
                 var sourceIds = items.Select(static x => x.SourceId).ToArray();
-                var queuePlan = BuildQueuePlan(sourceIds);
+                SearchQueueCountPlan queuePlan;
+                IReadOnlyDictionary<string, WorkInfoDto> workInfos;
+                var failedCount = 0;
+                var switchedCount = 0;
+
+                if (QueueTranslationCheckBox.IsChecked == true)
+                {
+                    StatusTextBlock.Text = "正在分析 CSV 作品语言并准备加入下载队列...";
+                    var resolution = await _enqueueWorkInfoResolver.ResolvePreferTranslatedAsync(BuildEnqueueRequests(sourceIds));
+                    workInfos = resolution.WorkInfos;
+                    queuePlan = BuildQueuePlan(resolution.WorkInfos.Keys.ToArray());
+                    failedCount = resolution.FailedSourceIds.Count;
+                    switchedCount = resolution.SwitchedSourceCount;
+                }
+                else
+                {
+                    StatusTextBlock.Text = "正在导入 CSV 文件...";
+                    queuePlan = BuildQueuePlan(sourceIds);
+                    workInfos = items
+                        .Where(x => queuePlan.ToEnqueue.Contains(x.SourceId, StringComparer.OrdinalIgnoreCase))
+                        .ToDictionary(
+                            static x => x.SourceId,
+                            static x => new WorkInfoDto { SourceId = x.SourceId, Title = x.Title },
+                            StringComparer.OrdinalIgnoreCase);
+                }
 
                 if (queuePlan.ToEnqueue.Count == 0)
                 {
-                    StatusTextBlock.Text = $"CSV 中全部 {queuePlan.SkippedCount} 项已存在或重复，已跳过。";
+                    var skippedStatusText = failedCount > 0
+                        ? $"CSV 中全部 {queuePlan.SkippedCount} 项已存在、重复或解析失败，已跳过。"
+                        : $"CSV 中全部 {queuePlan.SkippedCount} 项已存在或重复，已跳过。";
+                    StatusTextBlock.Text = DownloadOperationStatusTexts.AppendTranslationSwitchClause(skippedStatusText.TrimEnd('。'), switchedCount) + "。";
                     return;
                 }
 
+                var enqueuedWorkInfos = FilterWorkInfoMap(workInfos, queuePlan.ToEnqueue);
                 _searchStateStore.EnqueueForDownload(queuePlan.ToEnqueue);
-                var workInfoMap = items
-                    .Where(x => queuePlan.ToEnqueue.Contains(x.SourceId, StringComparer.OrdinalIgnoreCase))
-                    .ToDictionary(static x => x.SourceId, static x => x);
-                _downloadService.UpsertPrefetchedWorkInfo(
-                    workInfoMap.ToDictionary(
-                        static kv => kv.Key,
-                        static kv => new WorkInfoDto { SourceId = kv.Value.SourceId, Title = kv.Value.Title }));
+                _downloadService.UpsertPrefetchedWorkInfo(enqueuedWorkInfos);
 
                 foreach (var sourceId in queuePlan.ToEnqueue)
                 {
-                    _queuedStatusOverrides.TryRemove(sourceId, out _);
+                    ClearQueuedFailureState(new[] { sourceId });
                 }
 
                 RefreshView();
-                StatusTextBlock.Text = queuePlan.SkippedCount > 0
-                    ? $"已从 CSV 导入 {queuePlan.ToEnqueue.Count} 项；已跳过 {queuePlan.SkippedCount} 项。"
-                    : $"已从 CSV 导入 {queuePlan.ToEnqueue.Count} 项。";
+                var importStatusText = queuePlan.SkippedCount > 0
+                    ? $"已从 CSV 导入 {queuePlan.ToEnqueue.Count} 项；已跳过 {queuePlan.SkippedCount} 项{BuildFailedSuffix(failedCount)}"
+                    : $"已从 CSV 导入 {queuePlan.ToEnqueue.Count} 项{BuildFailedSuffix(failedCount)}";
+                StatusTextBlock.Text = DownloadOperationStatusTexts.AppendTranslationSwitchClause(importStatusText, switchedCount) + "。";
             },
             disableRunQueue: true,
             failurePrefix: "导入 CSV 失败",
@@ -538,35 +633,57 @@ public partial class DownloadView : UserControl
         await ExecuteGuardedAsync(
             async () =>
             {
-                StatusTextBlock.Text = "正在导入 JSON 文件...";
                 var items = await _importService.ParseJsonAsync(dialog.FileName);
                 var sourceIds = items.Select(static x => x.SourceId).ToArray();
-                var queuePlan = BuildQueuePlan(sourceIds);
+                SearchQueueCountPlan queuePlan;
+                IReadOnlyDictionary<string, WorkInfoDto> workInfos;
+                var failedCount = 0;
+                var switchedCount = 0;
+
+                if (QueueTranslationCheckBox.IsChecked == true)
+                {
+                    StatusTextBlock.Text = "正在分析 JSON 作品语言并准备加入下载队列...";
+                    var resolution = await _enqueueWorkInfoResolver.ResolvePreferTranslatedAsync(BuildEnqueueRequests(sourceIds));
+                    workInfos = resolution.WorkInfos;
+                    queuePlan = BuildQueuePlan(resolution.WorkInfos.Keys.ToArray());
+                    failedCount = resolution.FailedSourceIds.Count;
+                    switchedCount = resolution.SwitchedSourceCount;
+                }
+                else
+                {
+                    StatusTextBlock.Text = "正在导入 JSON 文件...";
+                    queuePlan = BuildQueuePlan(sourceIds);
+                    workInfos = items
+                        .Where(x => queuePlan.ToEnqueue.Contains(x.SourceId, StringComparer.OrdinalIgnoreCase))
+                        .ToDictionary(
+                            static x => x.SourceId,
+                            static x => new WorkInfoDto { SourceId = x.SourceId, Title = x.Title },
+                            StringComparer.OrdinalIgnoreCase);
+                }
 
                 if (queuePlan.ToEnqueue.Count == 0)
                 {
-                    StatusTextBlock.Text = $"JSON 中全部 {queuePlan.SkippedCount} 项已存在或重复，已跳过。";
+                    var skippedStatusText = failedCount > 0
+                        ? $"JSON 中全部 {queuePlan.SkippedCount} 项已存在、重复或解析失败，已跳过。"
+                        : $"JSON 中全部 {queuePlan.SkippedCount} 项已存在或重复，已跳过。";
+                    StatusTextBlock.Text = DownloadOperationStatusTexts.AppendTranslationSwitchClause(skippedStatusText.TrimEnd('。'), switchedCount) + "。";
                     return;
                 }
 
+                var enqueuedWorkInfos = FilterWorkInfoMap(workInfos, queuePlan.ToEnqueue);
                 _searchStateStore.EnqueueForDownload(queuePlan.ToEnqueue);
-                var workInfoMap = items
-                    .Where(x => queuePlan.ToEnqueue.Contains(x.SourceId, StringComparer.OrdinalIgnoreCase))
-                    .ToDictionary(static x => x.SourceId, static x => x);
-                _downloadService.UpsertPrefetchedWorkInfo(
-                    workInfoMap.ToDictionary(
-                        static kv => kv.Key,
-                        static kv => new WorkInfoDto { SourceId = kv.Value.SourceId, Title = kv.Value.Title }));
+                _downloadService.UpsertPrefetchedWorkInfo(enqueuedWorkInfos);
 
                 foreach (var sourceId in queuePlan.ToEnqueue)
                 {
-                    _queuedStatusOverrides.TryRemove(sourceId, out _);
+                    ClearQueuedFailureState(new[] { sourceId });
                 }
 
                 RefreshView();
-                StatusTextBlock.Text = queuePlan.SkippedCount > 0
-                    ? $"已从 JSON 导入 {queuePlan.ToEnqueue.Count} 项；已跳过 {queuePlan.SkippedCount} 项。"
-                    : $"已从 JSON 导入 {queuePlan.ToEnqueue.Count} 项。";
+                var importStatusText = queuePlan.SkippedCount > 0
+                    ? $"已从 JSON 导入 {queuePlan.ToEnqueue.Count} 项；已跳过 {queuePlan.SkippedCount} 项{BuildFailedSuffix(failedCount)}"
+                    : $"已从 JSON 导入 {queuePlan.ToEnqueue.Count} 项{BuildFailedSuffix(failedCount)}";
+                StatusTextBlock.Text = DownloadOperationStatusTexts.AppendTranslationSwitchClause(importStatusText, switchedCount) + "。";
             },
             disableRunQueue: true,
             failurePrefix: "导入 JSON 失败",
@@ -613,12 +730,15 @@ public partial class DownloadView : UserControl
             _queuedWorkInfoTitles,
             _queuedStatusOverrides);
         ReplaceQueuedCache(cacheSnapshot);
+        PruneQueuedFailureOverrides(queuedSourceIds);
+        PruneQueuedErrorMessages(activeSourceIds, queuedSourceIds);
 
         var combined = DownloadTaskListComposer.ComposeRows(
             activeTasks,
             queuedSourceIds,
             _queuedWorkInfoTitles,
-            _queuedStatusOverrides);
+            _queuedStatusOverrides,
+            _queuedErrorMessages);
 
         TaskGrid.ItemsSource = combined;
         QueueCountTextBlock.Text = $"待下载队列：{queuedSourceIds.Count}";
@@ -679,7 +799,7 @@ public partial class DownloadView : UserControl
         var selected = GetSelectedTasks();
         // 允许未下载占位项（TaskId=Empty）参与取消按钮可用性判断。
         var availability = DownloadCommandAvailability.Evaluate(
-            selected.Select(static item => item.Status),
+            selected,
             _downloadService.GetTasks());
 
         CancelButton.IsEnabled = availability.CanCancel;
@@ -758,6 +878,84 @@ public partial class DownloadView : UserControl
 
         await Task.WhenAll(jobs);
         return result;
+    }
+
+    private static IReadOnlyDictionary<string, WorkInfoDto> FilterWorkInfoMap(
+        IReadOnlyDictionary<string, WorkInfoDto> workInfos,
+        IReadOnlyCollection<string> sourceIds)
+    {
+        var targetSourceIds = sourceIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return workInfos
+            .Where(item => targetSourceIds.Contains(item.Key))
+            .ToDictionary(static item => item.Key, static item => item.Value, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static string BuildFailedSuffix(int failedCount)
+    {
+        return failedCount > 0 ? $"；另有 {failedCount} 项解析失败" : string.Empty;
+    }
+
+    private static IReadOnlyList<EnqueueWorkInfoRequest> BuildEnqueueRequests(IEnumerable<string> sourceIds)
+    {
+        return sourceIds
+            .Select(static sourceId => new EnqueueWorkInfoRequest
+            {
+                SourceId = sourceId,
+            })
+            .ToArray();
+    }
+
+    private void ClearQueuedFailureState(IEnumerable<string> sourceIds)
+    {
+        foreach (var sourceId in sourceIds)
+        {
+            _queuedStatusOverrides.TryRemove(sourceId, out _);
+            _queuedErrorMessages.TryRemove(sourceId, out _);
+        }
+    }
+
+    private void ApplyStartupMetadataRefreshResult(StartupMetadataRefreshResult refreshResult)
+    {
+        foreach (var sourceId in refreshResult.UpdatedWorkInfos.Keys)
+        {
+            ClearQueuedFailureState(new[] { sourceId });
+        }
+
+        foreach (var failure in refreshResult.Failures)
+        {
+            _queuedStatusOverrides[failure.SourceId] = DownloadTaskStatus.Failed;
+            _queuedErrorMessages[failure.SourceId] = failure.ErrorMessage;
+        }
+    }
+
+    private void PruneQueuedErrorMessages(
+        IReadOnlyCollection<string> activeSourceIds,
+        IReadOnlyCollection<string> queuedSourceIds)
+    {
+        var retained = activeSourceIds
+            .Concat(queuedSourceIds)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var sourceId in _queuedErrorMessages.Keys.ToArray())
+        {
+            if (!retained.Contains(sourceId))
+            {
+                _queuedErrorMessages.TryRemove(sourceId, out _);
+            }
+        }
+    }
+
+    private void PruneQueuedFailureOverrides(IReadOnlyCollection<string> queuedSourceIds)
+    {
+        var retained = queuedSourceIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in _queuedStatusOverrides.ToArray())
+        {
+            if (item.Value == DownloadTaskStatus.Failed && !retained.Contains(item.Key))
+            {
+                _queuedStatusOverrides.TryRemove(item.Key, out _);
+            }
+        }
     }
 
     private void MergeQueuedWorkInfoTitles(IReadOnlyDictionary<string, string> titles)

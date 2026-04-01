@@ -22,7 +22,7 @@ public sealed class DownloadTaskRowViewModel
 
     public string TargetDirectory { get; init; } = string.Empty;
 
-    public static DownloadTaskRowViewModel CreatePending(string sourceId, string title, DownloadTaskStatus status)
+    public static DownloadTaskRowViewModel CreatePending(string sourceId, string title, DownloadTaskStatus status, string? errorMessage = null)
     {
         return new DownloadTaskRowViewModel
         {
@@ -33,7 +33,9 @@ public sealed class DownloadTaskRowViewModel
             StatusText = status.GetDisplayName(),
             StatusSortOrder = status.GetSortOrder(),
             ProgressText = string.Empty,
-            ErrorMessage = status == DownloadTaskStatus.Canceled ? "任务已取消。" : string.Empty,
+            ErrorMessage = string.IsNullOrWhiteSpace(errorMessage)
+                ? status == DownloadTaskStatus.Canceled ? "任务已取消。" : string.Empty
+                : errorMessage,
         };
     }
 

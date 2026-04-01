@@ -604,7 +604,7 @@
     "search": {
         "request": {
             "method": "GET",
-            "url": "https://api.asmr-300.com/api/search/=dl_count\u0026sort=desc\u0026page=1\u0026pageSize=3\u0026subtitle=0\u0026includeTranslationWorks=true"
+            "url": "https://api.asmr-300.com/api/search/=dl_count&sort=desc&page=1&pageSize=3&subtitle=0&includeTranslationWorks=true"
         },
         "response": {
             "totalCount": 0,
@@ -617,7 +617,7 @@
     "works": {
         "request": {
             "method": "GET",
-            "url": "https://api.asmr-300.com/api/works?order=release\u0026sort=desc\u0026page=1\u0026pageSize=3"
+            "url": "https://api.asmr-300.com/api/works?order=release&sort=desc&page=1&pageSize=3"
         },
         "response": {
             "totalCount": 59889,

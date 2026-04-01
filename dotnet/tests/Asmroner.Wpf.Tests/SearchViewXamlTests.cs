@@ -15,6 +15,7 @@ public class SearchViewXamlTests
         Assert.Contains("x:Name=\"QueryTextBox\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"ResultsGrid\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"StatusTextBlock\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"QueueTranslationCheckBox\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
         Assert.NotNull(doc.Root);
@@ -85,6 +86,21 @@ public class SearchViewXamlTests
         Assert.Contains("Click=\"OnContextMenuExportSelectedCsvClicked\"", content, StringComparison.Ordinal);
         Assert.Contains("Click=\"OnContextMenuExportSelectedJsonClicked\"", content, StringComparison.Ordinal);
         Assert.Contains("Click=\"OnContextMenuOpenWorkPageClicked\"", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SearchViewXaml_ShouldContainSeparateQueueTranslationCheckbox()
+    {
+        var xamlPath = XamlTestPathLocator.Locate("SearchView.xaml", "dotnet", "Asmroner.Wpf", "Asmroner.Wpf", "Views");
+        var content = File.ReadAllText(xamlPath);
+
+        Assert.Contains("x:Name=\"IncludeTranslationCheckBox\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"QueueTranslationCheckBox\"", content, StringComparison.Ordinal);
+        Assert.Contains("Content=\"加入翻译作品\"", content, StringComparison.Ordinal);
+        Assert.Contains("IsChecked=\"True\"", content, StringComparison.Ordinal);
+        Assert.True(
+            content.IndexOf("x:Name=\"IncludeTranslationCheckBox\"", StringComparison.Ordinal) < content.IndexOf("x:Name=\"QueueTranslationCheckBox\"", StringComparison.Ordinal),
+            "加入翻译作品复选框应位于包含翻译作品右侧。");
     }
 
     [Fact]

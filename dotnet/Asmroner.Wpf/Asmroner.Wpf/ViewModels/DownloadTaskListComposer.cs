@@ -8,7 +8,8 @@ public static class DownloadTaskListComposer
         IReadOnlyList<DownloadTaskItem> activeTasks,
         IReadOnlyList<string> queuedSourceIds,
         IReadOnlyDictionary<string, string> queuedWorkInfoTitles,
-        IReadOnlyDictionary<string, DownloadTaskStatus> queuedStatusOverrides)
+        IReadOnlyDictionary<string, DownloadTaskStatus> queuedStatusOverrides,
+        IReadOnlyDictionary<string, string> queuedErrorMessages)
     {
         var activeSourceIds = activeTasks
             .Select(static item => item.SourceId)
@@ -21,7 +22,8 @@ public static class DownloadTaskListComposer
                 queuedWorkInfoTitles.TryGetValue(sourceId, out var title) ? title : string.Empty,
                 queuedStatusOverrides.TryGetValue(sourceId, out var status) && status != DownloadTaskStatus.Canceled
                     ? status
-                    : DownloadTaskStatus.Pending));
+                    : DownloadTaskStatus.Pending,
+                queuedErrorMessages.TryGetValue(sourceId, out var errorMessage) ? errorMessage : null));
 
         var canceledPendingRows = queuedStatusOverrides
             .Where(item => item.Value == DownloadTaskStatus.Canceled)

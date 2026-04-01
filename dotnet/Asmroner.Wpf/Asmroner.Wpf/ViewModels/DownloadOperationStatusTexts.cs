@@ -5,8 +5,8 @@ public static class DownloadOperationStatusTexts
     public static string BuildBatchEnqueueResult(int totalCount, int resolvedCount)
     {
         return resolvedCount == totalCount
-            ? $"已加入批量下载：{totalCount} 个任务。"
-            : $"已加入批量下载：{totalCount} 个任务（{resolvedCount} 个已更新作品信息）。";
+            ? $"已加入批量下载：{totalCount} 个任务"
+            : $"已加入批量下载：{totalCount} 个任务（{resolvedCount} 个已更新作品信息）";
     }
 
     public static string BuildRunQueueResult(int createdCount)
@@ -40,5 +40,27 @@ public static class DownloadOperationStatusTexts
         return startedCount == 0
             ? "没有可立即下载的任务。"
             : $"已立即启动 {startedCount}/{totalCount} 个任务。";
+    }
+
+    public static string AppendTranslationSwitchClause(string message, int switchedCount)
+    {
+        return switchedCount > 0
+            ? $"{message}；其中 {switchedCount} 项已切换为翻译作品"
+            : message;
+    }
+
+    public static string BuildWorkInfoRefreshResult(int updatedCount, int failedCount)
+    {
+        if (updatedCount > 0 && failedCount > 0)
+        {
+            return $"作品信息更新完成：成功更新 {updatedCount} 项，失败 {failedCount} 项。";
+        }
+
+        if (updatedCount > 0)
+        {
+            return $"作品信息更新完成：成功更新 {updatedCount} 项。";
+        }
+
+        return $"作品信息更新失败：共有 {failedCount} 项未能更新。";
     }
 }

@@ -77,6 +77,7 @@ public sealed class SearchService : ISearchService
             .Take(targetCount)
             .Select(static work => new SearchWorkItem
             {
+                WorkId = work.Id,
                 SourceId = work.SourceId,
                 Title = work.Title,
                 Release = work.Release,
