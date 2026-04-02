@@ -37,6 +37,7 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
         await DropUnusedLegacyTablesAsync(connection, cancellationToken);
         await EnsureAppConfigTableAsync(connection, cancellationToken);
         await EnsureUiStateTableAsync(connection, cancellationToken);
+        await EnsureFavoriteWorkTableAsync(connection, cancellationToken);
     }
 
     public async Task<bool> CanConnectAsync(CancellationToken cancellationToken = default)
@@ -100,6 +101,14 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
     {
         await using var command = connection.CreateCommand();
         command.CommandText = AsmronerConstants.SqliteQueries.BuildCreateUiStateTable();
+
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task EnsureFavoriteWorkTableAsync(SqliteConnection connection, CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = AsmronerConstants.SqliteQueries.BuildCreateFavoriteWorkTable();
 
         await command.ExecuteNonQueryAsync(cancellationToken);
     }

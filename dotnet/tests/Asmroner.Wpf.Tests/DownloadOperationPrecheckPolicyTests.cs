@@ -16,43 +16,69 @@ public class DownloadOperationPrecheckPolicyTests
     }
 
     [Fact]
-    public void CheckRetrySingle_ShouldRejectMultipleSelection()
+    public void CheckRetry_ShouldReturnSelectedFailedTargets_AndIgnoreOtherStatuses()
     {
         var selected = new[]
         {
             CreateRow("RJ8001", DownloadTaskStatus.Failed, Guid.NewGuid()),
-            CreateRow("RJ8002", DownloadTaskStatus.Failed, Guid.NewGuid()),
+            CreateRow("RJ8002", DownloadTaskStatus.Completed, Guid.NewGuid()),
+            CreateRow("RJ8003", DownloadTaskStatus.Failed, Guid.NewGuid()),
         };
 
-        var result = DownloadOperationPrecheckPolicy.CheckRetrySingle(selected);
+        var result = DownloadOperationPrecheckPolicy.CheckRetry(selected, Array.Empty<DownloadTaskItem>());
 
-        Assert.False(result.CanProceed);
-        Assert.Equal("重试仅支持单个失败任务，请只选择一条记录。", result.StatusText);
-        Assert.Null(result.Target);
+        Assert.True(result.CanProceed);
+        Assert.True(result.UsesSelection);
+        Assert.Equal(2, result.Targets.Count);
+        Assert.Contains(result.Targets, item => item.SourceId == "RJ8001");
+        Assert.Contains(result.Targets, item => item.SourceId == "RJ8003");
     }
 
     [Fact]
-    public void CheckRetrySingle_ShouldRejectPlaceholderTask()
+    public void CheckRetry_ShouldRejectWhenSelectionHasNoRetryableFailedTargets()
     {
         var selected = new[]
         {
             CreateRow("RJ8001", DownloadTaskStatus.Failed, Guid.Empty),
+            CreateRow("RJ8002", DownloadTaskStatus.Completed, Guid.NewGuid()),
         };
 
-        var result = DownloadOperationPrecheckPolicy.CheckRetrySingle(selected);
+        var result = DownloadOperationPrecheckPolicy.CheckRetry(selected, Array.Empty<DownloadTaskItem>());
 
         Assert.False(result.CanProceed);
-        Assert.Equal("该任务尚未开始执行，无需重试。", result.StatusText);
+        Assert.Equal("选中项中没有可重试的失败任务。", result.StatusText);
+        Assert.True(result.UsesSelection);
+        Assert.Empty(result.Targets);
     }
 
     [Fact]
-    public void CheckRetryAllFailed_ShouldRejectWhenEmpty()
+    public void CheckRetry_ShouldFallbackToAllFailed_WhenSelectionEmpty()
     {
-        var result = DownloadOperationPrecheckPolicy.CheckRetryAllFailed(Array.Empty<DownloadTaskItem>());
+        var result = DownloadOperationPrecheckPolicy.CheckRetry(
+            Array.Empty<DownloadTaskRowViewModel>(),
+            new[]
+            {
+                CreateTask("RJ8011", DownloadTaskStatus.Failed, Guid.NewGuid()),
+                CreateTask("RJ8012", DownloadTaskStatus.Completed, Guid.NewGuid()),
+            });
+
+        Assert.True(result.CanProceed);
+        Assert.False(result.UsesSelection);
+        var target = Assert.Single(result.Targets);
+        Assert.Equal("RJ8011", target.SourceId);
+    }
+
+    [Fact]
+    public void CheckRetry_ShouldRejectWhenSelectionEmpty_AndNoFailedTasksExist()
+    {
+        var result = DownloadOperationPrecheckPolicy.CheckRetry(
+            Array.Empty<DownloadTaskRowViewModel>(),
+            Array.Empty<DownloadTaskItem>());
 
         Assert.False(result.CanProceed);
         Assert.Equal("当前没有失败任务可重试。", result.StatusText);
-        Assert.Empty(result.FailedTasks);
+        Assert.False(result.UsesSelection);
+        Assert.Empty(result.Targets);
     }
 
     [Fact]
@@ -77,6 +103,16 @@ public class DownloadOperationPrecheckPolicyTests
     private static DownloadTaskRowViewModel CreateRow(string sourceId, DownloadTaskStatus status, Guid taskId)
     {
         return new DownloadTaskRowViewModel
+        {
+            SourceId = sourceId,
+            Status = status,
+            TaskId = taskId,
+        };
+    }
+
+    private static DownloadTaskItem CreateTask(string sourceId, DownloadTaskStatus status, Guid taskId)
+    {
+        return new DownloadTaskItem
         {
             SourceId = sourceId,
             Status = status,

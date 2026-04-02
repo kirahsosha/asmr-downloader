@@ -201,20 +201,20 @@
                                 Click="OnSearchClicked"
                                 Content="搜索"/>
 
-                        <Button x:Name="ExportCsvButton"
+                        <Button x:Name="ExportButton"
                                 Style="{StaticResource LightActionButtonStyle}"
-                                Click="OnExportCsvClicked"
-                                Content="导出 CSV"/>
-
-                        <Button x:Name="ExportJsonButton"
-                                Style="{StaticResource LightActionButtonStyle}"
-                                Click="OnExportJsonClicked"
-                                Content="导出 JSON"/>
+                                Click="OnExportClicked"
+                                Content="导出到文件"/>
 
                         <Button x:Name="QueueButton"
                                 Style="{StaticResource LightActionButtonStyle}"
                                 Click="OnQueueClicked"
                                 Content="加入下载队列"/>
+
+                        <Button x:Name="FavoriteButton"
+                                Style="{StaticResource LightActionButtonStyle}"
+                                Click="OnFavoriteClicked"
+                                Content="收藏作品"/>
 
                         <Button x:Name="ClearButton"
                                 Style="{StaticResource LightActionButtonStyle}"
@@ -492,14 +492,10 @@
                         <ContextMenu>
                             <MenuItem Header="加入下载队列"
                                       Click="OnContextMenuQueueClicked"/>
-                            <MenuItem Header="导出全部任务到 CSV"
-                                      Click="OnContextMenuExportCsvClicked"/>
-                            <MenuItem Header="导出全部任务到 JSON"
-                                      Click="OnContextMenuExportJsonClicked"/>
-                            <MenuItem Header="导出选中任务到 CSV"
-                                      Click="OnContextMenuExportSelectedCsvClicked"/>
-                            <MenuItem Header="导出选中任务到 JSON"
-                                      Click="OnContextMenuExportSelectedJsonClicked"/>
+                            <MenuItem Header="导出全部任务到文件"
+                                      Click="OnContextMenuExportAllClicked"/>
+                            <MenuItem Header="导出选中任务到文件"
+                                      Click="OnContextMenuExportSelectedClicked"/>
                             <MenuItem Header="在浏览器打开"
                                       Click="OnContextMenuOpenWorkPageClicked"/>
                         </ContextMenu>

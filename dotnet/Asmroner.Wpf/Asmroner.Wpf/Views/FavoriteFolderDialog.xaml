@@ -1,0 +1,61 @@
+<Window x:Class="Asmroner.Wpf.Views.FavoriteFolderDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="收藏夹"
+        Width="420"
+        Height="190"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner">
+    <Border Padding="18"
+            Background="#FFF8FBFF">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock x:Name="PromptTextBlock"
+                       FontSize="14"
+                       FontWeight="SemiBold"
+                       Foreground="#FF264B73"
+                       Text="请选择现有收藏夹或输入新的收藏夹标题"/>
+
+            <ComboBox x:Name="FolderTitleComboBox"
+                      Grid.Row="1"
+                      Margin="0,12,0,0"
+                      IsEditable="True"
+                      IsTextSearchEnabled="False"
+                      StaysOpenOnEdit="True"
+                      VerticalContentAlignment="Center"
+                      Padding="8,4"/>
+
+            <TextBlock x:Name="HintTextBlock"
+                       Grid.Row="2"
+                       Margin="0,10,0,0"
+                       Foreground="#FF5F7590"
+                       Text="保存后会按当前版本选择结果写入本地 SQLite 收藏夹。"
+                       TextWrapping="Wrap"/>
+
+            <StackPanel Grid.Row="3"
+                        Margin="0,16,0,0"
+                        HorizontalAlignment="Right"
+                        Orientation="Horizontal">
+                <Button x:Name="CancelButton"
+                        Width="84"
+                        IsCancel="True"
+                        Content="取消"/>
+                <Button x:Name="ConfirmButton"
+                        Width="84"
+                        Margin="10,0,0,0"
+                        IsDefault="True"
+                        Click="OnConfirmClicked"
+                        Content="保存"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

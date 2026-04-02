@@ -13,22 +13,22 @@ public class DownloadOperationPromptsTests
     }
 
     [Fact]
-    public void BuildRetryAllConfirmMessage_ShouldContainPreviewAndEllipsis_WhenExceedingPreviewLimit()
+    public void BuildRetryConfirmMessage_ShouldContainSelectedScopePreviewAndEllipsis_WhenExceedingPreviewLimit()
     {
         var sourceIds = new[] { "RJ1001", "RJ1002", "RJ1003", "RJ1004", "RJ1005", "RJ1006" };
 
-        var message = DownloadOperationPrompts.BuildRetryAllConfirmMessage(2, sourceIds);
+        var message = DownloadOperationPrompts.BuildRetryConfirmMessage(2, sourceIds, usesSelection: true);
 
-        Assert.Equal("将按最多 2 并发重试 6 个失败任务：RJ1001, RJ1002, RJ1003, RJ1004, RJ1005 ...\n是否继续？", message);
+        Assert.Equal("将按最多 2 并发重试选中的 6 个失败任务：RJ1001, RJ1002, RJ1003, RJ1004, RJ1005 ...\n是否继续？", message);
     }
 
     [Fact]
-    public void BuildRetryAllConfirmMessage_ShouldNotUseEllipsis_WhenWithinPreviewLimit()
+    public void BuildRetryConfirmMessage_ShouldContainAllScopeWithoutEllipsis_WhenWithinPreviewLimit()
     {
         var sourceIds = new[] { "RJ2001", "RJ2002" };
 
-        var message = DownloadOperationPrompts.BuildRetryAllConfirmMessage(4, sourceIds);
+        var message = DownloadOperationPrompts.BuildRetryConfirmMessage(4, sourceIds, usesSelection: false);
 
-        Assert.Equal("将按最多 4 并发重试 2 个失败任务：RJ2001, RJ2002\n是否继续？", message);
+        Assert.Equal("将按最多 4 并发重试全部 2 个失败任务：RJ2001, RJ2002\n是否继续？", message);
     }
 }

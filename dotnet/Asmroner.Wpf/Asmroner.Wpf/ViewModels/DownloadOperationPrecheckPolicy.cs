@@ -9,13 +9,13 @@ public readonly record struct CancelPrecheckResult(
 
 public readonly record struct RetryPrecheckResult(
     bool CanProceed,
-    DownloadTaskRowViewModel? Target,
-    string? StatusText);
+    IReadOnlyList<RetryTaskTarget> Targets,
+    string? StatusText,
+    bool UsesSelection);
 
-public readonly record struct RetryAllPrecheckResult(
-    bool CanProceed,
-    IReadOnlyList<DownloadTaskItem> FailedTasks,
-    string? StatusText);
+public readonly record struct RetryTaskTarget(
+    Guid TaskId,
+    string SourceId);
 
 public readonly record struct StartPrecheckResult(
     bool CanProceed,
@@ -40,35 +40,32 @@ public static class DownloadOperationPrecheckPolicy
         return new CancelPrecheckResult(true, cancelable, null);
     }
 
-    public static RetryPrecheckResult CheckRetrySingle(IReadOnlyList<DownloadTaskRowViewModel> selected)
+    public static RetryPrecheckResult CheckRetry(IReadOnlyList<DownloadTaskRowViewModel> selected, IReadOnlyList<DownloadTaskItem> allTasks)
     {
-        if (selected.Count == 0)
+        if (selected.Count > 0)
         {
-            return new RetryPrecheckResult(false, null, "请先选择要重试的失败任务。");
+            var targets = selected
+                .Where(static item => item.Status == DownloadTaskStatus.Failed && item.TaskId != Guid.Empty)
+                .GroupBy(static item => item.TaskId)
+                .Select(static group => new RetryTaskTarget(group.Key, group.First().SourceId))
+                .ToArray();
+
+            return targets.Length == 0
+                ? new RetryPrecheckResult(false, Array.Empty<RetryTaskTarget>(), "选中项中没有可重试的失败任务。", true)
+                : new RetryPrecheckResult(true, targets, null, true);
         }
 
-        if (selected.Count > 1)
+        var failedTasks = DownloadTaskSnapshotPolicy.GetFailedTasks(allTasks)
+            .Where(static item => item.TaskId != Guid.Empty)
+            .GroupBy(static item => item.TaskId)
+            .Select(static group => new RetryTaskTarget(group.Key, group.First().SourceId))
+            .ToArray();
+        if (failedTasks.Length == 0)
         {
-            return new RetryPrecheckResult(false, null, "重试仅支持单个失败任务，请只选择一条记录。");
+            return new RetryPrecheckResult(false, Array.Empty<RetryTaskTarget>(), "当前没有失败任务可重试。", false);
         }
 
-        var target = selected[0];
-        if (target.TaskId == Guid.Empty)
-        {
-            return new RetryPrecheckResult(false, null, "该任务尚未开始执行，无需重试。");
-        }
-
-        return new RetryPrecheckResult(true, target, null);
-    }
-
-    public static RetryAllPrecheckResult CheckRetryAllFailed(IReadOnlyList<DownloadTaskItem> failedTasks)
-    {
-        if (failedTasks.Count == 0)
-        {
-            return new RetryAllPrecheckResult(false, Array.Empty<DownloadTaskItem>(), "当前没有失败任务可重试。");
-        }
-
-        return new RetryAllPrecheckResult(true, failedTasks, null);
+        return new RetryPrecheckResult(true, failedTasks, null, false);
     }
 
     public static StartPrecheckResult CheckStartImmediate(IReadOnlyList<DownloadTaskRowViewModel> selected)

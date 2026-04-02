@@ -27,17 +27,14 @@ public class DownloadCommandAvailabilityTests
 
         Assert.True(runningSelection.CanCancel);
         Assert.False(runningSelection.CanRetry);
-        Assert.True(runningSelection.CanRetryAllFailed);
         Assert.False(runningSelection.CanStartImmediate);
 
         Assert.False(failedSelection.CanCancel);
         Assert.True(failedSelection.CanRetry);
-        Assert.True(failedSelection.CanRetryAllFailed);
         Assert.True(failedSelection.CanStartImmediate);
 
         Assert.False(mixedEndedSelection.CanCancel);
         Assert.False(mixedEndedSelection.CanRetry);
-        Assert.True(mixedEndedSelection.CanRetryAllFailed);
         Assert.True(mixedEndedSelection.CanStartImmediate);
     }
 
@@ -55,7 +52,6 @@ public class DownloadCommandAvailabilityTests
 
         Assert.True(queuedSelection.CanCancel);
         Assert.False(queuedSelection.CanRetry);
-        Assert.True(queuedSelection.CanRetryAllFailed);
         Assert.False(queuedSelection.CanStartImmediate);
     }
 
@@ -68,12 +64,11 @@ public class DownloadCommandAvailabilityTests
 
         Assert.True(availability.CanCancel);
         Assert.False(availability.CanRetry);
-        Assert.True(availability.CanRetryAllFailed);
         Assert.True(availability.CanStartImmediate);
     }
 
     [Fact]
-    public void Evaluate_ShouldDisableRetry_ForFailedPlaceholderRow()
+    public void Evaluate_ShouldDisableRetry_ForFailedPlaceholderRow_WhenSelectionExists()
     {
         var availability = DownloadCommandAvailability.Evaluate(
             new[] { CreateRow(DownloadTaskStatus.Failed) },
@@ -81,6 +76,30 @@ public class DownloadCommandAvailabilityTests
 
         Assert.False(availability.CanRetry);
         Assert.True(availability.CanStartImmediate);
+    }
+
+    [Fact]
+    public void Evaluate_ShouldAllowRetryWithoutSelection_WhenAnyFailedTaskExists()
+    {
+        var availability = DownloadCommandAvailability.Evaluate(
+            Array.Empty<DownloadTaskRowViewModel>(),
+            new[] { CreateTask(DownloadTaskStatus.Failed) });
+
+        Assert.True(availability.CanRetry);
+    }
+
+    [Fact]
+    public void Evaluate_ShouldAllowRetry_WhenSelectionContainsRetryableFailedTask_AndIgnoreOtherStatuses()
+    {
+        var availability = DownloadCommandAvailability.Evaluate(
+            new[]
+            {
+                CreateRow(DownloadTaskStatus.Completed),
+                CreateRow(DownloadTaskStatus.Failed, Guid.NewGuid()),
+            },
+            new[] { CreateTask(DownloadTaskStatus.Failed) });
+
+        Assert.True(availability.CanRetry);
     }
 
     private static DownloadTaskItem CreateTask(DownloadTaskStatus status)

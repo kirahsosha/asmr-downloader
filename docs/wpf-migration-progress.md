@@ -1,6 +1,6 @@
 # asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.4.10
+当前跟踪版本：v0.4.11
 
 AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
@@ -998,6 +998,34 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 4. DoD 判定：是。本轮版本同步、WorkInfo 共享缓存、缓存驱动的 Search/Download/启动补拉链路收口、自动化回归与进度文档同步均已完成。
 5. 下次计划：由用户执行章节 4.1/4.2/4.3/4.4 受影响项手工回归，重点验证版本文案 `v0.4.10`、Search/Download 入队后的标题复用、清空任务列表后进程内缓存复用，以及重启或超过 1 小时后的按需补拉行为。
 
+### 1.5.83 2026-04-02，v0.4.11：SQLite 收藏夹与 Search/Download 收藏链路
+
+1. 变更摘要：
+ - **版本同步**：四个运行时项目的 `Version/AssemblyVersion/FileVersion/InformationalVersion` 统一更新到 `0.4.11/0.4.11.0`，并同步更新 README 与 WPF 进度文档中的当前版本标识。
+ - **SQLite 收藏夹落地**：新增 `IFavoriteStore`、`FavoriteStore` 与 `FavoriteWork` 表，将收藏夹标题、`SourceId`、`WorkId` 与标题写入本地 SQLite，并按 `FolderTitle + SourceId` 做大小写不敏感去重。
+ - **Search 收藏入口**：Search 页面新增“收藏作品”按钮与共享收藏夹弹窗；无选中项时给出明确提示，保存收藏时复用“加入翻译作品”勾选逻辑，按“简体中文 -> 繁体中文 -> 日本語”保存最终版本。
+ - **Download 导出入口**：Download 页面新增“从收藏夹导出”按钮与只读收藏夹下拉框；从 SQLite 读取收藏列表后复用现有入队/去重/标题缓存链路加入下载队列。
+ - **测试同步**：新增 `FavoriteStoreTests`、`FavoriteFolderSelectionPolicyTests`、`FavoriteFolderDialogXamlTests`，并更新 `DatabaseInitializerTests`、`SearchViewXamlTests`、`DownloadViewXamlTests`，覆盖新表初始化、收藏夹去重、共享弹窗与新按钮入口。
+ - **章节复核**：章节 1.2/1.3/1.4 状态无需变更；章节 2.1 全量回归基线更新为 2026-04-02 的 `267/267`，更新 2.1.13/2.1.17/2.1.19，追加 2.1.58/2.1.59/2.1.60；章节 3.1 新增单一 `v0.4.11` 待提交行；章节 4.1/4.2/4.3/4.4 受影响项重置为未勾选并补充收藏夹专项回归项。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Constants/AsmronerConstants.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IFavoriteStore.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/FavoriteStore.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/DatabaseInitializer.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/FavoriteFolderDialog.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/FavoriteFolderDialog.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/FavoriteStoreTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/FavoriteFolderSelectionPolicyTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/FavoriteFolderDialogXamlTests.cs`、`docs/wpf-migration-progress.md`。
+3. 验证结果：执行 `rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj`，55/55 通过；执行 `rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj`，142/142 通过；执行 `rtk dotnet test dotnet/Asmroner.sln --no-restore`，267/267 通过。
+4. DoD 判定：是。本轮版本同步、SQLite 收藏夹、Search 收藏、Download 从收藏夹导出、自动化回归与进度文档同步均已完成。
+5. 下次计划：由用户执行章节 4.1/4.2/4.3/4.4 受影响项手工回归，重点验证版本文案 `v0.4.11`、Search 收藏弹窗/未选中提示、收藏夹落库，以及 Download 从收藏夹导出与去重行为。
+
+### 1.5.84 2026-04-02，v0.4.11：Search/Download 文件入口收敛与重试按钮合并
+
+1. 变更摘要：
+ - **Search 导出入口收敛**：Search 页面主按钮由“导出 CSV / 导出 JSON”合并为“导出到文件”；右键菜单同步收敛为“导出全部任务到文件 / 导出选中任务到文件”，并保留原有 CSV/JSON 导出能力、无选中时导出全部的回退逻辑与导出后打开文件夹行为。
+ - **Download 导入入口收敛**：Download 页面将“导入CSV / 导入JSON”合并为“从文件导入”，通过文件扩展名选择 CSV 或 JSON 解析链路；原“从收藏夹导出”按钮统一更名为“从收藏夹导入”，其 SQLite 读取与入队逻辑保持不变。
+ - **Download 操作区调整**：将“执行下载队列”按钮移动到“立即下载选中任务”和“刷新任务列表”之间，并删除独立的“重试全部失败任务”按钮。
+ - **重试策略合并**：保留单个“重试失败任务”按钮；当存在选中项时，仅重试选中的失败任务并忽略非失败项；当没有选中项时，回退批量重试全部失败任务，并复用原并发上限与批量确认弹窗。
+ - **测试同步**：更新 `SearchViewXamlTests`、`DownloadViewXamlTests`、`DownloadCommandAvailabilityTests`、`DownloadOperationPrecheckPolicyTests`、`DownloadOperationPromptsTests`，覆盖统一入口按钮、右键菜单、单按钮重试规则与 Download 操作区顺序。
+ - **章节复核**：章节 1.2/1.3/1.4 状态无需变更；章节 2.1 全量回归基线更新为 2026-04-02 的 `271/271`，并更新 2.1.16/2.1.17/2.1.19/2.1.25/2.1.28；章节 3.1 继续保持单一 `v0.4.11` 待提交行；章节 4.2/4.3/4.4 受影响项重置为未勾选并按新入口文案同步。
+2. 关键文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/DownloadCommandAvailability.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/DownloadOperationPrecheckPolicy.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/DownloadOperationPrompts.cs`、`dotnet/tests/Asmroner.Wpf.Tests/SearchViewXamlTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/DownloadViewXamlTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/DownloadCommandAvailabilityTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/DownloadOperationPrecheckPolicyTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/DownloadOperationPromptsTests.cs`、`docs/wpf-migration-progress.md`。
+3. 验证结果：执行 `rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj -c Release --nologo`，146/146 通过；执行 `rtk dotnet test dotnet/Asmroner.sln -c Release --no-restore --nologo`，271/271 通过。
+4. DoD 判定：是。本轮 Search/Download 入口收敛、重试策略合并、自动化回归与进度文档同步均已完成。
+5. 下次计划：由用户执行章节 4.2/4.3/4.4 受影响项手工回归，重点验证 Search 主按钮与右键菜单统一导出、Download 从文件导入 / 从收藏夹导入，以及重试按钮在“单失败选中 / 混合选中 / 空选中”三种场景下的行为。
+
 ## 1.6 维护规则
 
 - 每次代码提交后更新第 16.2 节状态表。
@@ -1016,7 +1044,7 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-01 的 VS Code 测试运行器全量回归（245/245）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-02 的解决方案级回归（271/271）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
@@ -1142,10 +1170,10 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 #### 2.1.13 Infrastructure.Tests / DatabaseInitializerTests.cs
 
-| 已创建 | 已通过 | 阶段    | 样例名                                                                      | 输入                        | 期望输出                                                            |
-| ------ | ------ | ------- | --------------------------------------------------------------------------- | --------------------------- | ------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 4+ | `DatabaseInitializer_ShouldCreateNewSchema_AndDropUnusedLegacyTables`       | 临时目录下初始化数据库      | 创建 `AppConfig/UiState` 新结构，并清理 `MetadataWork/WorkSyncInfo` |
-| [x]    | [x]    | 阶段 4+ | `DatabaseInitializer_ShouldMigrateLegacySingleRowAppConfig_ToSplitSections` | 预置旧单行 AppConfig 数据库 | 初始化后自动迁移到分段结构，且 `user/downloader/limit` 三段均存在   |
+| 已创建 | 已通过 | 阶段    | 样例名                                                                      | 输入                        | 期望输出                                                                         |
+| ------ | ------ | ------- | --------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 4+ | `DatabaseInitializer_ShouldCreateNewSchema_AndDropUnusedLegacyTables`       | 临时目录下初始化数据库      | 创建 `AppConfig/UiState/FavoriteWork` 新结构，并清理 `MetadataWork/WorkSyncInfo` |
+| [x]    | [x]    | 阶段 4+ | `DatabaseInitializer_ShouldMigrateLegacySingleRowAppConfig_ToSplitSections` | 预置旧单行 AppConfig 数据库 | 初始化后自动迁移到分段结构，且 `user/downloader/limit` 三段均存在                |
 
 #### 2.1.14 IntegrationTests / ApplicationBootstrapperTests.cs
 
@@ -1165,21 +1193,24 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 #### 2.1.16 Wpf.Tests / DownloadCommandAvailabilityTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                | 输入                             | 期望输出                                          |
-| ------ | ------ | ------ | --------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------- |
-| [x]    | [x]    | 阶段 4 | `Evaluate_ShouldToggleCommandAvailability_ByTaskState`                | 不同任务状态输入到命令可用性规则 | 取消/重试/批量重试/立即下载按钮状态与任务状态一致 |
-| [x]    | [x]    | 阶段 4 | `Evaluate_ShouldAllowCancel_WhenQueuedTaskSelected`                   | 选中 `Queued` 状态任务           | “取消选中任务”按钮可用                            |
-| [x]    | [x]    | 阶段 4 | `Evaluate_ShouldAllowCancelAndImmediateStart_WhenPendingTaskSelected` | 选中 `Pending` 状态任务          | “取消选中任务”与“立即下载选中任务”按钮可用        |
-| [x]    | [x]    | 阶段 4 | `Evaluate_ShouldDisableRetry_ForFailedPlaceholderRow`                 | 选中 `TaskId=Empty` 的失败占位行 | 禁止“重试失败任务”，但允许“立即下载选中任务”      |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                                      | 输入                             | 期望输出                                                   |
+| ------ | ------ | ------ | ------------------------------------------------------------------------------------------- | -------------------------------- | ---------------------------------------------------------- |
+| [x]    | [x]    | 阶段 4 | `Evaluate_ShouldToggleCommandAvailability_ByTaskState`                                      | 不同任务状态输入到命令可用性规则 | 取消/重试/立即下载按钮状态与任务状态一致                   |
+| [x]    | [x]    | 阶段 4 | `Evaluate_ShouldAllowCancel_WhenQueuedTaskSelected`                                         | 选中 `Queued` 状态任务           | “取消选中任务”按钮可用                                     |
+| [x]    | [x]    | 阶段 4 | `Evaluate_ShouldAllowCancelAndImmediateStart_WhenPendingTaskSelected`                       | 选中 `Pending` 状态任务          | “取消选中任务”与“立即下载选中任务”按钮可用                 |
+| [x]    | [x]    | 阶段 4 | `Evaluate_ShouldDisableRetry_ForFailedPlaceholderRow_WhenSelectionExists`                   | 选中 `TaskId=Empty` 的失败占位行 | 在存在选中项时禁用“重试失败任务”，但允许“立即下载选中任务” |
+| [x]    | [x]    | 阶段 4 | `Evaluate_ShouldAllowRetryWithoutSelection_WhenAnyFailedTaskExists`                         | 无选中项，任务列表中存在失败任务 | “重试失败任务”按钮可用，并回退为批量重试全部失败任务       |
+| [x]    | [x]    | 阶段 4 | `Evaluate_ShouldAllowRetry_WhenSelectionContainsRetryableFailedTask_AndIgnoreOtherStatuses` | 混合选中 Failed/Completed 等状态 | 只要选中集合中存在可重试失败任务，即允许触发重试           |
 
 #### 2.1.17 Wpf.Tests / DownloadViewXamlTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                                    | 输入                                | 期望输出                                                                                                       |
-| ------ | ------ | ------ | ----------------------------------------------------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldContainBeautifiedStyleResources_AndCoreControls`                  | 解析 `DownloadView.xaml` 的文本/XML | 关键样式资源与核心控件存在，且 XAML 可被解析。                                                                 |
-| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldNotContainStagePrefixText`                                        | 解析 `DownloadView.xaml` 文本       | 页面不再包含“阶段 ”前缀文案。                                                                                  |
-| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldUseHeaderBorders_AndLockStatusWidthWhileLeavingProgressResizable` | 解析 `DownloadView.xaml` 文本/XML   | 列头显示边框；状态列宽保持 `50` 且不可拖拽改宽；进度列宽保持 `96` 且允许调整；数据过宽时支持横向滚动与列重排。 |
-| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldContainQueueTranslationCheckbox`                                  | 解析 `DownloadView.xaml` 文本/XML   | 页面包含默认勾选的“加入翻译作品”复选框，且位于“只下载高清音频”右侧。                                           |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                                       | 输入                                | 期望输出                                                                                                       |
+| ------ | ------ | ------ | -------------------------------------------------------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldContainBeautifiedStyleResources_AndCoreControls`                     | 解析 `DownloadView.xaml` 的文本/XML | 关键样式资源、核心控件与“从文件导入”“从收藏夹导入”按钮存在，且 XAML 可被解析。                                 |
+| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldNotContainStagePrefixText`                                           | 解析 `DownloadView.xaml` 文本       | 页面不再包含“阶段 ”前缀文案。                                                                                  |
+| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldUseHeaderBorders_AndLockStatusWidthWhileLeavingProgressResizable`    | 解析 `DownloadView.xaml` 文本/XML   | 列头显示边框；状态列宽保持 `50` 且不可拖拽改宽；进度列宽保持 `96` 且允许调整；数据过宽时支持横向滚动与列重排。 |
+| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldContainQueueTranslationCheckbox`                                     | 解析 `DownloadView.xaml` 文本/XML   | 页面包含默认勾选的“加入翻译作品”复选框，且位于“只下载高清音频”右侧。                                           |
+| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldPlaceRunQueueBetweenStartSelectedAndRefresh_AndRemoveRetryAllButton` | 解析 `DownloadView.xaml` 文本       | “执行下载队列”位于“立即下载选中任务”和“刷新任务列表”之间，且页面不再包含“重试全部失败任务”按钮。               |
 
 #### 2.1.18 Wpf.Tests / MainWindowXamlTests.cs
 
@@ -1192,13 +1223,13 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 | 已创建 | 已通过 | 阶段   | 样例名                                                                     | 输入                            | 期望输出                                                                                     |
 | ------ | ------ | ------ | -------------------------------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldContainUnifiedCardStyles_AndCoreControls`            | 解析 `SearchView.xaml` 文本/XML | 卡片化样式资源与核心控件存在，且 XAML 可被解析。                                             |
+| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldContainUnifiedCardStyles_AndCoreControls`            | 解析 `SearchView.xaml` 文本/XML | 卡片化样式资源、核心控件与“导出到文件”“收藏作品”按钮存在，且 XAML 可被解析。                 |
 | [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldUseAlignedComboBoxStyles`                            | 解析 `SearchView.xaml` 文本/XML | 下拉框与选项项样式包含对齐设置，且 XAML 可被解析。                                           |
 | [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldNotContainStagePrefixText`                           | 解析 `SearchView.xaml` 文本     | 页面不再包含“阶段 ”前缀文案。                                                                |
 | [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldUseHeaderBorders_AndLockSubtitleAndDateColumnWidths` | 解析 `SearchView.xaml` 文本/XML | 列头显示边框；字幕/日期列宽保持 `42/75` 且不可拖拽改宽；数据过宽时支持横向滚动与列重排。     |
 | [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldUseSearchViewClassName`                              | 解析 `SearchView.xaml` 文本     | `x:Class` 为 `Asmroner.Wpf.Views.SearchView`。                                               |
 | [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldWireSelectionChangedHandlersForQueryOptions`         | 解析 `SearchView.xaml` 文本     | 排序/方向/字幕/页大小下拉均绑定 `SelectionChanged`                                           |
-| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldContainResultsGridContextMenuItems`                  | 解析 `SearchView.xaml` 文本     | 结果表格包含右键菜单六项操作及对应事件绑定                                                   |
+| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldContainResultsGridContextMenuItems`                  | 解析 `SearchView.xaml` 文本     | 结果表格包含右键菜单四项操作及对应事件绑定                                                   |
 | [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldContainSeparateQueueTranslationCheckbox`             | 解析 `SearchView.xaml` 文本     | 搜索筛选用“包含翻译作品”与入队用“加入翻译作品”两个复选框并存，且后者位于前者右侧并默认勾选。 |
 
 #### 2.1.20 Wpf.Tests / SettingsViewXamlTests.cs
@@ -1247,11 +1278,11 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 #### 2.1.25 Wpf.Tests / DownloadOperationPromptsTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                                  | 输入                                              | 期望输出                                    |
-| ------ | ------ | ------ | --------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------- |
-| [x]    | [x]    | 阶段 4 | `BuildCancelConfirmMessage_ShouldContainCancelableCount`                                | 可取消任务数 `3`                                  | 返回“将取消 3 个任务，是否继续？”           |
-| [x]    | [x]    | 阶段 4 | `BuildRetryAllConfirmMessage_ShouldContainPreviewAndEllipsis_WhenExceedingPreviewLimit` | 6 条失败任务 SourceId，默认预览上限 5，最大并发 2 | 返回含前 5 项预览和省略号的批量重试确认文案 |
-| [x]    | [x]    | 阶段 4 | `BuildRetryAllConfirmMessage_ShouldNotUseEllipsis_WhenWithinPreviewLimit`               | 2 条失败任务 SourceId，最大并发 4                 | 返回不含省略号的批量重试确认文案            |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                                            | 输入                                                  | 期望输出                                                      |
+| ------ | ------ | ------ | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 4 | `BuildCancelConfirmMessage_ShouldContainCancelableCount`                                          | 可取消任务数 `3`                                      | 返回“将取消 3 个任务，是否继续？”                             |
+| [x]    | [x]    | 阶段 4 | `BuildRetryConfirmMessage_ShouldContainSelectedScopePreviewAndEllipsis_WhenExceedingPreviewLimit` | 6 条选中失败任务 SourceId，默认预览上限 5，最大并发 2 | 返回含“选中的”范围说明、前 5 项预览和省略号的批量重试确认文案 |
+| [x]    | [x]    | 阶段 4 | `BuildRetryConfirmMessage_ShouldContainAllScopeWithoutEllipsis_WhenWithinPreviewLimit`            | 2 条全部失败任务 SourceId，最大并发 4                 | 返回含“全部”范围说明且不带省略号的批量重试确认文案            |
 
 #### 2.1.26 Wpf.Tests / DownloadOperationStatusTextsTests.cs
 
@@ -1277,13 +1308,14 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 #### 2.1.28 Wpf.Tests / DownloadOperationPrecheckPolicyTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                | 输入                                                | 期望输出                                                       |
-| ------ | ------ | ------ | ----------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 4 | `CheckCancel_ShouldReturnPrompt_WhenSelectionEmpty`   | 空选中集合                                          | 返回不可继续且提示“请先选择要取消的任务。”                     |
-| [x]    | [x]    | 阶段 4 | `CheckRetrySingle_ShouldRejectMultipleSelection`      | 选中 2 个失败任务                                   | 返回不可继续且提示“重试仅支持单个失败任务，请只选择一条记录。” |
-| [x]    | [x]    | 阶段 4 | `CheckRetrySingle_ShouldRejectPlaceholderTask`        | 选中 1 个占位任务（`TaskId=Guid.Empty`）            | 返回不可继续且提示“该任务尚未开始执行，无需重试。”             |
-| [x]    | [x]    | 阶段 4 | `CheckRetryAllFailed_ShouldRejectWhenEmpty`           | 失败任务集合为空                                    | 返回不可继续且提示“当前没有失败任务可重试。”                   |
-| [x]    | [x]    | 阶段 4 | `CheckStartImmediate_ShouldReturnDeduplicatedTargets` | 含 Pending/Failed/Canceled/Running 且 SourceId 重复 | 返回可继续，目标集合按立即下载规则筛选且按 SourceId 去重       |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                | 输入                                                | 期望输出                                                 |
+| ------ | ------ | ------ | --------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
+| [x]    | [x]    | 阶段 4 | `CheckCancel_ShouldReturnPrompt_WhenSelectionEmpty`                   | 空选中集合                                          | 返回不可继续且提示“请先选择要取消的任务。”               |
+| [x]    | [x]    | 阶段 4 | `CheckRetry_ShouldReturnSelectedFailedTargets_AndIgnoreOtherStatuses` | 选中 Failed/Completed 混合任务                      | 返回可继续，仅提取选中的失败任务作为重试目标             |
+| [x]    | [x]    | 阶段 4 | `CheckRetry_ShouldRejectWhenSelectionHasNoRetryableFailedTargets`     | 选中占位失败行与非失败行                            | 返回不可继续且提示“选中项中没有可重试的失败任务。”       |
+| [x]    | [x]    | 阶段 4 | `CheckRetry_ShouldFallbackToAllFailed_WhenSelectionEmpty`             | 无选中项，任务列表中存在失败任务                    | 返回可继续，并回退为全部失败任务重试目标                 |
+| [x]    | [x]    | 阶段 4 | `CheckRetry_ShouldRejectWhenSelectionEmpty_AndNoFailedTasksExist`     | 无选中项，任务列表中没有失败任务                    | 返回不可继续且提示“当前没有失败任务可重试。”             |
+| [x]    | [x]    | 阶段 4 | `CheckStartImmediate_ShouldReturnDeduplicatedTargets`                 | 含 Pending/Failed/Canceled/Running 且 SourceId 重复 | 返回可继续，目标集合按立即下载规则筛选且按 SourceId 去重 |
 
 #### 2.1.29 Wpf.Tests / DownloadDirectoryPathPolicyTests.cs
 
@@ -1531,6 +1563,28 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 | [x]    | [x]    | 阶段 4 | `GetWorkInfoAsync_ShouldUseCachedNumericId_WhenSummaryWasWarmedBySearch`   | Search 结果预热 Summary + 后续详情查询             | 使用缓存内 `WorkId` 补拉完整详情并回写 Full 缓存             |
 | [x]    | [x]    | 阶段 4 | `GetTracksAsync_ShouldUseCachedNumericId_WhenPopularWarmupHasSummaryEntry` | 热门结果预热 Summary + 非 `RJ` `SourceId` 轨道查询 | `tracks` 查询复用缓存内数值 `WorkId`，避免直接用 `source_id` |
 
+#### 2.1.58 Infrastructure.Tests / FavoriteStoreTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                   | 输入                                         | 期望输出                                                                                          |
+| ------ | ------ | ------ | ------------------------------------------------------------------------ | -------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 4 | `SaveFavoriteFolderItemsAsync_ShouldRoundTripAndSkipExistingDuplicates`  | 同一收藏夹重复保存同一 `SourceId` 与新增作品 | SQLite 收藏夹按 `FolderTitle + SourceId` 去重，新增/跳过计数正确，已存在作品可更新标题与 `WorkId` |
+| [x]    | [x]    | 阶段 4 | `LoadFavoriteFolderTitlesAsync_ShouldDistinctTrimAndSortCaseInsensitive` | 混合空白、大小写变体与带首尾空格的收藏夹标题 | 收藏夹标题去空白、大小写不敏感去重，并按字母序稳定返回                                            |
+
+#### 2.1.59 Wpf.Tests / FavoriteFolderSelectionPolicyTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                        | 输入                                | 期望输出                                               |
+| ------ | ------ | ------ | ------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------ |
+| [x]    | [x]    | 阶段 4 | `NormalizeFolderTitle_ShouldTrimWhitespace`                   | 含首尾空白的收藏夹标题              | 返回去首尾空白后的标题                                 |
+| [x]    | [x]    | 阶段 4 | `BuildFolderTitles_ShouldDistinctAndSortCaseInsensitive`      | 大小写变体、空白标题与混合顺序标题  | 输出大小写不敏感去重且按稳定顺序排序后的收藏夹标题列表 |
+| [x]    | [x]    | 阶段 4 | `CanConfirm_ShouldAllowNewTitle_WhenCustomInputEnabled`       | 允许新建收藏夹 + 新标题             | 允许确认                                               |
+| [x]    | [x]    | 阶段 4 | `CanConfirm_ShouldRejectUnknownTitle_WhenCustomInputDisabled` | 仅允许选择现有收藏夹 + 未知标题输入 | 拒绝确认                                               |
+
+#### 2.1.60 Wpf.Tests / FavoriteFolderDialogXamlTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                    | 输入                                      | 期望输出                                                    |
+| ------ | ------ | ------ | ------------------------------------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------- |
+| [x]    | [x]    | 阶段 4 | `FavoriteFolderDialogXaml_ShouldContainEditableComboBoxAndConfirmButtons` | 解析 `FavoriteFolderDialog.xaml` 文本/XML | 弹窗包含可编辑下拉框、保存/取消按钮，且 XAML 可被正确解析。 |
+
 ### 2.2 测试覆盖分析
 
 - Core（模型/配置）：默认值完整性，✅ 已覆盖。
@@ -1542,6 +1596,7 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 - 格式优先级下载：`PreferFormats` 过滤轨道与留空全下载，✅ 已覆盖。
 - WorkInfo 预取复用：入队预取后下载阶段内存命中，✅ 已覆盖。
 - WorkInfo 共享缓存：摘要预热、Full 升级、数值 `WorkId` 别名命中与逐条 TTL，✅ 已覆盖。
+- 收藏夹存储与导出：SQLite 收藏夹写入、共享收藏夹弹窗、Search 收藏与 Download 导出联动，✅ 已覆盖。
 - 未完成队列快照构建：Search/Download 共用快照规则并在入队后持久化，✅ 已覆盖。
 - 启动未完成队列元数据补拉：非阻塞启动、仅补拉缺失标题并刷新 Download 列表，✅ 已覆盖。
 - 版本文案动态化：Settings 页面与启动日志共用程序集三段式版本号，✅ 已覆盖。
@@ -1555,6 +1610,7 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 - `QueryParserService`：为筛选 token 缺值场景增加 `ValidateFilterToken`，抛出可读 `ArgumentException`。
 - `AsmrApiClient`：在认证预热后显式附加 `Authorization: Bearer <token>` 请求头，使鉴权行为可被测试独立验证。
 - `WorkInfoDto` / `EnqueueWorkInfoResolver`：补齐 `translation_info`、`language_editions`、`other_language_editions_in_db` 元数据，并统一 Search/Download/CSV/JSON 入队时的翻译版本优选逻辑，按“简体中文 -> 繁体中文 -> 日本語”选择最终 `SourceId`。
+- `FavoriteStore` / `FavoriteFolderDialog` / `SearchView` / `DownloadView`：新增 SQLite 收藏夹、共享收藏夹弹窗与 Search 保存 / Download 导出联动，Search 侧保存收藏时复用“加入翻译作品”优选逻辑。
 - `SourceIdNormalizer` / `AsmrApiClient` / `SearchWorkItem`：统一保留 `source_id` 与数值 `workId` 两套标识；兼容 `BJ` 作品 URL 归一化，并在缺少数值编号时通过搜索结果回填 `workId`，避免详情/轨道接口继续误用 `source_id`。
 - `DownloadInputNormalizer`：批量输入改为“提交时归一化”，避免实时改写影响输入符号与粘贴体验，同时保持入队前统一规范化与去重。
 - `DownloadCommandAvailability`：从 `DownloadView.xaml.cs` 中抽取按钮可用性规则为独立纯状态类，消除 WPF 测试工程占位样例。
@@ -1585,7 +1641,8 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 | 2026-03-31 | 已提交 | v0.4.7: tags column, shell folder reuse, import count fixes                 | 1. Update version to v0.4.7.<br>2. Search DataGrid removes 评分/销量 and adds 标签 column.<br>3. CSV header `source_id,has_subtitle,release,tags,title`.<br>4. Update regression tests.                                                                                                                                                                                                                                            | da37fcb    |
 | 2026-03-31 | 已提交 | v0.4.8: harden startup refresh and tune Search/Download columns             | 1. Update runtime version to v0.4.8.<br>2. Switch version text to dynamic assembly version.<br>3. Add centralized constants/query class.<br>4. Use startup warmup to fix blank titles after restart.<br>5. Tune Search/Download DataGrid layout.<br>6. Update regression tests.                                                                                                                                                    | 0b7644c    |
 | 2026-04-01 | 已提交 | v0.4.9: translated queue, BJ/source fixes, prompt polish                    | 1. Update runtime version to v0.4.9.<br>2. Update AI-readable prompts.<br>3. Add persisted “加入翻译作品” options.<br>4. Preserve Search `WorkId`, resolve non-RJ `source_id` values via numeric work-id fallback, and fix valid browser/work/tracks paths.<br>5. Adjust UI display.<br>6. Avoid duplicate output suffixes.<br>7. Update regression tests and api samples.                                                         | eccd533    |
-| 2026-04-02 | 待提交 | v0.4.10: add shared workinfo cache                                          | 1. Update runtime/docs version to v0.4.10.<br>2. Add shared WorkInfo cache with 1-hour per-entry TTL.<br>3. Warm Summary cache from Search/Popular result and upgrade to Full details on demand for downloads/tracks.<br>4. Route Search/Download/startup refresh through the shared cache contract.<br>5. Update regression tests and progress documentation.                                                                     | -          |
+| 2026-04-02 | 已提交 | v0.4.10: add shared workinfo cache                                          | 1. Update runtime/docs version to v0.4.10.<br>2. Add shared WorkInfo cache with 1-hour per-entry TTL.<br>3. Warm Summary cache from Search/Popular result and upgrade to Full details on demand for downloads/tracks.<br>4. Route Search/Download/startup refresh through the shared cache contract.<br>5. Update regression tests and progress documentation.                                                                     | 60e2f70    |
+| 2026-04-02 | 待提交 | v0.4.11: add favorites flow and unify search/download actions               | 1. Update runtime/docs version to v0.4.11.<br>2. Add SQLite favorite storage, and Search favorite-save flow.<br>3. Add Download favorite-import flow and queue integration.<br>4. Merge Search export actions for the main button and context menu, and merge Download CSV/JSON import actions.<br>5. Merge retry behavior and adjust the Download action-button.<br>5. Update regression tests and progress documentation.        | -          |
 
 ---
 
@@ -1611,7 +1668,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 在 Settings 页面点击“保存并重新初始化”后，当前页应保持在 Settings，不应自动跳转到 Search。
 - [x] Settings 页面输入无效配置时，可给出可读错误提示，且应用不崩溃。
 - [x] “测试连接”可完成站点发现与登录校验；成功时回填当前 BaseUrl 并显示延迟与鉴权结果，失败时显示明确原因。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.4.10。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.4.11。
 
 ### 4.2 Search 功能
 
@@ -1627,9 +1684,12 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 已存在于下载列表中的作品不会重复入队，页面提示中会明确说明新增数量、跳过数量与翻译切换数量（如适用）。
 - [x] Search 页面开启“加入翻译作品”后，选中入队与当前结果批量入队都会按“简体中文 -> 繁体中文 -> 日本語”选择最终版本；关闭后保持当前结果的原始 `SourceId`。
 - [x] Search 页面开启“加入翻译作品”且实际切换语言版本时，选中入队与当前结果批量入队的状态提示会显示“其中 X 项已切换为翻译作品”。
-- [x] Search 结果可成功导出全部任务到 CSV 与 JSON，导出文件内容可正常打开且关键字段完整，导出后自动打开文件夹。
-- [x] Search 结果在选中行存在时可成功导出选中任务到 CSV 与 JSON；无选中行时会回退导出全部任务。
-- [x] Search 任务列表支持右键菜单，且包含“加入下载队列 / 导出全部任务到 CSV / 导出全部任务到 JSON / 导出选中任务到 CSV / 导出选中任务到 JSON / 在浏览器打开”六项操作。
+- [x] Search 页面在未选中任何结果时点击“收藏作品”，左下角应提示“请先选择需要加入收藏的作品”。
+- [x] Search 页面“收藏作品”弹窗可选择现有收藏夹，也可输入新的收藏夹标题并保存到本地 SQLite。
+- [x] Search 页面开启“加入翻译作品”后保存收藏时，应按“简体中文 -> 繁体中文 -> 日本語”保存最终版本；关闭后保持当前结果的原始 `SourceId`。
+- [x] Search 页面“导出到文件”可成功导出全部任务到 CSV 与 JSON，导出文件内容可正常打开且关键字段完整，导出后自动打开文件夹。
+- [x] Search 页面在选中行存在时可通过“导出到文件”导出选中任务到 CSV 与 JSON；无选中行时会回退导出全部任务。
+- [x] Search 任务列表支持右键菜单，且包含“加入下载队列 / 导出全部任务到文件 / 导出选中任务到文件 / 在浏览器打开”四项操作；两个导出入口均可继续选择 CSV 或 JSON。
 - [x] Search 结果在多选状态下右键未选中行时，不应清空或追加现有选中集合。
 - [x] Search 任务列表右键“在浏览器打开”仅对当前右键命中项生效，且 URL 按 `workPageUrlTemplate` 与 `{RJID}` / `WorkId` 替换规则生成。
 - [x] 查询热门作品命中 `BJ02370869` 这类 `source_id/workId` 不一致的作品时，开启“加入翻译作品”后仍可正常入队，不出现解析失败或空入队。
@@ -1638,21 +1698,24 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 
 - [x] 单个 RJID 入队支持 `RJxxxx`、作品 URL、`RJ-xxxx`、纯数字等输入形式，提交后可归一化并成功入队。
 - [x] 批量入队支持逗号、分号、空格、换行混合分隔；重复项会去重，已存在任务不会重复加入。
-- [x] 导入 CSV 与导入 JSON 可成功读取 Search 导出文件并入队，重复任务会被跳过且提示明确。
+- [x] “从文件导入”可选择 CSV 或 JSON 文件并成功读取 Search 导出结果入队，重复任务会被跳过且提示明确。
+- [x] “从收藏夹导入”可弹出仅允许选择现有收藏夹的下拉框，并将所选收藏夹中的作品加入下载队列。
+- [x] 从收藏夹导入时，已存在于下载列表或待下载队列中的作品会被跳过，状态提示会显示新增数量、跳过数量与当前队列总数。
 - [x] 执行下载队列后，任务列表与队列计数会刷新，任务状态、进度、目标目录、错误信息显示正确。
 - [x] 状态列排序遵循业务顺序而非字母序；状态文案显示为中文且与实际状态一致。
 - [x] Download 任务列表列头应显示完整边框；状态列宽保持 `50` 且不可拖拽改宽，进度列宽保持 `96` 且允许调整，拖拽仅改变列顺序；当目录或错误信息过宽时可通过横向滚动查看完整数据。
 - [x] “立即下载选中任务”可对 Pending、Failed、Canceled 等允许状态生效，不允许的状态不会误触发。
 - [x] “取消选中任务”可取消 Pending、Queued、Running 任务，确认提示、取消结果与列表状态一致。
-- [x] “重试失败任务”仅对单个失败任务可用；“重试全部失败任务”仅在存在失败任务时可用，并能输出正确汇总结果。
+- [x] Download 页面操作按钮顺序应为“立即下载选中任务 -> 执行下载队列 -> 刷新任务列表”。
+- [x] “重试失败任务”在存在选中项时仅重试选中的失败任务并忽略非失败项；无选中项时会批量重试全部失败任务，并能输出正确汇总结果。
 - [x] “打开下载目录”可打开当前生效的下载目录。
 - [x] “清空任务列表”可停止运行中任务、清空下载队列并删除任务列表项，且清空后重启不会回流旧未完成队列。
 - [x] Download 页面会恢复上一次运行时的“只下载高清音频”“加入翻译作品”“文件筛选”与未完成队列（`Pending/Queued/Failed` 恢复为 `Pending`），并在后台补拉缺失作品标题后刷新列表显示。
 - [x] Search 页面加入下载队列后，若未切换至 Download 页面即退出并重启，未完成队列仍可恢复。
 - [x] 文件筛选规则可生效；开启“只下载高清音频”后，在同时存在 flac/wav 与 mp3 的场景下不会重复下载 mp3。
 - [x] 新启动的失败任务不会从列表中消失；失败、取消、完成后的任务状态可被稳定追踪。
-- [x] Download 页面开启“加入翻译作品”后，单个入队、批量入队、CSV 导入、JSON 导入四条入口都会按“简体中文 -> 繁体中文 -> 日本語”选择最终版本；关闭后保持输入或导入文件中的原始 `SourceId`。
-- [x] Download 页面开启“加入翻译作品”且实际切换语言版本时，单个入队、批量入队、CSV 导入、JSON 导入的状态提示会显示“其中 X 项已切换为翻译作品”。
+- [x] Download 页面开启“加入翻译作品”后，单个入队、批量入队、从文件导入（CSV/JSON）三条入口都会按“简体中文 -> 繁体中文 -> 日本語”选择最终版本；关闭后保持输入或导入文件中的原始 `SourceId`。
+- [x] Download 页面开启“加入翻译作品”且实际切换语言版本时，单个入队、批量入队、从文件导入（CSV/JSON）的状态提示会显示“其中 X 项已切换为翻译作品”。
 - [x] 启动后台补拉结束后，Download 页状态提示统一使用“作品信息更新完成/失败”文案，不再出现“启动补拉完成/失败”。
 - [x] 当轨道标题已自带扩展名时，下载落地文件名不会出现 `.mp3.mp3`、`.png.png` 等重复后缀；无扩展名标题仍会补齐正确后缀。
 - [x] 启动后台补拉作品信息失败时，Download 列表中的未完成队列占位项会显示为 `Failed` 且错误信息可读。
@@ -1662,8 +1725,10 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] Search 页面加入下载队列后，Download 页面可看到对应待执行任务，标题信息尽量不丢失。
 - [x] 已取消任务再次从 Search 侧或 Download 侧触发下载时，可复用原任务行并回流为待执行/执行中状态，不新增重复行。
 - [x] Search 与 Download 页面之间来回切换后，队列数量、任务状态和标题缓存保持一致，不出现旧状态残留。
-- [x] Search 导出 -> Download 导入 -> 执行下载的链路可端到端跑通（标签列 + 打开文件夹）。
-- [x] 重复入队防护在 Search 入队、Download 单个入队、Download 批量入队、CSV 导入、JSON 导入五条入口上行为一致。
+- [x] Search 页面主按钮或右键菜单“导出到文件” -> Download “从文件导入” -> 执行下载的链路可端到端跑通（标签列 + 打开文件夹）。
+- [x] Search 保存收藏 -> Download 从收藏夹导入 -> 执行下载的链路可端到端跑通，且收藏夹中保存的最终 `SourceId` 在导入后保持一致。
+- [x] 重启应用后，Search 与 Download 页面中的收藏夹弹窗仍可读取同一批 SQLite 收藏夹与作品。
+- [x] 重复入队防护在 Search 入队、Download 单个入队、Download 批量入队、从文件导入（CSV/JSON）四条入口上行为一致。
 - [x] Search 与 Download 页面之间来回切换、或在重启后恢复未完成队列时，若最终入队版本被切换为翻译作品，标题与 `SourceId` 显示仍保持一致，不出现原始版本与最终版本错位。
 - [x] 清空任务列表后不关闭程序，重新从 Search/Download 对同一作品入队时应优先复用进程内作品缓存；关闭程序或超过 1 小时后再次操作时仍能自动补拉并保持标题正确。
 - [x] 清空任务列表后再从 Search 页面重新入队时，状态提示与实际新增数量一致，不会出现“失败 1 项”但实际 0 项入队的误报。

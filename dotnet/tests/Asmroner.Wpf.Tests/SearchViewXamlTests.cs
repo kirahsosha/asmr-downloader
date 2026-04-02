@@ -16,6 +16,10 @@ public class SearchViewXamlTests
         Assert.Contains("x:Name=\"ResultsGrid\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"StatusTextBlock\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"QueueTranslationCheckBox\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"ExportButton\"", content, StringComparison.Ordinal);
+        Assert.Contains("Content=\"导出到文件\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"FavoriteButton\"", content, StringComparison.Ordinal);
+        Assert.Contains("Content=\"收藏作品\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
         Assert.NotNull(doc.Root);
@@ -75,16 +79,12 @@ public class SearchViewXamlTests
         Assert.Contains("PreviewMouseRightButtonDown=\"OnResultsGridPreviewMouseRightButtonDown\"", content, StringComparison.Ordinal);
         Assert.Contains("<DataGrid.ContextMenu>", content, StringComparison.Ordinal);
         Assert.Contains("Header=\"加入下载队列\"", content, StringComparison.Ordinal);
-        Assert.Contains("Header=\"导出全部任务到 CSV\"", content, StringComparison.Ordinal);
-        Assert.Contains("Header=\"导出全部任务到 JSON\"", content, StringComparison.Ordinal);
-        Assert.Contains("Header=\"导出选中任务到 CSV\"", content, StringComparison.Ordinal);
-        Assert.Contains("Header=\"导出选中任务到 JSON\"", content, StringComparison.Ordinal);
+        Assert.Contains("Header=\"导出全部任务到文件\"", content, StringComparison.Ordinal);
+        Assert.Contains("Header=\"导出选中任务到文件\"", content, StringComparison.Ordinal);
         Assert.Contains("Header=\"在浏览器打开\"", content, StringComparison.Ordinal);
         Assert.Contains("Click=\"OnContextMenuQueueClicked\"", content, StringComparison.Ordinal);
-        Assert.Contains("Click=\"OnContextMenuExportCsvClicked\"", content, StringComparison.Ordinal);
-        Assert.Contains("Click=\"OnContextMenuExportJsonClicked\"", content, StringComparison.Ordinal);
-        Assert.Contains("Click=\"OnContextMenuExportSelectedCsvClicked\"", content, StringComparison.Ordinal);
-        Assert.Contains("Click=\"OnContextMenuExportSelectedJsonClicked\"", content, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnContextMenuExportAllClicked\"", content, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnContextMenuExportSelectedClicked\"", content, StringComparison.Ordinal);
         Assert.Contains("Click=\"OnContextMenuOpenWorkPageClicked\"", content, StringComparison.Ordinal);
     }
 

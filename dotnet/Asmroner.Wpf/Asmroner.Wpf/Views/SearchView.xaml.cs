@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Text;
 using Asmroner.Core.Api;
 using Asmroner.Core.Configuration;
+using Asmroner.Core.Favorites;
 using Asmroner.Core.Interfaces;
 using Asmroner.Core.Search;
 using NLog;
@@ -27,6 +28,7 @@ public partial class SearchView : UserControl
     private readonly ISearchStateStore _searchStateStore;
     private readonly IDownloadService _downloadService;
     private readonly IEnqueueWorkInfoResolver _enqueueWorkInfoResolver;
+    private readonly IFavoriteStore _favoriteStore;
     private readonly IUiStateStore _uiStateStore;
     private readonly IConfigurationService _configurationService;
     private readonly IAppPathService _appPathService;
@@ -51,6 +53,7 @@ public partial class SearchView : UserControl
             null!,
             null!,
             null!,
+            null!,
             null!)
     {
     }
@@ -62,6 +65,7 @@ public partial class SearchView : UserControl
         ISearchStateStore searchStateStore,
         IDownloadService downloadService,
         IEnqueueWorkInfoResolver enqueueWorkInfoResolver,
+        IFavoriteStore favoriteStore,
         IUiStateStore uiStateStore,
         IConfigurationService configurationService,
         IAppPathService appPathService)
@@ -72,6 +76,7 @@ public partial class SearchView : UserControl
         _searchStateStore = searchStateStore;
         _downloadService = downloadService;
         _enqueueWorkInfoResolver = enqueueWorkInfoResolver;
+        _favoriteStore = favoriteStore;
         _uiStateStore = uiStateStore;
         _configurationService = configurationService;
         _appPathService = appPathService;
@@ -303,14 +308,9 @@ public partial class SearchView : UserControl
         }
     }
 
-    private async void OnExportCsvClicked(object sender, System.Windows.RoutedEventArgs e)
+    private async void OnExportClicked(object sender, System.Windows.RoutedEventArgs e)
     {
-        await ExportAsync("csv", SearchExportScope.All);
-    }
-
-    private async void OnExportJsonClicked(object sender, System.Windows.RoutedEventArgs e)
-    {
-        await ExportAsync("json", SearchExportScope.All);
+        await ExportAsync(SearchExportScope.All);
     }
 
     private async void OnQueueClicked(object sender, System.Windows.RoutedEventArgs e)
@@ -397,29 +397,132 @@ public partial class SearchView : UserControl
         StatusTextBlock.Text = DownloadOperationStatusTexts.AppendTranslationSwitchClause(queueStatusText, switchedCount) + "。";
     }
 
+    private async void OnFavoriteClicked(object sender, RoutedEventArgs e)
+    {
+        var selectedItems = ResultsGrid.SelectedItems
+            .OfType<SearchWorkItem>()
+            .ToArray();
+
+        if (selectedItems.Length == 0)
+        {
+            StatusTextBlock.Text = "请先选择需要加入收藏的作品";
+            return;
+        }
+
+        IReadOnlyList<string> folderTitles;
+        try
+        {
+            folderTitles = await _favoriteStore.LoadFavoriteFolderTitlesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to load favorite folder titles.");
+            StatusTextBlock.Text = $"读取收藏夹失败：{ex.Message}";
+            return;
+        }
+
+        var dialog = new FavoriteFolderDialog(folderTitles, allowCustomInput: true, title: "收藏作品", confirmButtonText: "保存")
+        {
+            Owner = Window.GetWindow(this),
+        };
+
+        if (dialog.ShowDialog() != true)
+        {
+            StatusTextBlock.Text = "已取消收藏。";
+            return;
+        }
+
+        var folderTitle = dialog.SelectedFolderTitle;
+        if (string.IsNullOrWhiteSpace(folderTitle))
+        {
+            StatusTextBlock.Text = "收藏夹标题不能为空。";
+            return;
+        }
+
+        ToggleActionButtons(false);
+        try
+        {
+            IReadOnlyCollection<FavoriteWorkItem> favoriteItems;
+            var failedCount = 0;
+            var switchedCount = 0;
+
+            if (QueueTranslationCheckBox.IsChecked == true)
+            {
+                StatusTextBlock.Text = "正在分析作品语言并保存到收藏夹...";
+                var resolution = await _enqueueWorkInfoResolver.ResolvePreferTranslatedAsync(selectedItems.Select(static item => new EnqueueWorkInfoRequest
+                {
+                    SourceId = item.SourceId,
+                    WorkId = item.WorkId,
+                }).ToArray());
+
+                favoriteItems = resolution.WorkInfos.Values
+                    .Select(static workInfo => new FavoriteWorkItem
+                    {
+                        SourceId = workInfo.SourceId,
+                        WorkId = workInfo.Id,
+                        Title = workInfo.Title,
+                    })
+                    .ToArray();
+                failedCount = resolution.FailedSourceIds.Count;
+                switchedCount = resolution.SwitchedSourceCount;
+
+                if (favoriteItems.Count == 0)
+                {
+                    StatusTextBlock.Text = failedCount > 0
+                        ? $"未能解析可收藏的作品信息，失败 {failedCount} 项。"
+                        : "当前没有可收藏的作品。";
+                    return;
+                }
+            }
+            else
+            {
+                favoriteItems = selectedItems
+                    .Select(static item => new FavoriteWorkItem
+                    {
+                        SourceId = item.SourceId,
+                        WorkId = item.WorkId,
+                        Title = item.Title,
+                    })
+                    .ToArray();
+            }
+
+            var saveResult = await _favoriteStore.SaveFavoriteFolderItemsAsync(folderTitle, favoriteItems);
+
+            var statusText = saveResult.SkippedCount > 0
+                ? $"已保存到收藏夹“{folderTitle}” {saveResult.AddedCount} 项，跳过 {saveResult.SkippedCount} 项（已存在或重复）"
+                : $"已保存到收藏夹“{folderTitle}” {saveResult.AddedCount} 项";
+
+            if (failedCount > 0)
+            {
+                statusText += $"；另有 {failedCount} 项解析失败";
+            }
+
+            StatusTextBlock.Text = DownloadOperationStatusTexts.AppendTranslationSwitchClause(statusText, switchedCount) + "。";
+        }
+        catch (Exception ex)
+        {
+            _logger.Error(ex, "Failed to save favorite works.");
+            StatusTextBlock.Text = $"收藏失败：{ex.Message}";
+        }
+        finally
+        {
+            ToggleActionButtons(true);
+        }
+    }
+
     private void OnContextMenuQueueClicked(object sender, RoutedEventArgs e)
     {
         OnQueueClicked(sender, e);
     }
 
-    private void OnContextMenuExportCsvClicked(object sender, RoutedEventArgs e)
+    private void OnContextMenuExportAllClicked(object sender, RoutedEventArgs e)
     {
-        OnExportCsvClicked(sender, e);
+        OnExportClicked(sender, e);
     }
 
-    private void OnContextMenuExportJsonClicked(object sender, RoutedEventArgs e)
+    private async void OnContextMenuExportSelectedClicked(object sender, RoutedEventArgs e)
     {
-        OnExportJsonClicked(sender, e);
-    }
-
-    private async void OnContextMenuExportSelectedCsvClicked(object sender, RoutedEventArgs e)
-    {
-        await ExportAsync("csv", SearchExportScope.Selected);
-    }
-
-    private async void OnContextMenuExportSelectedJsonClicked(object sender, RoutedEventArgs e)
-    {
-        await ExportAsync("json", SearchExportScope.Selected);
+        await ExportAsync(SearchExportScope.Selected);
     }
 
     private async void OnContextMenuOpenWorkPageClicked(object sender, RoutedEventArgs e)
@@ -707,7 +810,7 @@ public partial class SearchView : UserControl
         await ExecuteSearchAsync(allowOptionOnlyQuery: true);
     }
 
-    private async Task ExportAsync(string extension, SearchExportScope scope)
+    private async Task ExportAsync(SearchExportScope scope)
     {
         var selectedItems = ResultsGrid.SelectedItems.OfType<SearchWorkItem>().ToArray();
         var plan = SearchExportScopePolicy.Build(_results, selectedItems, scope);
@@ -729,13 +832,15 @@ public partial class SearchView : UserControl
             var filePrefix = isSelectedScope && !fallbackToAll
                 ? "search-selected-export"
                 : "search-export";
-            var fileName = $"{filePrefix}-{DateTime.Now:yyyyMMdd-HHmmss}.{extension}";
-            var fullPath = ShowSaveFileDialog(extension, fileName);
-            if (string.IsNullOrWhiteSpace(fullPath))
+            var defaultFileName = $"{filePrefix}-{DateTime.Now:yyyyMMdd-HHmmss}";
+            var exportTarget = ShowSaveFileDialog(defaultFileName);
+            if (exportTarget is null)
             {
                 StatusTextBlock.Text = "已取消导出。";
                 return;
             }
+
+            var (fullPath, extension) = exportTarget.Value;
 
             if (extension.Equals("csv", StringComparison.OrdinalIgnoreCase))
             {
@@ -772,22 +877,61 @@ public partial class SearchView : UserControl
         }
     }
 
-    private string? ShowSaveFileDialog(string extension, string defaultFileName)
+    private (string FullPath, string Extension)? ShowSaveFileDialog(string defaultFileName)
     {
         var dialog = new SaveFileDialog
         {
             Title = "导出搜索结果",
             InitialDirectory = _appPathService.MetadataDirectory,
             FileName = defaultFileName,
-            DefaultExt = "." + extension,
+            DefaultExt = ".csv",
             AddExtension = true,
             OverwritePrompt = true,
-            Filter = extension.Equals("csv", StringComparison.OrdinalIgnoreCase)
-                ? "CSV 文件 (*.csv)|*.csv|所有文件 (*.*)|*.*"
-                : "JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*",
+            Filter = "CSV 文件 (*.csv)|*.csv|JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*",
+            FilterIndex = 1,
         };
 
-        return dialog.ShowDialog() == true ? dialog.FileName : null;
+        if (dialog.ShowDialog() != true)
+        {
+            return null;
+        }
+
+        var extension = ResolveExportExtension(dialog.FileName, dialog.FilterIndex);
+        var fullPath = EnsureExportFileExtension(dialog.FileName, extension);
+        return (fullPath, extension);
+    }
+
+    private static string ResolveExportExtension(string filePath, int filterIndex)
+    {
+        var extension = Path.GetExtension(filePath);
+        if (extension.Equals(".csv", StringComparison.OrdinalIgnoreCase))
+        {
+            return "csv";
+        }
+
+        if (extension.Equals(".json", StringComparison.OrdinalIgnoreCase))
+        {
+            return "json";
+        }
+
+        return filterIndex == 2 ? "json" : "csv";
+    }
+
+    private static string EnsureExportFileExtension(string filePath, string extension)
+    {
+        var normalizedExtension = "." + extension;
+        var currentExtension = Path.GetExtension(filePath);
+        if (currentExtension.Equals(normalizedExtension, StringComparison.OrdinalIgnoreCase))
+        {
+            return filePath;
+        }
+
+        if (string.IsNullOrWhiteSpace(currentExtension))
+        {
+            return filePath + normalizedExtension;
+        }
+
+        return Path.ChangeExtension(filePath, extension);
     }
 
     private void ToggleActionButtons(bool isEnabled)
@@ -796,9 +940,9 @@ public partial class SearchView : UserControl
 
         SearchButton.IsEnabled = isEnabled;
         QueryHotButton.IsEnabled = isEnabled;
-        ExportCsvButton.IsEnabled = isEnabled;
-        ExportJsonButton.IsEnabled = isEnabled;
+        ExportButton.IsEnabled = isEnabled;
         QueueButton.IsEnabled = isEnabled;
+        FavoriteButton.IsEnabled = isEnabled;
         ClearButton.IsEnabled = isEnabled;
         PrevPageButton.IsEnabled = isEnabled && _currentPage > 1;
         NextPageButton.IsEnabled = isEnabled && _currentPage < GetTotalPages();

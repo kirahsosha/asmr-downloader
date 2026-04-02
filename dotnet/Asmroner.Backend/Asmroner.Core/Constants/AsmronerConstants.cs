@@ -57,6 +57,16 @@ public static class AsmronerConstants
             }
         }
 
+        public static class Favorites
+        {
+            public const string TableName = "FavoriteWork";
+            public const string FolderTitleColumn = "FolderTitle";
+            public const string SourceIdColumn = "SourceId";
+            public const string WorkIdColumn = "WorkId";
+            public const string TitleColumn = "Title";
+            public const string AddedAtColumn = "AddedAt";
+        }
+
         public static class Columns
         {
             public const string LegacyId = "Id";
@@ -171,6 +181,58 @@ public static class AsmronerConstants
             VALUES (@key, @json, CURRENT_TIMESTAMP)
             ON CONFLICT({Storage.UiState.KeyColumn}) DO UPDATE SET
                 {Storage.UiState.JsonColumn} = excluded.{Storage.UiState.JsonColumn},
+                {Storage.Columns.UpdatedAt} = CURRENT_TIMESTAMP;
+            """;
+        }
+
+        public static string BuildCreateFavoriteWorkTable()
+        {
+            return $"""
+            CREATE TABLE IF NOT EXISTS {Storage.Favorites.TableName} (
+                {Storage.Favorites.FolderTitleColumn} TEXT NOT NULL COLLATE NOCASE,
+                {Storage.Favorites.SourceIdColumn} TEXT NOT NULL COLLATE NOCASE,
+                {Storage.Favorites.WorkIdColumn} INTEGER NOT NULL DEFAULT 0,
+                {Storage.Favorites.TitleColumn} TEXT NOT NULL DEFAULT '',
+                {Storage.Favorites.AddedAtColumn} TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                {Storage.Columns.UpdatedAt} TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY ({Storage.Favorites.FolderTitleColumn}, {Storage.Favorites.SourceIdColumn})
+            );
+            """;
+        }
+
+        public static string BuildSelectFavoriteFolderTitles()
+        {
+            return $"""
+            SELECT DISTINCT {Storage.Favorites.FolderTitleColumn}
+            FROM {Storage.Favorites.TableName}
+            ORDER BY {Storage.Favorites.FolderTitleColumn} COLLATE NOCASE;
+            """;
+        }
+
+        public static string BuildSelectFavoriteWorkItemsByFolder()
+        {
+            return $"""
+            SELECT {Storage.Favorites.SourceIdColumn}, {Storage.Favorites.WorkIdColumn}, {Storage.Favorites.TitleColumn}
+            FROM {Storage.Favorites.TableName}
+            WHERE {Storage.Favorites.FolderTitleColumn} = @folderTitle
+            ORDER BY {Storage.Favorites.SourceIdColumn} COLLATE NOCASE;
+            """;
+        }
+
+        public static string BuildUpsertFavoriteWork()
+        {
+            return $"""
+            INSERT INTO {Storage.Favorites.TableName} (
+                {Storage.Favorites.FolderTitleColumn},
+                {Storage.Favorites.SourceIdColumn},
+                {Storage.Favorites.WorkIdColumn},
+                {Storage.Favorites.TitleColumn},
+                {Storage.Favorites.AddedAtColumn},
+                {Storage.Columns.UpdatedAt})
+            VALUES (@folderTitle, @sourceId, @workId, @title, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT({Storage.Favorites.FolderTitleColumn}, {Storage.Favorites.SourceIdColumn}) DO UPDATE SET
+                {Storage.Favorites.WorkIdColumn} = excluded.{Storage.Favorites.WorkIdColumn},
+                {Storage.Favorites.TitleColumn} = excluded.{Storage.Favorites.TitleColumn},
                 {Storage.Columns.UpdatedAt} = CURRENT_TIMESTAMP;
             """;
         }

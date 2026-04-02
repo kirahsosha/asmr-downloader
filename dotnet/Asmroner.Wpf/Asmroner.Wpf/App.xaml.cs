@@ -34,6 +34,7 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<IAppLogService, NLogAppLogService>();
                 services.AddSingleton<IAppPathService, AppPathService>();
                 services.AddSingleton<IConfigurationService, Asmroner.Infrastructure.Services.ConfigurationService>();
+                services.AddSingleton<IFavoriteStore, FavoriteStore>();
                 services.AddSingleton<IUiStateStore, UiStateStore>();
                 services.AddSingleton<IDatabaseInitializer, DatabaseInitializer>();
                 services.AddSingleton<IFirstRunService, FirstRunService>();

@@ -19,6 +19,10 @@ public class DownloadViewXamlTests
         Assert.Contains("x:Name=\"HdAudioOnlyCheckBox\"", content, StringComparison.Ordinal);
         Assert.Contains("IsChecked=\"True\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"QueueTranslationCheckBox\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"ImportFileButton\"", content, StringComparison.Ordinal);
+        Assert.Contains("Content=\"从文件导入\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"ImportFavoritesButton\"", content, StringComparison.Ordinal);
+        Assert.Contains("Content=\"从收藏夹导入\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"StatusTextBlock\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
@@ -70,6 +74,21 @@ public class DownloadViewXamlTests
         Assert.True(
             content.IndexOf("x:Name=\"HdAudioOnlyCheckBox\"", StringComparison.Ordinal) < content.IndexOf("x:Name=\"QueueTranslationCheckBox\"", StringComparison.Ordinal),
             "加入翻译作品复选框应位于只下载高清音频右侧。");
+    }
+
+    [Fact]
+    public void DownloadViewXaml_ShouldPlaceRunQueueBetweenStartSelectedAndRefresh_AndRemoveRetryAllButton()
+    {
+        var xamlPath = XamlTestPathLocator.Locate("DownloadView.xaml", "dotnet", "Asmroner.Wpf", "Asmroner.Wpf", "Views");
+        var content = File.ReadAllText(xamlPath);
+
+        Assert.DoesNotContain("x:Name=\"RetryAllFailedButton\"", content, StringComparison.Ordinal);
+        Assert.True(
+            content.IndexOf("x:Name=\"StartSelectedButton\"", StringComparison.Ordinal) < content.IndexOf("x:Name=\"RunQueueButton\"", StringComparison.Ordinal),
+            "执行下载队列按钮应位于立即下载选中任务之后。");
+        Assert.True(
+            content.IndexOf("x:Name=\"RunQueueButton\"", StringComparison.Ordinal) < content.IndexOf("x:Name=\"RefreshButton\"", StringComparison.Ordinal),
+            "执行下载队列按钮应位于刷新任务列表之前。");
     }
 }
 

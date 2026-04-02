@@ -29,6 +29,7 @@ public class DatabaseInitializerTests
             Assert.False(await TableExistsAsync(connection, "WorkSyncInfo"));
             Assert.True(await TableExistsAsync(connection, "AppConfig"));
             Assert.True(await TableExistsAsync(connection, "UiState"));
+            Assert.True(await TableExistsAsync(connection, "FavoriteWork"));
 
             Assert.True(await TableHasColumnAsync(connection, "AppConfig", "ConfigKey"));
             Assert.True(await TableHasColumnAsync(connection, "AppConfig", "JsonValue"));

@@ -8,8 +8,6 @@ public sealed class DownloadCommandAvailability
 
     public bool CanRetry { get; init; }
 
-    public bool CanRetryAllFailed { get; init; }
-
     public bool CanStartImmediate { get; init; }
 
     public static DownloadCommandAvailability Evaluate(
@@ -18,14 +16,14 @@ public sealed class DownloadCommandAvailability
     {
         var selected = selectedTasks.ToArray();
         var all = allTasks.ToArray();
+        var hasSelection = selected.Length > 0;
 
         return new DownloadCommandAvailability
         {
             CanCancel = selected.Any(static item => item.Status is DownloadTaskStatus.Pending or DownloadTaskStatus.Queued or DownloadTaskStatus.Running),
-            CanRetry = selected.Length == 1
-                && selected[0].Status == DownloadTaskStatus.Failed
-                && selected[0].TaskId != Guid.Empty,
-            CanRetryAllFailed = all.Any(static item => item.Status == DownloadTaskStatus.Failed),
+            CanRetry = hasSelection
+                ? selected.Any(static item => item.Status == DownloadTaskStatus.Failed && item.TaskId != Guid.Empty)
+                : all.Any(static item => item.Status == DownloadTaskStatus.Failed && item.TaskId != Guid.Empty),
             CanStartImmediate = selected.Any(static item => item.Status is DownloadTaskStatus.Pending or DownloadTaskStatus.Failed or DownloadTaskStatus.Canceled),
         };
     }
