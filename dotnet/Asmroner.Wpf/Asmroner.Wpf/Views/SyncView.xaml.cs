@@ -1,10 +1,12 @@
 using System.Globalization;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using System.IO;
+using System.Windows.Threading;
 using Asmroner.Core.Interfaces;
 using Asmroner.Core.Sync;
 using Asmroner.Wpf.Services;
+using Asmroner.Wpf.ViewModels;
 using Microsoft.Win32;
 
 namespace Asmroner.Wpf.Views;
@@ -15,6 +17,20 @@ public partial class SyncView : UserControl
     private readonly ISyncExportService _syncExportService;
     private readonly ISyncService _syncService;
 
+    private bool _isMetadataSyncRunning;
+    private bool _isMetadataStopRequested;
+    private bool _isDownloadSyncRunning;
+    private bool _isDownloadStopRequested;
+    private bool _isExclusiveOperationRunning;
+    private bool _isRefreshRunning;
+
+    private int _metadataActionInFlight;
+    private int _downloadActionInFlight;
+    private int _refreshActionInFlight;
+
+    private DateTimeOffset? _lastMetadataStartRequestedAt;
+    private DateTimeOffset? _lastDownloadStartRequestedAt;
+
     public SyncView(ISyncService syncService, ISyncExportService syncExportService, IAppPathService appPathService)
     {
         _appPathService = appPathService;
@@ -22,6 +38,7 @@ public partial class SyncView : UserControl
         _syncService = syncService;
 
         InitializeComponent();
+        RefreshCommandAvailability();
         Loaded += OnLoaded;
     }
 
@@ -32,14 +49,73 @@ public partial class SyncView : UserControl
 
     private async void OnRefreshStatusClicked(object sender, RoutedEventArgs e)
     {
-        await RefreshSnapshotAsync(updateStatusText: true);
+        if (Interlocked.Exchange(ref _refreshActionInFlight, 1) == 1)
+        {
+            return;
+        }
+
+        _isRefreshRunning = true;
+        RefreshCommandAvailability();
+
+        try
+        {
+            await RefreshSnapshotAsync(updateStatusText: true);
+            await Dispatcher.InvokeAsync(static () => { }, DispatcherPriority.ApplicationIdle);
+        }
+        finally
+        {
+            _isRefreshRunning = false;
+            RefreshCommandAvailability();
+            Interlocked.Exchange(ref _refreshActionInFlight, 0);
+        }
     }
 
     private async void OnSyncMetadataClicked(object sender, RoutedEventArgs e)
     {
-        SetButtonsEnabled(false);
-        StatusTextBlock.Text = "正在同步元数据，请稍候...";
+        if (Interlocked.Exchange(ref _metadataActionInFlight, 1) == 1)
+        {
+            return;
+        }
 
+        try
+        {
+            var now = DateTimeOffset.UtcNow;
+            var decision = SyncActionDebouncePolicy.Decide(
+                _isMetadataSyncRunning,
+                _isMetadataStopRequested,
+                _lastMetadataStartRequestedAt,
+                now);
+
+            if (decision == SyncActionToggleDecision.Ignore)
+            {
+                return;
+            }
+
+            if (decision == SyncActionToggleDecision.RequestStop)
+            {
+                await _syncService.RequestStopMetadataSyncAsync();
+                _isMetadataStopRequested = true;
+                RefreshCommandAvailability();
+                StatusTextBlock.Text = "已请求停止元数据同步，将在当前页完成后停止。";
+                return;
+            }
+
+            _lastMetadataStartRequestedAt = now;
+            _isMetadataSyncRunning = true;
+            _isMetadataStopRequested = false;
+            RefreshCommandAvailability();
+            StatusTextBlock.Text = "正在同步元数据，请稍候...";
+            _ = RunMetadataSyncAsync();
+        }
+        finally
+        {
+            await Dispatcher.InvokeAsync(static () => { }, DispatcherPriority.ApplicationIdle);
+            Interlocked.Exchange(ref _metadataActionInFlight, 0);
+        }
+    }
+
+    private async Task RunMetadataSyncAsync()
+    {
         try
         {
             var result = await _syncService.SyncMetadataAsync();
@@ -53,15 +129,58 @@ public partial class SyncView : UserControl
         }
         finally
         {
-            SetButtonsEnabled(true);
+            _isMetadataSyncRunning = false;
+            _isMetadataStopRequested = false;
+            RefreshCommandAvailability();
         }
     }
 
     private async void OnSyncDownloadClicked(object sender, RoutedEventArgs e)
     {
-        SetButtonsEnabled(false);
-        StatusTextBlock.Text = "正在执行同步下载，请稍候...";
+        if (Interlocked.Exchange(ref _downloadActionInFlight, 1) == 1)
+        {
+            return;
+        }
 
+        try
+        {
+            var now = DateTimeOffset.UtcNow;
+            var decision = SyncActionDebouncePolicy.Decide(
+                _isDownloadSyncRunning,
+                _isDownloadStopRequested,
+                _lastDownloadStartRequestedAt,
+                now);
+
+            if (decision == SyncActionToggleDecision.Ignore)
+            {
+                return;
+            }
+
+            if (decision == SyncActionToggleDecision.RequestStop)
+            {
+                await _syncService.RequestStopSyncDownloadAsync();
+                _isDownloadStopRequested = true;
+                RefreshCommandAvailability();
+                StatusTextBlock.Text = "已请求停止同步下载，将在当前作品完成后停止。";
+                return;
+            }
+
+            _lastDownloadStartRequestedAt = now;
+            _isDownloadSyncRunning = true;
+            _isDownloadStopRequested = false;
+            RefreshCommandAvailability();
+            StatusTextBlock.Text = "正在执行同步下载，请稍候...";
+            _ = RunSyncDownloadAsync();
+        }
+        finally
+        {
+            await Dispatcher.InvokeAsync(static () => { }, DispatcherPriority.ApplicationIdle);
+            Interlocked.Exchange(ref _downloadActionInFlight, 0);
+        }
+    }
+
+    private async Task RunSyncDownloadAsync()
+    {
         try
         {
             var result = await _syncService.SyncDownloadAsync();
@@ -75,61 +194,53 @@ public partial class SyncView : UserControl
         }
         finally
         {
-            SetButtonsEnabled(true);
+            _isDownloadSyncRunning = false;
+            _isDownloadStopRequested = false;
+            RefreshCommandAvailability();
         }
     }
 
     private async void OnRetryFailedClicked(object sender, RoutedEventArgs e)
     {
-        SetButtonsEnabled(false);
-        StatusTextBlock.Text = "正在重试失败同步下载，请稍候...";
+        await RunExclusiveOperationAsync(async () =>
+        {
+            StatusTextBlock.Text = "正在重试失败同步下载，请稍候...";
 
-        try
-        {
-            var result = await _syncService.RetryFailedAsync();
-            ApplyResult(result);
-            await ApplyReportAsync();
-        }
-        catch (Exception ex)
-        {
-            StatusTextBlock.Text = $"失败重试执行失败: {ex.Message}";
-            DetailsTextBox.Text = ex.ToString();
-        }
-        finally
-        {
-            SetButtonsEnabled(true);
-        }
+            try
+            {
+                var result = await _syncService.RetryFailedAsync();
+                ApplyResult(result);
+                await ApplyReportAsync();
+            }
+            catch (Exception ex)
+            {
+                StatusTextBlock.Text = $"失败重试执行失败: {ex.Message}";
+                DetailsTextBox.Text = ex.ToString();
+            }
+        });
     }
 
     private async void OnExportFailedClicked(object sender, RoutedEventArgs e)
     {
-        await ExportAsync(SyncExportStatus.Failed);
+        await RunExclusiveOperationAsync(async () => await ExportAsync(SyncExportStatus.Failed));
     }
 
     private async void OnExportCompletedClicked(object sender, RoutedEventArgs e)
     {
-        await ExportAsync(SyncExportStatus.Completed);
+        await RunExclusiveOperationAsync(async () => await ExportAsync(SyncExportStatus.Completed));
     }
 
     private async Task RefreshSnapshotAsync(bool updateStatusText)
     {
-        SetButtonsEnabled(false);
-
         try
         {
             await ApplyReportAsync();
-            if (updateStatusText)
-            {
-                StatusTextBlock.Text = "已刷新本地同步统计与报表。";
-            }
+            await ApplyPersistedProgressSummaryAsync(updateStatusText);
         }
         catch (Exception ex)
         {
             StatusTextBlock.Text = $"读取同步统计失败: {ex.Message}";
-        }
-        finally
-        {
-            SetButtonsEnabled(true);
+            DetailsTextBox.Text = ex.ToString();
         }
     }
 
@@ -165,7 +276,10 @@ public partial class SyncView : UserControl
             $"同步后本地字幕量：{result.LocalSubtitleCountAfter.ToString(CultureInfo.InvariantCulture)}",
             $"本次新增：{result.InsertedCount.ToString(CultureInfo.InvariantCulture)}",
             $"处理分页：{result.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{result.TotalPageCount.ToString(CultureInfo.InvariantCulture)}",
+            $"下次页码：{result.NextPage.ToString(CultureInfo.InvariantCulture)}",
             $"是否追平网站：{(result.IsUpToDate ? "是" : "否")}",
+            $"本次是否从断点继续：{(result.ResumedFromProgress ? "是" : "否")}",
+            $"本次是否按请求停止：{(result.WasStopped ? "是" : "否")}",
         ]);
     }
 
@@ -182,6 +296,9 @@ public partial class SyncView : UserControl
             $"容量上限：{SyncSizeText.FormatBytes(result.SizeLimitBytes)}",
             $"达到容量上限：{(result.ReachedSizeLimit ? "是" : "否")}",
             $"剩余待同步：{result.RemainingMetadataCountAfter.ToString(CultureInfo.InvariantCulture)} 项",
+            $"最近处理作品：{FormatSourceId(result.LastProcessedSourceId)}",
+            $"本次是否从断点继续：{(result.ResumedFromProgress ? "是" : "否")}",
+            $"本次是否按请求停止：{(result.WasStopped ? "是" : "否")}",
         ]);
     }
 
@@ -216,10 +333,21 @@ public partial class SyncView : UserControl
         ApplyReport(await _syncService.GetReportAsync());
     }
 
+    private async Task ApplyPersistedProgressSummaryAsync(bool updateStatusText)
+    {
+        var metadataProgress = await _syncService.GetMetadataSyncProgressAsync();
+        var downloadProgress = await _syncService.GetSyncDownloadProgressAsync();
+
+        DetailsTextBox.Text = BuildPersistedProgressDetails(metadataProgress, downloadProgress);
+
+        if (updateStatusText)
+        {
+            StatusTextBlock.Text = BuildPersistedProgressStatusText(metadataProgress, downloadProgress);
+        }
+    }
+
     private async Task ExportAsync(SyncExportStatus status)
     {
-        SetButtonsEnabled(false);
-
         try
         {
             Directory.CreateDirectory(_appPathService.MetadataDirectory);
@@ -242,10 +370,6 @@ public partial class SyncView : UserControl
         {
             StatusTextBlock.Text = $"导出失败：{ex.Message}";
             DetailsTextBox.Text = ex.ToString();
-        }
-        finally
-        {
-            SetButtonsEnabled(true);
         }
     }
 
@@ -329,13 +453,128 @@ public partial class SyncView : UserControl
             : "暂无";
     }
 
-    private void SetButtonsEnabled(bool enabled)
+    private void RefreshCommandAvailability()
     {
-        SyncMetadataButton.IsEnabled = enabled;
-        SyncDownloadButton.IsEnabled = enabled;
-        RetryFailedButton.IsEnabled = enabled;
-        ExportFailedButton.IsEnabled = enabled;
-        ExportCompletedButton.IsEnabled = enabled;
-        RefreshStatusButton.IsEnabled = enabled;
+        var availability = SyncCommandAvailability.Evaluate(
+            _isMetadataSyncRunning,
+            _isMetadataStopRequested,
+            _isDownloadSyncRunning,
+            _isDownloadStopRequested,
+            _isExclusiveOperationRunning,
+            _isRefreshRunning);
+
+        SyncMetadataButton.IsEnabled = availability.CanMetadataAction;
+        SyncMetadataButton.Content = availability.MetadataActionText;
+        SyncDownloadButton.IsEnabled = availability.CanDownloadAction;
+        SyncDownloadButton.Content = availability.DownloadActionText;
+        RetryFailedButton.IsEnabled = availability.CanRetryFailed;
+        ExportFailedButton.IsEnabled = availability.CanExportFailed;
+        ExportCompletedButton.IsEnabled = availability.CanExportCompleted;
+        RefreshStatusButton.IsEnabled = availability.CanRefresh;
+    }
+
+    private async Task RunExclusiveOperationAsync(Func<Task> action)
+    {
+        _isExclusiveOperationRunning = true;
+        RefreshCommandAvailability();
+
+        try
+        {
+            await action();
+        }
+        finally
+        {
+            _isExclusiveOperationRunning = false;
+            RefreshCommandAvailability();
+        }
+    }
+
+    private static string BuildPersistedProgressStatusText(
+        MetadataSyncProgressState metadataProgress,
+        SyncDownloadProgressState downloadProgress)
+    {
+        var messages = new List<string>();
+
+        if (string.Equals(metadataProgress.Status, SyncProgressStatuses.Running, StringComparison.Ordinal))
+        {
+            messages.Add(metadataProgress.StopRequested
+                ? $"元数据同步正在停止：已处理 {metadataProgress.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{metadataProgress.TotalPageCount.ToString(CultureInfo.InvariantCulture)} 页，等待当前页完成。"
+                : $"元数据同步进行中：已处理 {metadataProgress.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{metadataProgress.TotalPageCount.ToString(CultureInfo.InvariantCulture)} 页，下次页码 {metadataProgress.NextPage.ToString(CultureInfo.InvariantCulture)}。"
+            );
+        }
+        else if (string.Equals(metadataProgress.Status, SyncProgressStatuses.Stopped, StringComparison.Ordinal))
+        {
+            messages.Add($"检测到未完成元数据同步进度，下次将从第 {metadataProgress.NextPage.ToString(CultureInfo.InvariantCulture)} 页继续。");
+        }
+        else if (string.Equals(metadataProgress.Status, SyncProgressStatuses.Completed, StringComparison.Ordinal)
+            && metadataProgress.TotalPageCount > 0)
+        {
+            messages.Add($"元数据同步已完成：共处理 {metadataProgress.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{metadataProgress.TotalPageCount.ToString(CultureInfo.InvariantCulture)} 页。");
+        }
+
+        if (string.Equals(downloadProgress.Status, SyncProgressStatuses.Running, StringComparison.Ordinal))
+        {
+            messages.Add(downloadProgress.StopRequested
+                ? $"同步下载正在停止：已处理 {downloadProgress.ProcessedCount.ToString(CultureInfo.InvariantCulture)} 项，等待当前作品完成。"
+                : $"同步下载进行中：已处理 {downloadProgress.ProcessedCount.ToString(CultureInfo.InvariantCulture)} 项，成功 {downloadProgress.CompletedCount.ToString(CultureInfo.InvariantCulture)} 项，失败 {downloadProgress.FailedCount.ToString(CultureInfo.InvariantCulture)} 项。"
+            );
+        }
+        else if (string.Equals(downloadProgress.Status, SyncProgressStatuses.Stopped, StringComparison.Ordinal))
+        {
+            messages.Add(string.IsNullOrWhiteSpace(downloadProgress.LastProcessedSourceId)
+                ? "检测到未完成同步下载进度，下次将继续当前任务。"
+                : $"检测到未完成同步下载进度，下次将从 {downloadProgress.LastProcessedSourceId} 之后继续。"
+            );
+        }
+        else if (string.Equals(downloadProgress.Status, SyncProgressStatuses.Completed, StringComparison.Ordinal)
+            && downloadProgress.ProcessedCount > 0)
+        {
+            messages.Add($"同步下载已完成：已处理 {downloadProgress.ProcessedCount.ToString(CultureInfo.InvariantCulture)} 项，成功 {downloadProgress.CompletedCount.ToString(CultureInfo.InvariantCulture)} 项，失败 {downloadProgress.FailedCount.ToString(CultureInfo.InvariantCulture)} 项。");
+        }
+
+        return messages.Count == 0
+            ? "已刷新本地同步统计与进度。"
+            : string.Join("；", messages);
+    }
+
+    private static string BuildPersistedProgressDetails(
+        MetadataSyncProgressState metadataProgress,
+        SyncDownloadProgressState downloadProgress)
+    {
+        return string.Join(Environment.NewLine,
+        [
+            $"元数据进度状态：{FormatProgressStatus(metadataProgress.Status)}",
+            $"元数据停止请求：{(metadataProgress.StopRequested ? "是" : "否")}",
+            $"元数据下次页码：{metadataProgress.NextPage.ToString(CultureInfo.InvariantCulture)}",
+            $"元数据已处理分页：{metadataProgress.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{metadataProgress.TotalPageCount.ToString(CultureInfo.InvariantCulture)}",
+            $"元数据累计新增：{metadataProgress.InsertedCount.ToString(CultureInfo.InvariantCulture)}",
+            $"元数据最近更新时间：{FormatTimestamp(metadataProgress.UpdatedAt)}",
+            string.Empty,
+            $"同步下载进度状态：{FormatProgressStatus(downloadProgress.Status)}",
+            $"同步下载停止请求：{(downloadProgress.StopRequested ? "是" : "否")}",
+            $"同步下载最近处理作品：{FormatSourceId(downloadProgress.LastProcessedSourceId)}",
+            $"同步下载累计处理：{downloadProgress.ProcessedCount.ToString(CultureInfo.InvariantCulture)} 项",
+            $"同步下载累计成功：{downloadProgress.CompletedCount.ToString(CultureInfo.InvariantCulture)} 项",
+            $"同步下载累计失败：{downloadProgress.FailedCount.ToString(CultureInfo.InvariantCulture)} 项",
+            $"同步下载剩余待处理：{downloadProgress.RemainingMetadataCountAfter.ToString(CultureInfo.InvariantCulture)} 项",
+            $"同步下载累计大小：{SyncSizeText.FormatBytes(downloadProgress.CompletedSizeBytesAfter)} / {SyncSizeText.FormatBytes(downloadProgress.SizeLimitBytes)}",
+            $"同步下载最近更新时间：{FormatTimestamp(downloadProgress.UpdatedAt)}",
+        ]);
+    }
+
+    private static string FormatProgressStatus(string status)
+    {
+        return status switch
+        {
+            SyncProgressStatuses.Running => "进行中",
+            SyncProgressStatuses.Stopped => "已停止",
+            SyncProgressStatuses.Completed => "已完成",
+            _ => "未开始",
+        };
+    }
+
+    private static string FormatSourceId(string sourceId)
+    {
+        return string.IsNullOrWhiteSpace(sourceId) ? "暂无" : sourceId;
     }
 }

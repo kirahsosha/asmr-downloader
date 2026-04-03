@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Asmroner.Core.Api;
 using Asmroner.Core.Configuration;
 using Asmroner.Core.Interfaces;
+using Asmroner.Core.Sync;
 using Asmroner.Core.Utils;
 using System.Globalization;
 
@@ -275,6 +276,119 @@ internal sealed class DelayRateLimiterService : IRateLimiterService
 
     public Task WaitAsync(double qps, int jitterMin, int jitterMax, CancellationToken cancellationToken = default)
         => Task.Delay(_delayMilliseconds, cancellationToken);
+}
+
+internal sealed class InMemoryUiStateStore : IUiStateStore
+{
+    private readonly IReadOnlyList<string> _emptyQueue = Array.Empty<string>();
+
+    public SearchUiState SearchUiState { get; private set; } = new();
+
+    public DownloadUiState DownloadUiState { get; private set; } = new();
+
+    public MetadataSyncProgressState MetadataSyncProgress { get; private set; } = new();
+
+    public SyncDownloadProgressState SyncDownloadProgress { get; private set; } = new();
+
+    public IReadOnlyList<string> UnfinishedQueue { get; private set; }
+
+    public InMemoryUiStateStore()
+    {
+        UnfinishedQueue = _emptyQueue;
+    }
+
+    public Task<SearchUiState> LoadSearchUiStateAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult(SearchUiState);
+
+    public Task SaveSearchUiStateAsync(SearchUiState state, CancellationToken cancellationToken = default)
+    {
+        SearchUiState = state;
+        return Task.CompletedTask;
+    }
+
+    public Task<DownloadUiState> LoadDownloadUiStateAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult(DownloadUiState);
+
+    public Task SaveDownloadUiStateAsync(DownloadUiState state, CancellationToken cancellationToken = default)
+    {
+        DownloadUiState = state;
+        return Task.CompletedTask;
+    }
+
+    public Task<MetadataSyncProgressState> LoadMetadataSyncProgressAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult(MetadataSyncProgress);
+
+    public Task SaveMetadataSyncProgressAsync(MetadataSyncProgressState state, CancellationToken cancellationToken = default)
+    {
+        if (MetadataSyncProgress.StopRequested && string.Equals(state.Status, SyncProgressStatuses.Running, StringComparison.Ordinal))
+        {
+            state.StopRequested = true;
+        }
+
+        if (!string.Equals(state.Status, SyncProgressStatuses.Running, StringComparison.Ordinal))
+        {
+            state.StopRequested = false;
+        }
+
+        MetadataSyncProgress = state;
+        return Task.CompletedTask;
+    }
+
+    public Task RequestStopMetadataSyncAsync(CancellationToken cancellationToken = default)
+    {
+        if (string.Equals(MetadataSyncProgress.Status, SyncProgressStatuses.Running, StringComparison.Ordinal))
+        {
+            MetadataSyncProgress.StopRequested = true;
+            MetadataSyncProgress.UpdatedAt = DateTime.UtcNow;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task<SyncDownloadProgressState> LoadSyncDownloadProgressAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult(SyncDownloadProgress);
+
+    public Task SaveSyncDownloadProgressAsync(SyncDownloadProgressState state, CancellationToken cancellationToken = default)
+    {
+        if (SyncDownloadProgress.StopRequested && string.Equals(state.Status, SyncProgressStatuses.Running, StringComparison.Ordinal))
+        {
+            state.StopRequested = true;
+        }
+
+        if (!string.Equals(state.Status, SyncProgressStatuses.Running, StringComparison.Ordinal))
+        {
+            state.StopRequested = false;
+        }
+
+        SyncDownloadProgress = state;
+        return Task.CompletedTask;
+    }
+
+    public Task RequestStopSyncDownloadAsync(CancellationToken cancellationToken = default)
+    {
+        if (string.Equals(SyncDownloadProgress.Status, SyncProgressStatuses.Running, StringComparison.Ordinal))
+        {
+            SyncDownloadProgress.StopRequested = true;
+            SyncDownloadProgress.UpdatedAt = DateTime.UtcNow;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<string>> LoadUnfinishedQueueAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult(UnfinishedQueue);
+
+    public Task SaveUnfinishedQueueAsync(IReadOnlyCollection<string> sourceIds, CancellationToken cancellationToken = default)
+    {
+        UnfinishedQueue = sourceIds.ToArray();
+        return Task.CompletedTask;
+    }
+
+    public Task ClearUnfinishedQueueAsync(CancellationToken cancellationToken = default)
+    {
+        UnfinishedQueue = _emptyQueue;
+        return Task.CompletedTask;
+    }
 }
 
 internal sealed class TestWorkInfoCache : IWorkInfoCache

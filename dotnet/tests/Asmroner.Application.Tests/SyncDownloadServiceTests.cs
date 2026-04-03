@@ -14,6 +14,7 @@ public class SyncDownloadServiceTests
         var tempRoot = CreateTempRoot();
         try
         {
+            var uiStateStore = new InMemoryUiStateStore();
             var metadataWorks = new[]
             {
                 CreateMetadataWork(1, "RJ001", "Title 1"),
@@ -33,7 +34,8 @@ public class SyncDownloadServiceTests
                 new TestConfigurationService(tempRoot, syncWantedSize: "120B"),
                 store,
                 downloadService,
-                new TestAppPathService(tempRoot));
+                new TestAppPathService(tempRoot),
+                uiStateStore);
 
             var result = await sut.SyncDownloadAsync();
             var snapshot = await sut.GetSnapshotAsync();
@@ -60,6 +62,7 @@ public class SyncDownloadServiceTests
         var tempRoot = CreateTempRoot();
         try
         {
+            var uiStateStore = new InMemoryUiStateStore();
             var metadataWorks = new[]
             {
                 CreateMetadataWork(1, "RJ101", "Failed Work"),
@@ -77,7 +80,8 @@ public class SyncDownloadServiceTests
                 new TestConfigurationService(tempRoot, syncWantedSize: "1KB"),
                 store,
                 downloadService,
-                new TestAppPathService(tempRoot));
+                new TestAppPathService(tempRoot),
+                uiStateStore);
 
             var result = await sut.SyncDownloadAsync();
             var snapshot = await sut.GetSnapshotAsync();
@@ -104,6 +108,7 @@ public class SyncDownloadServiceTests
         var tempRoot = CreateTempRoot();
         try
         {
+            var uiStateStore = new InMemoryUiStateStore();
             var metadataWorks = new[]
             {
                 CreateMetadataWork(1, "RJ201", "Recovered Work"),
@@ -137,7 +142,8 @@ public class SyncDownloadServiceTests
                 new TestConfigurationService(tempRoot, syncWantedSize: "1KB"),
                 store,
                 downloadService,
-                new TestAppPathService(tempRoot));
+                new TestAppPathService(tempRoot),
+                uiStateStore);
 
             var result = await sut.RetryFailedAsync();
             var snapshot = await sut.GetSnapshotAsync();
@@ -171,6 +177,7 @@ public class SyncDownloadServiceTests
         var tempRoot = CreateTempRoot();
         try
         {
+            var uiStateStore = new InMemoryUiStateStore();
             var metadataWorks = new[]
             {
                 CreateMetadataWork(1, "RJ301", "Still Failed"),
@@ -204,7 +211,8 @@ public class SyncDownloadServiceTests
                 new TestConfigurationService(tempRoot, syncWantedSize: "1KB"),
                 store,
                 downloadService,
-                new TestAppPathService(tempRoot));
+                new TestAppPathService(tempRoot),
+                uiStateStore);
 
             var result = await sut.RetryFailedAsync();
             var snapshot = await sut.GetSnapshotAsync();
@@ -224,6 +232,140 @@ public class SyncDownloadServiceTests
             Assert.NotNull(updated.FailedAt);
             Assert.NotEqual(stalePath, updated.FilePath);
             Assert.False(Directory.Exists(stalePath));
+        }
+        finally
+        {
+            CleanupTempRoot(tempRoot);
+        }
+    }
+
+    [Fact]
+    public async Task SyncDownloadAsync_ShouldStopAfterCurrentWork_WhenStopRequested()
+    {
+        var tempRoot = CreateTempRoot();
+        try
+        {
+            var uiStateStore = new InMemoryUiStateStore();
+            var metadataWorks = new[]
+            {
+                CreateMetadataWork(1, "RJ001", "Title 1"),
+                CreateMetadataWork(2, "RJ002", "Title 2"),
+                CreateMetadataWork(3, "RJ003", "Title 3"),
+            };
+            var store = new InMemorySyncDownloadStore(metadataWorks);
+            var downloadService = new ScriptedSyncDownloadRunner(
+                tempRoot,
+                new Dictionary<string, SyncDownloadPlan>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["RJ001"] = new("Title 1", 70, false),
+                    ["RJ002"] = new("Title 2", 60, false),
+                    ["RJ003"] = new("Title 3", 50, false),
+                },
+                async (_, callIndex) =>
+                {
+                    if (callIndex == 1)
+                    {
+                        await uiStateStore.RequestStopSyncDownloadAsync();
+                    }
+                });
+            var sut = new SyncDownloadService(
+                new TestConfigurationService(tempRoot, syncWantedSize: "1KB"),
+                store,
+                downloadService,
+                new TestAppPathService(tempRoot),
+                uiStateStore);
+
+            var result = await sut.SyncDownloadAsync();
+            var progress = await uiStateStore.LoadSyncDownloadProgressAsync();
+
+            Assert.True(result.WasStopped);
+            Assert.Equal(1, result.ProcessedCount);
+            Assert.Equal(1, result.CompletedCount);
+            Assert.Equal(0, result.FailedCount);
+            Assert.Equal(2, result.RemainingMetadataCountAfter);
+            Assert.Equal("RJ001", result.LastProcessedSourceId);
+            Assert.Equal(SyncProgressStatuses.Stopped, progress.Status);
+            Assert.Equal("RJ001", progress.LastProcessedSourceId);
+            Assert.Equal(["RJ001"], downloadService.RequestedSourceIds);
+        }
+        finally
+        {
+            CleanupTempRoot(tempRoot);
+        }
+    }
+
+    [Fact]
+    public async Task SyncDownloadAsync_ShouldResumeFromSavedProgress_WhenStateIsUnfinished()
+    {
+        var tempRoot = CreateTempRoot();
+        try
+        {
+            var uiStateStore = new InMemoryUiStateStore();
+            await uiStateStore.SaveSyncDownloadProgressAsync(new SyncDownloadProgressState
+            {
+                Status = SyncProgressStatuses.Stopped,
+                LastProcessedSourceId = "RJ001",
+                ProcessedCount = 1,
+                CompletedCount = 1,
+                FailedCount = 0,
+                RemainingMetadataCountAfter = 2,
+                CompletedSizeBytesBefore = 0,
+                CompletedSizeBytesAfter = 70,
+                SizeLimitBytes = 1024,
+                StartedAt = DateTime.UtcNow.AddMinutes(-10),
+                UpdatedAt = DateTime.UtcNow.AddMinutes(-1),
+            });
+
+            var metadataWorks = new[]
+            {
+                CreateMetadataWork(1, "RJ001", "Title 1"),
+                CreateMetadataWork(2, "RJ002", "Title 2"),
+                CreateMetadataWork(3, "RJ003", "Title 3"),
+            };
+            var store = new InMemorySyncDownloadStore(metadataWorks);
+            store.SeedSyncInfo(new WorkSyncInfoItem
+            {
+                Id = 1,
+                MetadataWorkId = 1,
+                SourceId = "RJ001",
+                HasSubtitle = false,
+                DirSize = 70,
+                Status = "COMPLETED",
+                FilePath = Path.Combine(tempRoot, "existing"),
+                FailReason = string.Empty,
+                RetryCount = 0,
+                UpdatedAt = DateTime.UtcNow.AddMinutes(-8),
+            });
+
+            var downloadService = new ScriptedSyncDownloadRunner(
+                tempRoot,
+                new Dictionary<string, SyncDownloadPlan>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["RJ002"] = new("Title 2", 60, false),
+                    ["RJ003"] = new("Title 3", 50, false),
+                });
+            var sut = new SyncDownloadService(
+                new TestConfigurationService(tempRoot, syncWantedSize: "1KB"),
+                store,
+                downloadService,
+                new TestAppPathService(tempRoot),
+                uiStateStore);
+
+            var result = await sut.SyncDownloadAsync();
+            var progress = await uiStateStore.LoadSyncDownloadProgressAsync();
+
+            Assert.True(result.ResumedFromProgress);
+            Assert.False(result.WasStopped);
+            Assert.Equal(2, result.ProcessedCount);
+            Assert.Equal(2, result.CompletedCount);
+            Assert.Equal(0, result.FailedCount);
+            Assert.Equal(70, result.CompletedSizeBytesBefore);
+            Assert.Equal(180, result.CompletedSizeBytesAfter);
+            Assert.Equal(0, result.RemainingMetadataCountAfter);
+            Assert.Equal(SyncProgressStatuses.Completed, progress.Status);
+            Assert.Equal(3, progress.ProcessedCount);
+            Assert.Equal(3, progress.CompletedCount);
+            Assert.Equal(["RJ002", "RJ003"], downloadService.RequestedSourceIds);
         }
         finally
         {
@@ -263,11 +405,17 @@ public class SyncDownloadServiceTests
     {
         private readonly string _targetRoot;
         private readonly IReadOnlyDictionary<string, SyncDownloadPlan> _plans;
+        private readonly Func<string, int, Task>? _onStartAsync;
+        private int _startCallCount;
 
-        public ScriptedSyncDownloadRunner(string targetRoot, IReadOnlyDictionary<string, SyncDownloadPlan> plans)
+        public ScriptedSyncDownloadRunner(
+            string targetRoot,
+            IReadOnlyDictionary<string, SyncDownloadPlan> plans,
+            Func<string, int, Task>? onStartAsync = null)
         {
             _targetRoot = targetRoot;
             _plans = plans;
+            _onStartAsync = onStartAsync;
         }
 
         public List<string> RequestedSourceIds { get; } = [];
@@ -277,33 +425,39 @@ public class SyncDownloadServiceTests
             throw new NotImplementedException();
         }
 
-        public Task<DownloadTaskItem?> StartAsync(string sourceId, string? fileFilter = null, Guid? preferredTaskId = null, bool hdAudioOnly = false, CancellationToken cancellationToken = default)
+        public async Task<DownloadTaskItem?> StartAsync(string sourceId, string? fileFilter = null, Guid? preferredTaskId = null, bool hdAudioOnly = false, CancellationToken cancellationToken = default)
         {
             RequestedSourceIds.Add(sourceId);
+            var startCallCount = Interlocked.Increment(ref _startCallCount);
             var plan = _plans[sourceId];
             var targetDirectory = SyncDownloadPathPolicy.BuildTargetDirectory(_targetRoot, sourceId, plan.Title);
             Directory.CreateDirectory(targetDirectory);
 
+            if (_onStartAsync is not null)
+            {
+                await _onStartAsync(sourceId, startCallCount);
+            }
+
             if (plan.ShouldFail)
             {
-                return Task.FromResult<DownloadTaskItem?>(new DownloadTaskItem
+                return new DownloadTaskItem
                 {
                     SourceId = sourceId,
                     Title = plan.Title,
                     Status = DownloadTaskStatus.Failed,
                     ErrorMessage = "mock download failed",
                     TargetDirectory = targetDirectory,
-                });
+                };
             }
 
             File.WriteAllBytes(Path.Combine(targetDirectory, "payload.bin"), new byte[plan.SizeBytes]);
-            return Task.FromResult<DownloadTaskItem?>(new DownloadTaskItem
+            return new DownloadTaskItem
             {
                 SourceId = sourceId,
                 Title = plan.Title,
                 Status = DownloadTaskStatus.Completed,
                 TargetDirectory = targetDirectory,
-            });
+            };
         }
 
         public IReadOnlyList<DownloadTaskItem> GetTasks()

@@ -18,5 +18,11 @@ public sealed class SyncDownloadRunResult
 
     public bool ReachedSizeLimit { get; init; }
 
+    public string LastProcessedSourceId { get; init; } = string.Empty;
+
     public string Message { get; init; } = string.Empty;
+
+    public bool WasStopped { get; init; }
+
+    public bool ResumedFromProgress { get; init; }
 }

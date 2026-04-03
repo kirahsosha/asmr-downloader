@@ -3,6 +3,7 @@ using Asmroner.Core.Api;
 using Asmroner.Core.Configuration;
 using Asmroner.Core.Download;
 using Asmroner.Core.Interfaces;
+using Asmroner.Core.Sync;
 using Asmroner.Wpf.Services;
 
 namespace Asmroner.Wpf.Tests;
@@ -211,6 +212,24 @@ public class StartupUnfinishedQueueMetadataRefreshServiceTests
             => Task.FromResult(new DownloadUiState());
 
         public Task SaveDownloadUiStateAsync(DownloadUiState state, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task<MetadataSyncProgressState> LoadMetadataSyncProgressAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(new MetadataSyncProgressState());
+
+        public Task SaveMetadataSyncProgressAsync(MetadataSyncProgressState state, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task RequestStopMetadataSyncAsync(CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task<SyncDownloadProgressState> LoadSyncDownloadProgressAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(new SyncDownloadProgressState());
+
+        public Task SaveSyncDownloadProgressAsync(SyncDownloadProgressState state, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
+        public Task RequestStopSyncDownloadAsync(CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 
         public Task<IReadOnlyList<string>> LoadUnfinishedQueueAsync(CancellationToken cancellationToken = default)

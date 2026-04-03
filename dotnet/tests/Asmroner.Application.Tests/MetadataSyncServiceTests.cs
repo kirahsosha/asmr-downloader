@@ -10,6 +10,7 @@ public class MetadataSyncServiceTests
     [Fact]
     public async Task SyncMetadataAsync_ShouldInsertAllPages_WhenRemoteHasNewWorks()
     {
+        var uiStateStore = new InMemoryUiStateStore();
         var apiClient = new RecordingMetadataApiClient
         {
             RemoteTotalCount = 101,
@@ -28,7 +29,8 @@ public class MetadataSyncServiceTests
             apiClient,
             new TestConfigurationService(Path.GetTempPath()),
             store,
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            uiStateStore);
 
         var result = await sut.SyncMetadataAsync();
         var snapshot = await sut.GetMetadataSnapshotAsync();
@@ -46,6 +48,7 @@ public class MetadataSyncServiceTests
     [Fact]
     public async Task SyncMetadataAsync_ShouldSkip_WhenRemoteCountMatchesLocalCount()
     {
+        var uiStateStore = new InMemoryUiStateStore();
         var apiClient = new RecordingMetadataApiClient
         {
             RemoteTotalCount = 2,
@@ -73,7 +76,8 @@ public class MetadataSyncServiceTests
             apiClient,
             new TestConfigurationService(Path.GetTempPath()),
             store,
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            uiStateStore);
 
         var result = await sut.SyncMetadataAsync();
 
@@ -87,6 +91,7 @@ public class MetadataSyncServiceTests
     [Fact]
     public async Task SyncMetadataAsync_ShouldReport_WhenLocalCountExceedsRemoteCount()
     {
+        var uiStateStore = new InMemoryUiStateStore();
         var apiClient = new RecordingMetadataApiClient
         {
             RemoteTotalCount = 1,
@@ -113,7 +118,8 @@ public class MetadataSyncServiceTests
             apiClient,
             new TestConfigurationService(Path.GetTempPath()),
             store,
-            new NoopRateLimiterService());
+            new NoopRateLimiterService(),
+            uiStateStore);
 
         var result = await sut.SyncMetadataAsync();
 
@@ -121,6 +127,106 @@ public class MetadataSyncServiceTests
         Assert.False(result.IsUpToDate);
         Assert.Contains("本地元数据数量高于网站", result.Message, StringComparison.Ordinal);
         Assert.Equal([(1, 1, false), (1, 1, true)], apiClient.Calls);
+    }
+
+    [Fact]
+    public async Task SyncMetadataAsync_ShouldResumeFromSavedProgress_WhenStateIsUnfinished()
+    {
+        var uiStateStore = new InMemoryUiStateStore();
+        await uiStateStore.SaveMetadataSyncProgressAsync(new MetadataSyncProgressState
+        {
+            Status = SyncProgressStatuses.Stopped,
+            NextPage = 2,
+            ProcessedPageCount = 1,
+            TotalPageCount = 2,
+            RemoteTotalCount = 101,
+            RemoteSubtitleCount = 1,
+            InsertedCount = 100,
+            StartedAt = DateTime.UtcNow.AddMinutes(-10),
+            UpdatedAt = DateTime.UtcNow.AddMinutes(-1),
+        });
+
+        var apiClient = new RecordingMetadataApiClient
+        {
+            RemoteTotalCount = 101,
+            RemoteSubtitleCount = 1,
+            Pages =
+            {
+                [1] = BuildPage(startId: 101, count: 100, subtitleIndex: 0),
+                [2] =
+                [
+                    CreateWork(201, "RJ201", "Title 201"),
+                ],
+            },
+        };
+        var existingWorks = Enumerable.Range(101, 100)
+            .Select((id, index) => new MetadataWorkItem
+            {
+                Id = id,
+                SourceId = $"RJ{id}",
+                Title = $"Title {id}",
+                HasSubtitle = index == 0,
+                UpdatedAt = DateTime.UtcNow.AddMinutes(-20),
+            })
+            .ToArray();
+        var store = new InMemoryMetadataSyncStore(existingWorks);
+        var sut = new MetadataSyncService(
+            apiClient,
+            new TestConfigurationService(Path.GetTempPath()),
+            store,
+            new NoopRateLimiterService(),
+            uiStateStore);
+
+        var result = await sut.SyncMetadataAsync();
+        var progress = await uiStateStore.LoadMetadataSyncProgressAsync();
+
+        Assert.True(result.ResumedFromProgress);
+        Assert.False(result.WasStopped);
+        Assert.Equal(1, result.InsertedCount);
+        Assert.Equal(2, result.ProcessedPageCount);
+        Assert.Equal(1, result.NextPage);
+        Assert.Equal(SyncProgressStatuses.Completed, progress.Status);
+        Assert.Equal(101, progress.InsertedCount);
+        Assert.Equal([(1, 1, false), (1, 1, true), (2, 100, false)], apiClient.Calls);
+    }
+
+    [Fact]
+    public async Task SyncMetadataAsync_ShouldStopAfterCurrentPage_WhenStopRequested()
+    {
+        var uiStateStore = new InMemoryUiStateStore();
+        var apiClient = new RecordingMetadataApiClient
+        {
+            RemoteTotalCount = 101,
+            RemoteSubtitleCount = 1,
+            Pages =
+            {
+                [1] = BuildPage(startId: 101, count: 100, subtitleIndex: 0),
+                [2] =
+                [
+                    CreateWork(201, "RJ201", "Title 201"),
+                ],
+            },
+        };
+        var store = new InMemoryMetadataSyncStore();
+        store.OnUpsertAsync = async _ => await uiStateStore.RequestStopMetadataSyncAsync();
+        var sut = new MetadataSyncService(
+            apiClient,
+            new TestConfigurationService(Path.GetTempPath()),
+            store,
+            new NoopRateLimiterService(),
+            uiStateStore);
+
+        var result = await sut.SyncMetadataAsync();
+        var progress = await uiStateStore.LoadMetadataSyncProgressAsync();
+
+        Assert.True(result.WasStopped);
+        Assert.False(result.IsUpToDate);
+        Assert.Equal(100, result.InsertedCount);
+        Assert.Equal(1, result.ProcessedPageCount);
+        Assert.Equal(2, result.NextPage);
+        Assert.Equal(SyncProgressStatuses.Stopped, progress.Status);
+        Assert.Equal(2, progress.NextPage);
+        Assert.Equal([(1, 1, false), (1, 1, true), (1, 100, false)], apiClient.Calls);
     }
 
     private static MetadataSyncWorkDto CreateWork(int id, string sourceId, string title, bool hasSubtitle = false)
@@ -220,6 +326,8 @@ public class MetadataSyncServiceTests
         private readonly Dictionary<int, WorkSyncInfoItem> _syncInfos = [];
         private int _nextSyncInfoId = 1;
 
+        public Func<int, Task>? OnUpsertAsync { get; set; }
+
         public InMemoryMetadataSyncStore(IEnumerable<MetadataWorkItem>? works = null)
         {
             _works = (works ?? Array.Empty<MetadataWorkItem>())
@@ -237,7 +345,7 @@ public class MetadataSyncServiceTests
             });
         }
 
-        public Task<int> UpsertMetadataWorksAsync(IReadOnlyCollection<MetadataWorkItem> works, CancellationToken cancellationToken = default)
+        public async Task<int> UpsertMetadataWorksAsync(IReadOnlyCollection<MetadataWorkItem> works, CancellationToken cancellationToken = default)
         {
             var insertedCount = 0;
             foreach (var work in works)
@@ -250,7 +358,12 @@ public class MetadataSyncServiceTests
                 _works[work.Id] = work;
             }
 
-            return Task.FromResult(insertedCount);
+            if (OnUpsertAsync is not null)
+            {
+                await OnUpsertAsync(insertedCount);
+            }
+
+            return insertedCount;
         }
 
         public Task<SyncDownloadSnapshot> GetDownloadSnapshotAsync(CancellationToken cancellationToken = default)

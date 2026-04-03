@@ -29,9 +29,19 @@ public sealed class SyncService : ISyncService
         return _metadataSyncService.GetMetadataSnapshotAsync(cancellationToken);
     }
 
+    public Task<MetadataSyncProgressState> GetMetadataSyncProgressAsync(CancellationToken cancellationToken = default)
+    {
+        return _metadataSyncService.GetProgressAsync(cancellationToken);
+    }
+
     public Task<MetadataSyncRunResult> SyncMetadataAsync(CancellationToken cancellationToken = default)
     {
         return _metadataSyncService.SyncMetadataAsync(cancellationToken);
+    }
+
+    public Task RequestStopMetadataSyncAsync(CancellationToken cancellationToken = default)
+    {
+        return _metadataSyncService.RequestStopAsync(cancellationToken);
     }
 
     public Task<SyncDownloadSnapshot> GetDownloadSnapshotAsync(CancellationToken cancellationToken = default)
@@ -39,9 +49,19 @@ public sealed class SyncService : ISyncService
         return _syncDownloadService.GetSnapshotAsync(cancellationToken);
     }
 
+    public Task<SyncDownloadProgressState> GetSyncDownloadProgressAsync(CancellationToken cancellationToken = default)
+    {
+        return _syncDownloadService.GetProgressAsync(cancellationToken);
+    }
+
     public Task<SyncDownloadRunResult> SyncDownloadAsync(CancellationToken cancellationToken = default)
     {
         return _syncDownloadService.SyncDownloadAsync(cancellationToken);
+    }
+
+    public Task RequestStopSyncDownloadAsync(CancellationToken cancellationToken = default)
+    {
+        return _syncDownloadService.RequestStopAsync(cancellationToken);
     }
 
     public Task<SyncRetryRunResult> RetryFailedAsync(CancellationToken cancellationToken = default)

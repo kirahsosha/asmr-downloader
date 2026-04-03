@@ -20,7 +20,13 @@ public sealed class MetadataSyncRunResult
 
     public int TotalPageCount { get; init; }
 
+    public int NextPage { get; init; } = 1;
+
     public string Message { get; init; } = string.Empty;
 
     public bool IsUpToDate { get; init; }
+
+    public bool WasStopped { get; init; }
+
+    public bool ResumedFromProgress { get; init; }
 }

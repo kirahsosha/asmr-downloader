@@ -26,10 +26,10 @@
             <StackPanel>
                 <TextBlock FontSize="18"
                            FontWeight="SemiBold"
-                           Text="同步能力（阶段 5 前五批）"/>
+                           Text="同步能力（阶段 5 增强）"/>
                 <TextBlock Margin="0,8,0,0"
                            Foreground="#4B5563"
-                           Text="当前批次已落地元数据同步、本地 SQLite 入库、同步下载容量控制、失败重试、状态导出与统计报表；Sync 页面现已提供统计卡片和数据面板。"
+                           Text="当前批次已落地元数据同步、本地 SQLite 入库、同步下载容量控制、失败重试、状态导出与统计报表；并新增同步进度持久化、断点继续与温和停止按钮。"
                            TextWrapping="Wrap"/>
             </StackPanel>
         </Border>
@@ -37,13 +37,13 @@
         <WrapPanel Grid.Row="1"
                    Margin="0,0,0,12">
             <Button x:Name="SyncMetadataButton"
-                    Width="160"
+                    Width="180"
                     Height="32"
                     Margin="0,0,12,8"
                     Content="开始同步元数据"
                     Click="OnSyncMetadataClicked"/>
             <Button x:Name="SyncDownloadButton"
-                    Width="160"
+                    Width="180"
                     Height="32"
                     Margin="0,0,12,8"
                     Content="开始同步下载"

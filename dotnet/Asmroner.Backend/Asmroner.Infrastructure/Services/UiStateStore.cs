@@ -2,6 +2,7 @@ using System.Text.Json;
 using Asmroner.Core.Configuration;
 using Asmroner.Core.Constants;
 using Asmroner.Core.Interfaces;
+using Asmroner.Core.Sync;
 using Asmroner.Core.Utils;
 using Microsoft.Data.Sqlite;
 
@@ -12,6 +13,8 @@ public sealed class UiStateStore : IUiStateStore
     private const string TableName = AsmronerConstants.Storage.UiState.TableName;
     private const string SearchStateKey = AsmronerConstants.Storage.UiState.StateKeys.Search;
     private const string DownloadStateKey = AsmronerConstants.Storage.UiState.StateKeys.Download;
+    private const string MetadataSyncProgressKey = AsmronerConstants.Storage.UiState.StateKeys.MetadataSyncProgress;
+    private const string SyncDownloadProgressKey = AsmronerConstants.Storage.UiState.StateKeys.SyncDownloadProgress;
     private const string UnfinishedQueueKey = AsmronerConstants.Storage.UiState.StateKeys.UnfinishedQueue;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -55,6 +58,80 @@ public sealed class UiStateStore : IUiStateStore
     {
         ArgumentNullException.ThrowIfNull(state);
         return SaveStateAsync(DownloadStateKey, state, cancellationToken);
+    }
+
+    public async Task<MetadataSyncProgressState> LoadMetadataSyncProgressAsync(CancellationToken cancellationToken = default)
+    {
+        var persisted = await LoadStateAsync<MetadataSyncProgressState>(MetadataSyncProgressKey, cancellationToken);
+        return persisted ?? new MetadataSyncProgressState();
+    }
+
+    public async Task SaveMetadataSyncProgressAsync(MetadataSyncProgressState state, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+
+        var persisted = await LoadStateAsync<MetadataSyncProgressState>(MetadataSyncProgressKey, cancellationToken);
+        if (persisted?.StopRequested == true && ShouldPreserveStopRequested(state.Status))
+        {
+            state.StopRequested = true;
+        }
+
+        if (!ShouldPreserveStopRequested(state.Status))
+        {
+            state.StopRequested = false;
+        }
+
+        await SaveStateAsync(MetadataSyncProgressKey, state, cancellationToken);
+    }
+
+    public async Task RequestStopMetadataSyncAsync(CancellationToken cancellationToken = default)
+    {
+        var state = await LoadMetadataSyncProgressAsync(cancellationToken);
+        if (!string.Equals(state.Status, SyncProgressStatuses.Running, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        state.StopRequested = true;
+        state.UpdatedAt = DateTime.UtcNow;
+        await SaveStateAsync(MetadataSyncProgressKey, state, cancellationToken);
+    }
+
+    public async Task<SyncDownloadProgressState> LoadSyncDownloadProgressAsync(CancellationToken cancellationToken = default)
+    {
+        var persisted = await LoadStateAsync<SyncDownloadProgressState>(SyncDownloadProgressKey, cancellationToken);
+        return persisted ?? new SyncDownloadProgressState();
+    }
+
+    public async Task SaveSyncDownloadProgressAsync(SyncDownloadProgressState state, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+
+        var persisted = await LoadStateAsync<SyncDownloadProgressState>(SyncDownloadProgressKey, cancellationToken);
+        if (persisted?.StopRequested == true && ShouldPreserveStopRequested(state.Status))
+        {
+            state.StopRequested = true;
+        }
+
+        if (!ShouldPreserveStopRequested(state.Status))
+        {
+            state.StopRequested = false;
+        }
+
+        await SaveStateAsync(SyncDownloadProgressKey, state, cancellationToken);
+    }
+
+    public async Task RequestStopSyncDownloadAsync(CancellationToken cancellationToken = default)
+    {
+        var state = await LoadSyncDownloadProgressAsync(cancellationToken);
+        if (!string.Equals(state.Status, SyncProgressStatuses.Running, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        state.StopRequested = true;
+        state.UpdatedAt = DateTime.UtcNow;
+        await SaveStateAsync(SyncDownloadProgressKey, state, cancellationToken);
     }
 
     public async Task<IReadOnlyList<string>> LoadUnfinishedQueueAsync(CancellationToken cancellationToken = default)
@@ -160,6 +237,11 @@ public sealed class UiStateStore : IUiStateStore
         }.ToString();
 
         return new SqliteConnection(connectionString);
+    }
+
+    private static bool ShouldPreserveStopRequested(string status)
+    {
+        return string.Equals(status, SyncProgressStatuses.Running, StringComparison.Ordinal);
     }
 
     private sealed class UnfinishedQueueState

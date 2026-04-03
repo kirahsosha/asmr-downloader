@@ -16,6 +16,8 @@ public class SyncViewXamlTests
         Assert.Contains("x:Name=\"ExportFailedButton\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"ExportCompletedButton\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"RefreshStatusButton\"", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("x:Name=\"StopMetadataSyncButton\"", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("x:Name=\"StopSyncDownloadButton\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"CurrentCountTextBlock\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"DownloadCountTextBlock\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"MetadataBreakdownTextBlock\"", content, StringComparison.Ordinal);
@@ -25,7 +27,7 @@ public class SyncViewXamlTests
         Assert.Contains("x:Name=\"LastSyncTextBlock\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"StatusTextBlock\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"DetailsTextBox\"", content, StringComparison.Ordinal);
-        Assert.Contains("Text=\"同步能力（阶段 5 前五批）\"", content, StringComparison.Ordinal);
+        Assert.Contains("Text=\"同步能力（阶段 5 增强）\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
         Assert.NotNull(doc.Root);
