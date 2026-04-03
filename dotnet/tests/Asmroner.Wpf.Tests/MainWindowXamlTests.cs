@@ -16,6 +16,7 @@ public class MainWindowXamlTests
         Assert.Contains("MinHeight=\"720\"", content, StringComparison.Ordinal);
         Assert.Contains("Title=\"Asmroner\"", content, StringComparison.Ordinal);
         Assert.DoesNotContain("Title=\"Asmroner v", content, StringComparison.Ordinal);
+        Assert.Contains("Header=\"Sync\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
         Assert.NotNull(doc.Root);

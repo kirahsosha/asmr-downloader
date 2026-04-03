@@ -19,6 +19,42 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
     private const string LimitSectionKey = AsmronerConstants.Storage.AppConfig.SectionKeys.Limit;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly string[] MetadataWorkRequiredColumns =
+    [
+        "Id",
+        "Title",
+        "CircleId",
+        "CircleName",
+        "Nsfw",
+        "Release",
+        "DownloadCount",
+        "Price",
+        "ReviewCount",
+        "RateCount",
+        "RateAverage",
+        "HasSubtitle",
+        "CreateDate",
+        "Vas",
+        "Tags",
+        "Duration",
+        "SourceType",
+        AsmronerConstants.Storage.Sync.MetadataWork.SourceIdColumn,
+        AsmronerConstants.Storage.Sync.MetadataWork.UpdatedAtColumn,
+    ];
+    private static readonly string[] WorkSyncInfoRequiredColumns =
+    [
+        "Id",
+        AsmronerConstants.Storage.Sync.WorkSyncInfo.MetadataWorkIdColumn,
+        "SourceId",
+        "HasSubtitle",
+        "DirSize",
+        AsmronerConstants.Storage.Sync.WorkSyncInfo.StatusColumn,
+        "FilePath",
+        "FailReason",
+        "RetryCount",
+        AsmronerConstants.Storage.Sync.WorkSyncInfo.UpdatedAtColumn,
+        "FailedAt",
+    ];
 
     private readonly IAppPathService _appPathService;
 
@@ -34,10 +70,21 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
         await using var connection = CreateConnection();
         await connection.OpenAsync(cancellationToken);
 
-        await DropUnusedLegacyTablesAsync(connection, cancellationToken);
         await EnsureAppConfigTableAsync(connection, cancellationToken);
         await EnsureUiStateTableAsync(connection, cancellationToken);
         await EnsureFavoriteWorkTableAsync(connection, cancellationToken);
+        await EnsureSyncTableAsync(
+            connection,
+            AsmronerConstants.Storage.Sync.MetadataWork.TableName,
+            MetadataWorkRequiredColumns,
+            AsmronerConstants.SqliteQueries.BuildCreateMetadataWorkTable(),
+            cancellationToken);
+        await EnsureSyncTableAsync(
+            connection,
+            AsmronerConstants.Storage.Sync.WorkSyncInfo.TableName,
+            WorkSyncInfoRequiredColumns,
+            AsmronerConstants.SqliteQueries.BuildCreateWorkSyncInfoTable(),
+            cancellationToken);
     }
 
     public async Task<bool> CanConnectAsync(CancellationToken cancellationToken = default)
@@ -56,14 +103,6 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
         {
             return false;
         }
-    }
-
-    private static async Task DropUnusedLegacyTablesAsync(SqliteConnection connection, CancellationToken cancellationToken)
-    {
-        await using var command = connection.CreateCommand();
-        command.CommandText = AsmronerConstants.SqliteQueries.BuildDropLegacySyncTables();
-
-        await command.ExecuteNonQueryAsync(cancellationToken);
     }
 
     private static async Task EnsureAppConfigTableAsync(SqliteConnection connection, CancellationToken cancellationToken)
@@ -111,6 +150,30 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
         command.CommandText = AsmronerConstants.SqliteQueries.BuildCreateFavoriteWorkTable();
 
         await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task EnsureSyncTableAsync(
+        SqliteConnection connection,
+        string tableName,
+        IReadOnlyCollection<string> requiredColumns,
+        string createSql,
+        CancellationToken cancellationToken)
+    {
+        var tableExists = await TableExistsAsync(connection, tableName, cancellationToken);
+        if (tableExists)
+        {
+            var columns = await ReadTableColumnsAsync(connection, tableName, cancellationToken);
+            if (!requiredColumns.All(columns.Contains))
+            {
+                await ExecuteNonQueryAsync(
+                    connection,
+                    AsmronerConstants.SqliteQueries.BuildDropTable(tableName),
+                    transaction: null,
+                    cancellationToken);
+            }
+        }
+
+        await ExecuteNonQueryAsync(connection, createSql, transaction: null, cancellationToken);
     }
 
     private static async Task MigrateLegacyAppConfigTableAsync(SqliteConnection connection, CancellationToken cancellationToken)

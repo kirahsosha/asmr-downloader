@@ -1,8 +1,8 @@
 # asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.4.11
+当前跟踪版本：v0.5.0
 
-AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
+AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 
 ## 1. 项目进度跟踪清单
 
@@ -17,17 +17,17 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 ## 1.2 阶段总览清单
 
-| 阶段   | 名称                   | 状态   | 负责人    | 开始日期   | 目标完成日期 | 实际完成日期 | 备注                                                                                                                                    |
-| ------ | ---------------------- | ------ | --------- | ---------- | ------------ | ------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| 阶段 0 | 创建 .NET 解决方案骨架 | 已完成 | AI + 用户 | 2026-03-14 | 2026-03-14   | 2026-03-14   | 已确认 9 项目在解决方案中；`dotnet build dotnet/Asmroner.sln` 成功。                                                                    |
-| 阶段 1 | 配置与初始化迁移       | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成配置模型、程序目录 `config.json` 默认配置加载、SQLite读写与旧结构迁移、初始化编排、首次启动设置向导分支与“保存后重新初始化”闭环。 |
-| 阶段 2 | API 与认证迁移         | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已修复 `HttpClient` 配置时机问题并完成回归。                                                                                            |
-| 阶段 3 | 搜索能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成查询解析、分页聚合、搜索导出、入队与高级筛选/分页 UI 交互；补齐“无关键词调整排序类控件触发查询”修复。                             |
-| 阶段 4 | 下载能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成下载入口、并发/重试控制与状态可视化复核，并补齐 SQLite 状态持久化能力。                                                           |
-| 阶段 5 | 同步能力迁移           | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                       |
-| 阶段 6 | 资源库与播放能力迁移   | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                       |
-| 阶段 7 | UI 集成与体验收口      | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                       |
-| 阶段 8 | 最终验收与发布准备     | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                       |
+| 阶段   | 名称                   | 状态   | 负责人    | 开始日期   | 目标完成日期 | 实际完成日期 | 备注                                                                                                                                      |
+| ------ | ---------------------- | ------ | --------- | ---------- | ------------ | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 阶段 0 | 创建 .NET 解决方案骨架 | 已完成 | AI + 用户 | 2026-03-14 | 2026-03-14   | 2026-03-14   | 已确认 9 项目在解决方案中；`dotnet build dotnet/Asmroner.sln` 成功。                                                                      |
+| 阶段 1 | 配置与初始化迁移       | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成配置模型、程序目录 `config.json` 默认配置加载、SQLite读写与旧结构迁移、初始化编排、首次启动设置向导分支与“保存后重新初始化”闭环。   |
+| 阶段 2 | API 与认证迁移         | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已修复 `HttpClient` 配置时机问题并完成回归。                                                                                              |
+| 阶段 3 | 搜索能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成查询解析、分页聚合、搜索导出、入队与高级筛选/分页 UI 交互；补齐“无关键词调整排序类控件触发查询”修复。                               |
+| 阶段 4 | 下载能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成下载入口、并发/重试控制与状态可视化复核，并补齐 SQLite 状态持久化能力。                                                             |
+| 阶段 5 | 同步能力迁移           | 已完成 | AI + 用户 | 2026-04-02 | 2026-04-03   | 2026-04-03   | 已完成元数据同步 API、SQLite 入库、同步下载容量控制、失败重试、失败/成功记录导出、统计报表与 Sync 页面数据面板；阶段 5 前五批回归已闭环。 |
+| 阶段 6 | 资源库与播放能力迁移   | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                         |
+| 阶段 7 | UI 集成与体验收口      | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                         |
+| 阶段 8 | 最终验收与发布准备     | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                         |
 
 ## 1.3 阶段执行勾选清单
 
@@ -76,11 +76,11 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 ### 阶段 5：同步能力迁移
 
-- [ ] 元数据同步与入库可用。
-- [ ] 同步下载与容量控制可用。
-- [ ] 失败重试与导出功能可用。
-- [ ] 报表与统计展示正确。
-- [ ] 阶段 5 DoD 已满足并记录证据。
+- [x] 元数据同步与入库可用。
+- [x] 同步下载与容量控制可用。
+- [x] 失败重试与导出功能可用。
+- [x] 报表与统计展示正确。
+- [x] 阶段 5 DoD 已满足并记录证据。
 
 ### 阶段 6：资源库与播放能力迁移
 
@@ -1026,6 +1026,48 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 4. DoD 判定：是。本轮 Search/Download 入口收敛、重试策略合并、自动化回归与进度文档同步均已完成。
 5. 下次计划：由用户执行章节 4.2/4.3/4.4 受影响项手工回归，重点验证 Search 主按钮与右键菜单统一导出、Download 从文件导入 / 从收藏夹导入，以及重试按钮在“单失败选中 / 混合选中 / 空选中”三种场景下的行为。
 
+### 1.5.85 2026-04-02，阶段 5 首批启动
+
+1. 变更摘要：按第 4.6 节启动阶段 5，新增同步元数据 API 与 DTO、SQLite `MetadataWork/WorkSyncInfo` 表、`MetadataSyncService` 和最小 `Sync` 页签；同时将运行时与文档版本统一提升到 `v0.5.0`。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Api/MetadataSyncPageDto.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IAsmrApiClient.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/ISyncService.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IMetadataSyncStore.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/AsmrApiClient.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/MetadataSyncStore.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/DatabaseInitializer.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/MetadataSyncService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/MainWindow.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml.cs`、`README.md`。
+3. 验证结果：`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj` 通过（56/56）；`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj` 通过（59/59）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj` 通过（147/147）；`rtk dotnet test dotnet/Asmroner.sln --no-restore` 通过（276/276）。
+4. DoD 判定：否。阶段 5 当前仅完成首批元数据同步闭环，`sync download / retry / export / report` 与完整统计展示尚未落地。
+5. 下次计划：继续实现同步下载、失败重试、导出报表与更完整的 Sync 页面交互。
+
+### 1.5.86 2026-04-03，阶段 5 第二批：同步下载与容量控制
+
+1. 变更摘要：继续按第 4.6 节推进阶段 5，新增 `SyncDownloadService`、`SyncService` 编排层、`WorkSyncInfo` SQLite 状态回写、`SyncWantedSize` 容量阈值控制与 Sync 页面“开始同步下载”入口。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Sync/SyncDownloadSnapshot.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Sync/SyncDownloadRunResult.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Sync/SyncDownloadPathPolicy.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Sync/SyncSizeText.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/SyncDownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/SyncService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/MetadataSyncStore.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/ConfigurationService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml.cs`。
+3. 验证结果：`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --no-restore` 通过（61/61）；`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --no-restore` 通过（57/57）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --no-restore` 通过（147/147）；`rtk dotnet test dotnet/Asmroner.sln --no-restore` 通过（279/279）。
+4. DoD 判定：否。阶段 5 当前已完成元数据同步与同步下载容量控制两批，失败重试、导出和报表仍未落地。
+5. 下次计划：继续实现失败重试、状态导出、统计报表以及更完整的 Sync 页面状态反馈。
+
+### 1.5.87 2026-04-03，阶段 5 第三批：失败重试
+
+1. 变更摘要：继续按第 4.6 节推进阶段 5，新增 `SyncRetryRunResult`、失败记录查询与 `SyncDownloadService.RetryFailedAsync`，并在 Sync 页面补充“重试失败项”入口与执行摘要展示。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/ISyncService.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IMetadataSyncStore.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Sync/SyncRetryRunResult.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/SyncDownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/SyncService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/MetadataSyncStore.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml.cs`、`dotnet/tests/Asmroner.Application.Tests/SyncDownloadServiceTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/MetadataSyncStoreTests.cs`。
+3. 验证结果：`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --no-restore` 通过（63/63）；`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --no-restore` 通过（58/58）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --no-restore` 通过（147/147）；`rtk dotnet test dotnet/Asmroner.sln --no-restore` 通过（282/282）。
+4. DoD 判定：否。阶段 5 当前已完成元数据同步、同步下载容量控制与失败重试三批，导出和报表仍未落地。
+5. 下次计划：继续实现状态导出、统计报表以及更完整的 Sync 页面状态反馈。
+
+### 1.5.88 2026-04-03，阶段 5 第四批：失败/成功记录导出
+
+1. 变更摘要：继续按第 4.6 节推进阶段 5，新增 `SyncExportService`、`SyncExportStatus/SyncExportResult`、`WorkSyncInfo` 按状态查询导出链路，并在 Sync 页面补充“导出失败记录”“导出成功记录”入口与保存对话框流程。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/ISyncExportService.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IMetadataSyncStore.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Sync/SyncExportStatus.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Sync/SyncExportResult.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/SyncExportService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/MetadataSyncStore.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/App.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml.cs`、`dotnet/tests/Asmroner.Application.Tests/SyncExportServiceTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/MetadataSyncStoreTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/SyncViewXamlTests.cs`。
+3. 验证结果：`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --no-restore` 通过（65/65）；`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --no-restore` 通过（59/59）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --no-restore` 通过（147/147）；`rtk dotnet test dotnet/Asmroner.sln --no-restore` 通过（285/285）。
+4. DoD 判定：否。阶段 5 当前已完成元数据同步、同步下载容量控制、失败重试与状态导出四批，统计报表与更完整的 Sync 统计展示仍未落地。
+5. 下次计划：继续实现 Sync 统计报表与页面汇总展示，并补齐对应手工回归证据。
+
+### 1.5.89 2026-04-03，阶段 5 第五批：统计报表与页面数据面板
+
+1. 变更摘要：继续按第 4.6 节推进阶段 5，新增 `SyncReportService/SyncReportSnapshot` 统计快照，按 Go `sync report` 口径汇总元数据总量、字幕拆分、完成/失败/待处理数量与同步进度，并在 Sync 页面新增统计卡片与数据面板展示。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/ISyncService.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Sync/SyncReportSnapshot.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/SyncReportService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/SyncService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/App.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml.cs`、`dotnet/tests/Asmroner.Application.Tests/SyncReportServiceTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/SyncViewXamlTests.cs`。
+3. 验证结果：`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --no-restore` 通过（67/67）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --no-restore` 通过（147/147）；`rtk dotnet test dotnet/Asmroner.sln --no-restore` 通过（287/287）。
+4. DoD 判定：是。阶段 5 五批能力已全部落地，`sync / sync download / retry / export / report` 对应的 WPF 页面能力与测试证据已闭环。
+5. 下次计划：进入阶段 6（资源库与播放能力迁移），先梳理本地资源扫描、目录索引与最小浏览页骨架。
+
+---
+
 ## 1.6 维护规则
 
 - 每次代码提交后更新第 16.2 节状态表。
@@ -1044,7 +1086,7 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-02 的解决方案级回归（271/271）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-03 的解决方案级回归（287/287）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
@@ -1142,6 +1184,7 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 | [x]    | [x]    | 阶段 4 | `AsmrApiClient_ShouldDeserializeTranslationMetadata_OnWorkInfoResponse`                    | 含 `translation_info`、`language_editions`、`other_language_editions_in_db` 的作品详情响应 | 正确反序列化当前语言、关联翻译版本与原作标记，供入队优先级选择复用                           |
 | [x]    | [x]    | 阶段 4 | `AsmrApiClient_ShouldResolveNonNumericSourceId_ToNumericWorkEndpointPath`                  | 输入 `BJ02370869` 这类 `source_id` 调用 `GetWorkInfoAsync`                                 | 先通过搜索结果解析数值 `workId`，再请求 `/api/work/{numericId}`                              |
 | [x]    | [x]    | 阶段 4 | `AsmrApiClient_GetTracksAsync_ShouldResolveNonNumericSourceId_ToNumericTracksEndpointPath` | 输入 `BJ02370869` 这类 `source_id` 调用 `GetTracksAsync`                                   | 先通过搜索结果解析数值 `workId`，再请求 `/api/tracks/{numericId}`                            |
+| [x]    | [x]    | 阶段 5 | `GetMetadataWorksAsync_ShouldUseWorksEndpoint_AndSubtitleFlag`                             | 调用 `/api/works` 元数据分页接口，`page=2`、`pageSize=50`、`subtitle=1`                    | 请求路径保留分页与字幕参数，并正确反序列化元数据分页结果                                     |
 
 #### 2.1.10 Infrastructure.Tests / AuthServiceTests.cs
 
@@ -1153,13 +1196,13 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 #### 2.1.11 Infrastructure.Tests / ConfigurationServiceTests.cs
 
-| 已创建 | 已通过 | 阶段    | 样例名                                                                        | 输入                                     | 期望输出                                              |
-| ------ | ------ | ------- | ----------------------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------- |
-| [x]    | [x]    | 阶段 1  | `ConfigurationService_ShouldReturnValidationErrors_WhenRequiredFieldsMissing` | 缺失账号/密码/同步目录的配置             | 返回可读校验错误集合                                  |
-| [x]    | [x]    | 阶段 4+ | `ConfigurationService_ShouldSaveAndLoadConfig_FromSplitSqliteSections`        | 临时目录、包含账号与下载参数的配置对象   | 按 `user/downloader/limit` 三段写入 SQLite 并正确读取 |
-| [x]    | [x]    | 阶段 4+ | `ConfigurationService_ShouldLoadFromDefaultConfigJson_WhenSqliteMissing`      | 无 SQLite 配置，仅程序目录 `config.json` | 可读取默认配置并返回                                  |
-| [x]    | [x]    | 阶段 4+ | `ConfigurationService_ShouldPreferSqliteOverDefaultConfigJson`                | 同时存在 SQLite 与 `config.json`         | 优先读取 SQLite 实际配置                              |
-| [x]    | [x]    | 阶段 4+ | `ConfigurationService_ShouldMigrateLegacySingleRowAppConfig`                  | 旧 `Id=1` 单行 AppConfig                 | 自动迁移为分段结构并可正常读取，旧结构字段不再保留    |
+| 已创建 | 已通过 | 阶段    | 样例名                                                                        | 输入                                                   | 期望输出                                              |
+| ------ | ------ | ------- | ----------------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------- |
+| [x]    | [x]    | 阶段 5  | `ConfigurationService_ShouldReturnValidationErrors_WhenRequiredFieldsMissing` | 缺失账号/密码/同步目录，且 `SyncWantedSize` 非法的配置 | 返回可读校验错误集合，且包含同步容量上限相关提示      |
+| [x]    | [x]    | 阶段 4+ | `ConfigurationService_ShouldSaveAndLoadConfig_FromSplitSqliteSections`        | 临时目录、包含账号与下载参数的配置对象                 | 按 `user/downloader/limit` 三段写入 SQLite 并正确读取 |
+| [x]    | [x]    | 阶段 4+ | `ConfigurationService_ShouldLoadFromDefaultConfigJson_WhenSqliteMissing`      | 无 SQLite 配置，仅程序目录 `config.json`               | 可读取默认配置并返回                                  |
+| [x]    | [x]    | 阶段 4+ | `ConfigurationService_ShouldPreferSqliteOverDefaultConfigJson`                | 同时存在 SQLite 与 `config.json`                       | 优先读取 SQLite 实际配置                              |
+| [x]    | [x]    | 阶段 4+ | `ConfigurationService_ShouldMigrateLegacySingleRowAppConfig`                  | 旧 `Id=1` 单行 AppConfig                               | 自动迁移为分段结构并可正常读取，旧结构字段不再保留    |
 
 #### 2.1.12 Infrastructure.Tests / EndpointDiscoveryServiceTests.cs
 
@@ -1170,10 +1213,10 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 #### 2.1.13 Infrastructure.Tests / DatabaseInitializerTests.cs
 
-| 已创建 | 已通过 | 阶段    | 样例名                                                                      | 输入                        | 期望输出                                                                         |
-| ------ | ------ | ------- | --------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 4+ | `DatabaseInitializer_ShouldCreateNewSchema_AndDropUnusedLegacyTables`       | 临时目录下初始化数据库      | 创建 `AppConfig/UiState/FavoriteWork` 新结构，并清理 `MetadataWork/WorkSyncInfo` |
-| [x]    | [x]    | 阶段 4+ | `DatabaseInitializer_ShouldMigrateLegacySingleRowAppConfig_ToSplitSections` | 预置旧单行 AppConfig 数据库 | 初始化后自动迁移到分段结构，且 `user/downloader/limit` 三段均存在                |
+| 已创建 | 已通过 | 阶段    | 样例名                                                                      | 输入                        | 期望输出                                                                               |
+| ------ | ------ | ------- | --------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 5  | `DatabaseInitializer_ShouldCreateNewSchema_AndEnsureSyncTables`             | 临时目录下初始化数据库      | 创建 `AppConfig/UiState/FavoriteWork/MetadataWork/WorkSyncInfo` 结构，并补齐同步表字段 |
+| [x]    | [x]    | 阶段 4+ | `DatabaseInitializer_ShouldMigrateLegacySingleRowAppConfig_ToSplitSections` | 预置旧单行 AppConfig 数据库 | 初始化后自动迁移到分段结构，且 `user/downloader/limit` 三段均存在                      |
 
 #### 2.1.14 IntegrationTests / ApplicationBootstrapperTests.cs
 
@@ -1214,10 +1257,10 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 #### 2.1.18 Wpf.Tests / MainWindowXamlTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                | 输入                            | 期望输出                                                                     |
-| ------ | ------ | ------ | ----------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 4 | `MainWindowXaml_ShouldUse1280x720DefaultWindowSize`   | 解析 `MainWindow.xaml` 文本/XML | 默认与最小窗口尺寸为 `1280x720`，主窗口标题为 `Asmroner`，且 XAML 可被解析。 |
-| [x]    | [x]    | 阶段 4 | `MainWindowXaml_ShouldNotContainVersionInWindowTitle` | 解析 `MainWindow.xaml` 文本     | 标题不包含版本号前缀（例如 `Asmroner v`）。                                  |
+| 已创建 | 已通过 | 阶段   | 样例名                                                | 输入                            | 期望输出                                                                                       |
+| ------ | ------ | ------ | ----------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 5 | `MainWindowXaml_ShouldUse1280x720DefaultWindowSize`   | 解析 `MainWindow.xaml` 文本/XML | 默认与最小窗口尺寸为 `1280x720`，主窗口标题为 `Asmroner`，并包含 `Sync` 页签且 XAML 可被解析。 |
+| [x]    | [x]    | 阶段 4 | `MainWindowXaml_ShouldNotContainVersionInWindowTitle` | 解析 `MainWindow.xaml` 文本     | 标题不包含版本号前缀（例如 `Asmroner v`）。                                                    |
 
 #### 2.1.19 Wpf.Tests / SearchViewXamlTests.cs
 
@@ -1504,10 +1547,10 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 
 #### 2.1.51 Wpf.Tests / AppVersionInfoTests.cs
 
-| 已创建 | 已通过 | 阶段    | 样例名                                                                            | 输入                      | 期望输出                                    |
-| ------ | ------ | ------- | --------------------------------------------------------------------------------- | ------------------------- | ------------------------------------------- |
-| [x]    | [x]    | 阶段 1+ | `GetDisplayVersion_ShouldReturnThreePartAssemblyVersion`                          | 当前程序集版本 `0.4.10.0` | 返回三段式版本文本 `0.4.10`                 |
-| [x]    | [x]    | 阶段 1+ | `BuildSettingsVersionText_AndStartupMessage_ShouldUseDisplayVersionWithoutSuffix` | 动态版本文案构建          | Settings 文案与启动日志共用相同三段式版本号 |
+| 已创建 | 已通过 | 阶段    | 样例名                                                                            | 输入                     | 期望输出                                    |
+| ------ | ------ | ------- | --------------------------------------------------------------------------------- | ------------------------ | ------------------------------------------- |
+| [x]    | [x]    | 阶段 5  | `GetDisplayVersion_ShouldReturnThreePartAssemblyVersion`                          | 当前程序集版本 `0.5.0.0` | 返回三段式版本文本 `0.5.0`                  |
+| [x]    | [x]    | 阶段 1+ | `BuildSettingsVersionText_AndStartupMessage_ShouldUseDisplayVersionWithoutSuffix` | 动态版本文案构建         | Settings 文案与启动日志共用相同三段式版本号 |
 
 #### 2.1.52 Wpf.Tests / StartupUnfinishedQueueMetadataRefreshServiceTests.cs
 
@@ -1585,13 +1628,59 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 | ------ | ------ | ------ | ------------------------------------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------- |
 | [x]    | [x]    | 阶段 4 | `FavoriteFolderDialogXaml_ShouldContainEditableComboBoxAndConfirmButtons` | 解析 `FavoriteFolderDialog.xaml` 文本/XML | 弹窗包含可编辑下拉框、保存/取消按钮，且 XAML 可被正确解析。 |
 
+#### 2.1.61 Application.Tests / MetadataSyncServiceTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                            | 输入                                                        | 期望输出                                                          |
+| ------ | ------ | ------ | ----------------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldInsertAllPages_WhenRemoteHasNewWorks`    | 网站元数据总量 `101`、本地为空，分页返回 `100 + 1` 条元数据 | 顺序请求总量页与 2 个同步分页，新增 101 条，本地总量追平到 101 条 |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldSkip_WhenRemoteCountMatchesLocalCount`   | 网站总量与本地总量相同                                      | 仅查询网站总量，不执行分页同步，返回“无需同步”                    |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldReport_WhenLocalCountExceedsRemoteCount` | 本地元数据数量大于网站                                      | 不执行分页同步，返回“本地元数据数量高于网站，未执行同步”          |
+
+#### 2.1.62 Wpf.Tests / SyncViewXamlTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                     | 输入                          | 期望输出                                                                                                                                                 |
+| ------ | ------ | ------ | ---------------------------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 5 | `SyncViewXaml_ShouldContainPrimaryActions_AndStatusFields` | 解析 `SyncView.xaml` 文本/XML | 页面包含“开始同步元数据”“开始同步下载”“重试失败项”“导出失败记录”“导出成功记录”“刷新统计”按钮、下载摘要字段、统计卡片字段与文本框，且 XAML 可被正确解析。 |
+
+#### 2.1.63 Application.Tests / SyncDownloadServiceTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                | 输入                                                             | 期望输出                                                              |
+| ------ | ------ | ------ | --------------------------------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldStopAfterReachingConfiguredSizeLimit`        | 3 条元数据作品 + `SyncWantedSize=120B` + 成功下载大小 `70/60/50` | 仅处理前 2 项，累计落盘 `130 B` 后停止，剩余待同步数量为 1            |
+| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldMarkFailedItems_AndContinueToNextCandidate`  | 2 条元数据作品，其中首项下载失败、次项成功                       | 将失败项写为 `FAILED`、成功项写为 `COMPLETED`，并继续处理后续候选作品 |
+| [x]    | [x]    | 阶段 5 | `RetryFailedAsync_ShouldReDownloadFailedItems_AndIncrementRetryCount` | 预置 1 条失败同步记录 + 重试后下载成功                           | 删除旧失败目录、重试成功后写回 `COMPLETED`，并将 `RetryCount` 加 1    |
+| [x]    | [x]    | 阶段 5 | `RetryFailedAsync_ShouldKeepFailedStatus_WhenRetryFailsAgain`         | 预置 1 条失败同步记录 + 重试后再次失败                           | 删除旧失败目录、失败状态保持为 `FAILED`，并累计重试次数与失败原因     |
+
+#### 2.1.64 Infrastructure.Tests / MetadataSyncStoreTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                    | 输入                                                       | 期望输出                                                                     |
+| ------ | ------ | ------ | ------------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 5 | `MetadataSyncStore_ShouldTrackSyncDownloadSnapshot_AndCleanupPendingRows` | SQLite 中预置 2 条元数据并写入一条 Completed、一条 Pending | 快照正确统计完成/待处理数量与已落盘大小，且清理 Pending 后目录与记录一并移除 |
+| [x]    | [x]    | 阶段 5 | `MetadataSyncStore_ShouldReturnFailedSyncDownloads_ForRetry`              | SQLite 中预置失败/成功两类同步记录                         | 仅返回 `FAILED` 记录，并保留重试次数、失败原因与时间信息                     |
+| [x]    | [x]    | 阶段 5 | `MetadataSyncStore_ShouldReturnSyncDownloadsByStatus_ForExport`           | SQLite 中预置 Completed/Failed 两类同步记录                | 可按状态分别返回导出候选记录，并保留目录大小、失败原因与字幕标记             |
+
+#### 2.1.65 Application.Tests / SyncExportServiceTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                 | 输入                                 | 期望输出                                                                |
+| ------ | ------ | ------ | ------------------------------------------------------ | ------------------------------------ | ----------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 5 | `ExportAsync_ShouldWriteCsvAndJson_ForRequestedStatus` | 失败记录导出 CSV + 成功记录导出 JSON | 按状态筛选导出，CSV/JSON 内容正确且 CSV 正确转义逗号与引号              |
+| [x]    | [x]    | 阶段 5 | `ExportAsync_ShouldReturnNoOp_WhenNoItemsMatchStatus`  | 仅存在成功记录时导出失败记录         | 返回 0 条导出结果，不创建输出文件，并给出“没有可导出的失败同步记录”提示 |
+
+#### 2.1.66 Application.Tests / SyncReportServiceTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                         | 输入                                              | 期望输出                                                      |
+| ------ | ------ | ------ | -------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 5 | `GetReportAsync_ShouldBuildBreakdownAndProgress_FromSnapshots` | 元数据 10 条、已完成 3 条、失败 2 条、待处理 1 条 | 正确汇总字幕/无字幕拆分、完成大小与总进度/字幕进度/无字幕进度 |
+| [x]    | [x]    | 阶段 5 | `GetReportAsync_ShouldReturnZeroProgress_WhenMetadataIsEmpty`  | 本地元数据为空，下载快照仅含失败统计              | 所有进度百分比安全回落为 `0.00%`，不出现除零异常或无效值      |
+
 ### 2.2 测试覆盖分析
 
 - Core（模型/配置）：默认值完整性，✅ 已覆盖。
 - Application（应用服务）：首次启动、查询解析、搜索聚合、导出、下载主流程与容错，✅ 已覆盖。
 - Infrastructure（基础设施）：配置读写、数据库初始化、鉴权、API 客户端、地址发现、UI 状态 SQLite 持久化，✅ 已覆盖。
 - Integration（集成）：引导器成功/失败/DB 初始化异常三条路径，✅ 已覆盖。
-- WPF（UI 规则）：命令可用性规则与下载输入实时归一化显示，✅ 已覆盖。
+- WPF（UI 规则）：命令可用性规则、下载输入实时归一化显示与 `Sync` 页面五入口、统计卡片和摘要骨架，✅ 已覆盖。
+- 阶段 5 前五批同步能力：元数据分页、SQLite 入库、同步下载容量控制、失败重试、失败/成功记录导出、统计报表、`WorkSyncInfo` 状态回写与主窗口 `Sync` 页签数据面板，✅ 已覆盖。
 - 下载入参规范化：RJID/作品 URL 混输下的入队与 API 调用兼容，✅ 已覆盖。
 - 格式优先级下载：`PreferFormats` 过滤轨道与留空全下载，✅ 已覆盖。
 - WorkInfo 预取复用：入队预取后下载阶段内存命中，✅ 已覆盖。
@@ -1612,6 +1701,13 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 - `WorkInfoDto` / `EnqueueWorkInfoResolver`：补齐 `translation_info`、`language_editions`、`other_language_editions_in_db` 元数据，并统一 Search/Download/CSV/JSON 入队时的翻译版本优选逻辑，按“简体中文 -> 繁体中文 -> 日本語”选择最终 `SourceId`。
 - `FavoriteStore` / `FavoriteFolderDialog` / `SearchView` / `DownloadView`：新增 SQLite 收藏夹、共享收藏夹弹窗与 Search 保存 / Download 导出联动，Search 侧保存收藏时复用“加入翻译作品”优选逻辑。
 - `SourceIdNormalizer` / `AsmrApiClient` / `SearchWorkItem`：统一保留 `source_id` 与数值 `workId` 两套标识；兼容 `BJ` 作品 URL 归一化，并在缺少数值编号时通过搜索结果回填 `workId`，避免详情/轨道接口继续误用 `source_id`。
+- `AsmrApiClient` / `MetadataSyncService`：新增 `/api/works` 元数据分页同步链路，并按网站总量与本地 SQLite 总量决定是否执行全量同步。
+- `SyncDownloadService` / `SyncService`：新增同步下载编排层与失败重试入口，按 `SyncWantedSize` 控制累计落盘大小，并支持对 `FAILED` 记录执行目录清理后重试。
+- `SyncExportService` / `MetadataSyncStore`：新增按 `FAILED/COMPLETED` 状态筛选的导出链路，支持写出 CSV/JSON，并统一保留 `metadata_work_id/source_id/dir_size/status/file_path/fail_reason/retry_count/has_subtitle` 等字段。
+- `SyncReportService` / `SyncView`：新增统计快照与 Sync 页面卡片化报表展示，统一输出元数据总量、字幕拆分、同步完成量、失败/待处理数量和三组同步进度百分比。
+- `DatabaseInitializer` / `MetadataSyncStore`：恢复 `MetadataWork/WorkSyncInfo` 为运行时表结构，支持同步元数据去重 upsert、本地统计读取、同步下载候选查询、失败记录查询、Pending 清理与状态回写。
+- `ConfigurationService` / `SyncSizeText`：对 `SyncWantedSize` 增加格式校验与字节换算，避免非法容量配置进入同步下载流程。
+- `MainWindow` / `SyncView`：新增 `Sync` 页签的失败重试与失败/成功记录导出入口，并扩展同步下载/失败重试/导出摘要展示。
 - `DownloadInputNormalizer`：批量输入改为“提交时归一化”，避免实时改写影响输入符号与粘贴体验，同时保持入队前统一规范化与去重。
 - `DownloadCommandAvailability`：从 `DownloadView.xaml.cs` 中抽取按钮可用性规则为独立纯状态类，消除 WPF 测试工程占位样例。
 - `StartupUnfinishedQueueMetadataRefreshService` / `DownloadTaskListComposer`：启动补拉改为返回成功/失败明细，Download 页面会将失败项显示为 `Failed` 占位行并附带错误信息。
@@ -1642,13 +1738,14 @@ AI约束策略：章节1.5.1到1.5.72的文本不加入分析上下文
 | 2026-03-31 | 已提交 | v0.4.8: harden startup refresh and tune Search/Download columns             | 1. Update runtime version to v0.4.8.<br>2. Switch version text to dynamic assembly version.<br>3. Add centralized constants/query class.<br>4. Use startup warmup to fix blank titles after restart.<br>5. Tune Search/Download DataGrid layout.<br>6. Update regression tests.                                                                                                                                                    | 0b7644c    |
 | 2026-04-01 | 已提交 | v0.4.9: translated queue, BJ/source fixes, prompt polish                    | 1. Update runtime version to v0.4.9.<br>2. Update AI-readable prompts.<br>3. Add persisted “加入翻译作品” options.<br>4. Preserve Search `WorkId`, resolve non-RJ `source_id` values via numeric work-id fallback, and fix valid browser/work/tracks paths.<br>5. Adjust UI display.<br>6. Avoid duplicate output suffixes.<br>7. Update regression tests and api samples.                                                         | eccd533    |
 | 2026-04-02 | 已提交 | v0.4.10: add shared workinfo cache                                          | 1. Update runtime/docs version to v0.4.10.<br>2. Add shared WorkInfo cache with 1-hour per-entry TTL.<br>3. Warm Summary cache from Search/Popular result and upgrade to Full details on demand for downloads/tracks.<br>4. Route Search/Download/startup refresh through the shared cache contract.<br>5. Update regression tests and progress documentation.                                                                     | 60e2f70    |
-| 2026-04-02 | 待提交 | v0.4.11: add favorites flow and unify search/download actions               | 1. Update runtime/docs version to v0.4.11.<br>2. Add SQLite favorite storage, and Search favorite-save flow.<br>3. Add Download favorite-import flow and queue integration.<br>4. Merge Search export actions for the main button and context menu, and merge Download CSV/JSON import actions.<br>5. Merge retry behavior and adjust the Download action-button.<br>5. Update regression tests and progress documentation.        | -          |
+| 2026-04-02 | 已提交 | v0.4.11: add favorites flow and unify search/download actions               | 1. Update runtime/docs version to v0.4.11.<br>2. Add SQLite favorite storage, and Search favorite-save flow.<br>3. Add Download favorite-import flow and queue integration.<br>4. Merge Search export actions for the main button and context menu, and merge Download CSV/JSON import actions.<br>5. Merge retry behavior and adjust the Download action-button.<br>6. Update regression tests and progress documentation.        | 6566c05    |
+| 2026-04-03 | 待提交 | v0.5.0: land phase 5 metadata/download/retry/export/report flow             | 1. Update runtime/docs version to v0.5.0.<br>2. Start phase 5 with metadata sync API, SQLite store, and application service.<br>3. Add sync-download orchestration with capacity control, failure retry, export report, and status persistence.<br>4. Expand the Sync tab with metadata/download/retry/export actions plus statistics cards and local summary panels.<br>5. Update regression tests and progress documentation.    | -          |
 
 ---
 
 ## 4. 功能测试验证清单
 
-本章用于指导测试人员对当前已交付的 WPF 客户端执行功能测试与回归测试。当前范围仅覆盖已完成并可使用的能力：阶段 1 到阶段 4。阶段 5 及以后功能暂不纳入本清单。
+本章用于指导测试人员对当前已交付的 WPF 客户端执行功能测试与回归测试。当前范围覆盖阶段 1 到阶段 4，以及阶段 5 前五批已落地的元数据同步、同步下载、失败重试、状态导出与统计报表入口。
 
 AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可见行为的改动时，必须先检查本章并将受影响的测试项重置为未勾选；待对应的功能测试或回归测试通过后，再重新勾选，并在必要时同步更新第 1.4 节和第 1.5 节记录。
 
@@ -1660,15 +1757,15 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 
 ### 4.1 启动、配置与连接
 
-- [x] 应用可正常启动，主窗口可显示 Search、Download、Settings 三个页签，且启动过程不因站点发现流程长时间阻塞。
+- [x] 应用可正常启动，主窗口可显示 Search、Download、Sync、Settings 四个页签，且启动过程不因站点发现流程长时间阻塞。
 - [x] Settings 页面可正确加载现有配置；默认下载目录、格式优先级等字段显示完整。
 - [x] 程序目录 `config.json` 可作为默认配置来源；当 SQLite 中无配置记录时，应用可读取该默认配置并完成设置页加载。
 - [x] SQLite 中存在旧单行 `AppConfig`（`Id=1`）时，应用启动后会自动迁移到 `user/downloader/limit` 分段结构并可继续使用。
 - [x] 在 Settings 页面修改有效配置后，“保存并重新初始化”可成功完成，状态提示明确，应用进入可用状态。
 - [x] 在 Settings 页面点击“保存并重新初始化”后，当前页应保持在 Settings，不应自动跳转到 Search。
-- [x] Settings 页面输入无效配置时，可给出可读错误提示，且应用不崩溃。
+- [x] Settings 页面输入无效配置（含非法 `SyncWantedSize`）时，可给出可读错误提示，且应用不崩溃。
 - [x] “测试连接”可完成站点发现与登录校验；成功时回填当前 BaseUrl 并显示延迟与鉴权结果，失败时显示明确原因。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.4.11。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.5.0。
 
 ### 4.2 Search 功能
 
@@ -1733,3 +1830,22 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 清空任务列表后不关闭程序，重新从 Search/Download 对同一作品入队时应优先复用进程内作品缓存；关闭程序或超过 1 小时后再次操作时仍能自动补拉并保持标题正确。
 - [x] 清空任务列表后再从 Search 页面重新入队时，状态提示与实际新增数量一致，不会出现“失败 1 项”但实际 0 项入队的误报。
 - [x] 连续执行“搜索 -> 入队 -> 立即下载/执行队列 -> 刷新列表 -> 重试/取消”后，应用无崩溃、无明显 UI 状态错乱。
+
+### 4.5 Sync 功能（阶段 5 前五批）
+
+- [x] Sync 页面可显示本地元数据总量、字幕数量与最近更新时间。
+- [x] Sync 页面可显示同步下载完成/失败/待处理数量、队列中数量与当前已落盘大小摘要。
+- [x] 点击“开始同步元数据”后，可成功拉取网站元数据并写入 SQLite `MetadataWork` 表。
+- [ ] 当网站总量与本地一致时，Sync 页面会提示“无需同步”，且不会重复写入数据。
+- [x] 同步完成后，页面摘要会显示网站总量、本地总量、新增数量与分页处理结果。
+- [x] 点击“开始同步下载”后，可按 `SyncWantedSize` 逐项处理待同步作品，并将 `WorkSyncInfo` 写为 `COMPLETED/FAILED`。
+- [ ] 当累计落盘大小达到 `SyncWantedSize` 后，Sync 页面会提示已达到容量上限，且停止后续候选作品处理。
+- [ ] 同步下载完成后，页面摘要会显示成功数、失败数、同步前后已落盘大小与剩余待同步数量。
+- [x] 点击“重试失败项”后，Sync 页面会逐项清理旧失败目录并重试全部 `FAILED` 记录。
+- [ ] 失败重试完成后，页面摘要会显示本次重试数量、恢复成功数量、剩余失败数量与当前已完成总数。
+- [x] 点击“导出失败记录”后，可通过保存对话框将全部 `FAILED` 同步记录导出为 CSV 或 JSON 文件。
+- [ ] 点击“导出成功记录”后，可通过保存对话框将全部 `COMPLETED` 同步记录导出为 CSV 或 JSON 文件。
+- [x] 导出文件内容需包含 `metadata_work_id/source_id/dir_size/status/file_path/updated_at/fail_reason/retry_count/failed_at/has_subtitle` 字段，且导出完成后可在资源管理器中定位文件。
+- [x] Sync 页面统计卡片需显示元数据总量、字幕数量、无字幕数量、同步完成数量、失败数量、待处理数量与已落盘大小。
+- [x] Sync 页面统计卡片需显示总进度、字幕进度与无字幕进度，且当本地元数据为空时应显示 `0.00%`，不出现异常值。
+- [x] 点击“刷新统计”或完成同步/重试后，统计卡片与摘要面板需同步刷新，最近更新时间应同时反映元数据与同步记录的最新时间。

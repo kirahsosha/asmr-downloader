@@ -85,6 +85,11 @@ public class SearchServiceTests
 
     private sealed class EmptySearchApiClient : IAsmrApiClient
     {
+        public Task<MetadataSyncPageDto> GetMetadataWorksAsync(int page, int pageSize, bool subtitleOnly = false, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<WorkInfoDto> GetWorkInfoAsync(string id, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
@@ -118,6 +123,11 @@ public class SearchServiceTests
     private sealed class PagedSearchApiClient : IAsmrApiClient
     {
         public List<string> Calls { get; } = new();
+
+        public Task<MetadataSyncPageDto> GetMetadataWorksAsync(int page, int pageSize, bool subtitleOnly = false, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
 
         public Task<WorkInfoDto> GetWorkInfoAsync(string id, CancellationToken cancellationToken = default)
         {

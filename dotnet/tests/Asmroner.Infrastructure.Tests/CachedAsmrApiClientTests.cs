@@ -113,11 +113,18 @@ public class CachedAsmrApiClientTests
 
         public IReadOnlyList<SearchWorkDto> PopularWorks { get; init; } = Array.Empty<SearchWorkDto>();
 
+        public MetadataSyncPageDto MetadataPageResult { get; init; } = new();
+
         public Dictionary<string, WorkInfoDto> WorkInfos { get; } = new(StringComparer.OrdinalIgnoreCase);
 
         public List<string> WorkInfoRequests { get; } = new();
 
         public List<string> TrackRequests { get; } = new();
+
+        public Task<MetadataSyncPageDto> GetMetadataWorksAsync(int page, int pageSize, bool subtitleOnly = false, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(MetadataPageResult);
+        }
 
         public Task<WorkInfoDto> GetWorkInfoAsync(string id, CancellationToken cancellationToken = default)
         {

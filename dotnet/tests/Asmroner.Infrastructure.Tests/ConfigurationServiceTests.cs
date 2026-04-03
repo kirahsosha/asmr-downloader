@@ -24,6 +24,7 @@ public class ConfigurationServiceTests
             Downloader = new DownloaderOptions
             {
                 SyncDataFolder = string.Empty,
+                SyncWantedSize = "abc",
                 MaxWorkers = 0,
                 MaxRetries = -1,
             },
@@ -45,6 +46,7 @@ public class ConfigurationServiceTests
         Assert.Contains("并发工作数必须大于 0。", errors);
         Assert.Contains("重试次数不能小于 0。", errors);
         Assert.Contains("同步目录不能为空。", errors);
+        Assert.Contains(errors, static message => message.Contains("同步容量上限", StringComparison.Ordinal));
         Assert.Contains("QPS 必须大于 0。", errors);
         Assert.Contains("同步抖动最小值不能大于最大值。", errors);
         Assert.Contains("下载抖动最小值不能大于最大值。", errors);

@@ -65,12 +65,18 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<ISearchStateStore, SearchStateStore>();
                 services.AddSingleton<IRateLimiterService, RateLimiterService>();
                 services.AddSingleton<IDownloadService, Asmroner.Application.Services.DownloadService>();
-                services.AddSingleton<ISyncService, Asmroner.Wpf.Services.SyncService>();
+                services.AddSingleton<IMetadataSyncStore, MetadataSyncStore>();
+                services.AddSingleton<MetadataSyncService>();
+                services.AddSingleton<SyncDownloadService>();
+                services.AddSingleton<SyncReportService>();
+                services.AddSingleton<ISyncService, SyncService>();
+                services.AddSingleton<ISyncExportService, SyncExportService>();
                 services.AddSingleton<StartupEndpointWarmupService>();
                 services.AddSingleton<StartupUnfinishedQueueMetadataRefreshService>();
 
                 services.AddSingleton<SearchView>();
                 services.AddSingleton<DownloadView>();
+                services.AddSingleton<SyncView>();
                 services.AddSingleton<SettingsView>();
                 services.AddSingleton<MainWindow>();
             })

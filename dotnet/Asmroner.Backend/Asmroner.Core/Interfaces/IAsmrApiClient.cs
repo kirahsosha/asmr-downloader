@@ -4,6 +4,8 @@ namespace Asmroner.Core.Interfaces;
 
 public interface IAsmrApiClient
 {
+    Task<MetadataSyncPageDto> GetMetadataWorksAsync(int page, int pageSize, bool subtitleOnly = false, CancellationToken cancellationToken = default);
+
     Task<WorkInfoDto> GetWorkInfoAsync(string id, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<TrackDto>> GetTracksAsync(string id, CancellationToken cancellationToken = default);

@@ -2,6 +2,7 @@ using System.Text.Json;
 using Asmroner.Core.Configuration;
 using Asmroner.Core.Constants;
 using Asmroner.Core.Interfaces;
+using Asmroner.Core.Sync;
 using Microsoft.Data.Sqlite;
 
 namespace Asmroner.Infrastructure.Services;
@@ -106,6 +107,15 @@ public sealed class ConfigurationService : IConfigurationService
         if (string.IsNullOrWhiteSpace(config.Downloader.SyncDataFolder))
         {
             errors.Add("同步目录不能为空。");
+        }
+
+        try
+        {
+            SyncSizeText.ParseBytes(config.Downloader.SyncWantedSize);
+        }
+        catch (ArgumentException ex)
+        {
+            errors.Add(ex.Message);
         }
 
         if (config.Limit.SyncQps <= 0 || config.Limit.DownloadQps <= 0)

@@ -104,6 +104,19 @@ internal sealed class ScriptedApiClient : IAsmrApiClient
         }
     }
 
+    public Task<MetadataSyncPageDto> GetMetadataWorksAsync(int page, int pageSize, bool subtitleOnly = false, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(new MetadataSyncPageDto
+        {
+            Pagination = new MetadataSyncPaginationDto
+            {
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalCount = 0,
+            },
+        });
+    }
+
     public Task<IReadOnlyList<TrackDto>> GetTracksAsync(string id, CancellationToken cancellationToken = default)
     {
         _trackRequestIds.Enqueue(id);
@@ -180,18 +193,25 @@ internal sealed class TestConfigurationService : IConfigurationService
     public TestConfigurationService(
         string syncDataFolder,
         int maxWorkers = 4,
-        string? preferFormats = null)
+        string? preferFormats = null,
+        string syncWantedSize = "5GB",
+        bool hdAudioOnly = true)
     {
         _config = new AppConfig
         {
             Downloader = new DownloaderOptions
             {
                 SyncDataFolder = syncDataFolder,
+                SyncWantedSize = syncWantedSize,
                 PreferFormats = preferFormats ?? "mp3,wav,flac,jpg,jpeg,png,gif,webp,mp4,mkv,avi,webm,txt,lrc,ass",
                 MaxWorkers = maxWorkers,
+                HdAudioOnly = hdAudioOnly,
             },
             Limit = new LimitOptions
             {
+                SyncQps = 1000,
+                SyncJitterMin = 0,
+                SyncJitterMax = 0,
                 DownloadQps = 1000,
                 DownloadJitterMin = 0,
                 DownloadJitterMax = 0,

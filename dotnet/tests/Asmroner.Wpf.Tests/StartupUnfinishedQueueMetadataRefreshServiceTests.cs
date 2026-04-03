@@ -274,6 +274,9 @@ public class StartupUnfinishedQueueMetadataRefreshServiceTests
 
         public List<string> RequestedSourceIds { get; } = new();
 
+        public Task<MetadataSyncPageDto> GetMetadataWorksAsync(int page, int pageSize, bool subtitleOnly = false, CancellationToken cancellationToken = default)
+            => Task.FromResult(new MetadataSyncPageDto());
+
         public void SetResponse(string sourceId, string title)
         {
             _responses[sourceId] = new WorkInfoDto
@@ -324,6 +327,9 @@ public class StartupUnfinishedQueueMetadataRefreshServiceTests
         private readonly TaskCompletionSource<WorkInfoDto> _completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public TaskCompletionSource<bool> Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task<MetadataSyncPageDto> GetMetadataWorksAsync(int page, int pageSize, bool subtitleOnly = false, CancellationToken cancellationToken = default)
+            => Task.FromResult(new MetadataSyncPageDto());
 
         public Task<WorkInfoDto> GetWorkInfoAsync(string id, CancellationToken cancellationToken = default)
         {

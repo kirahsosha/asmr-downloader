@@ -4,6 +4,7 @@ using System.Globalization;
 using Asmroner.Core.Api;
 using Asmroner.Core.Download;
 using Asmroner.Core.Interfaces;
+using Asmroner.Core.Sync;
 
 namespace Asmroner.Application.Services;
 
@@ -428,7 +429,7 @@ public sealed class DownloadService : IDownloadService
 
     private static string BuildOutputFileName(string title, string extension)
     {
-        var sanitizedTitle = SanitizePathPart(title);
+        var sanitizedTitle = SyncDownloadPathPolicy.SanitizePathPart(title);
         return sanitizedTitle.EndsWith(extension, StringComparison.OrdinalIgnoreCase)
             ? sanitizedTitle
             : sanitizedTitle + extension;
@@ -437,7 +438,7 @@ public sealed class DownloadService : IDownloadService
     private static string BuildEntryKey(string relativePath, string title)
     {
         var normalizedPath = relativePath ?? string.Empty;
-        var normalizedTitle = SanitizePathPart(title);
+        var normalizedTitle = SyncDownloadPathPolicy.SanitizePathPart(title);
         return string.Concat(normalizedPath, "|", normalizedTitle);
     }
 
@@ -507,8 +508,7 @@ public sealed class DownloadService : IDownloadService
 
     private static string BuildFolderName(WorkInfoDto workInfo)
     {
-        var title = SanitizePathPart(workInfo.Title);
-        return $"[{workInfo.SourceId}]{title}";
+        return Path.GetFileName(SyncDownloadPathPolicy.BuildTargetDirectory("root", workInfo.SourceId, workInfo.Title));
     }
 
     private static bool IsPreferred(string url, IReadOnlyList<string> preferMedia)
@@ -538,17 +538,7 @@ public sealed class DownloadService : IDownloadService
 
     private static string SanitizePathPart(string value)
     {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return "untitled";
-        }
-
-        var invalid = Path.GetInvalidFileNameChars();
-        var chars = value
-            .Select(ch => invalid.Contains(ch) ? '_' : ch)
-            .ToArray();
-
-        return new string(chars).Trim();
+        return SyncDownloadPathPolicy.SanitizePathPart(value);
     }
 
     private static IEnumerable<(string Title, string Url, string RelativePath)> FlattenTracksWithPath(

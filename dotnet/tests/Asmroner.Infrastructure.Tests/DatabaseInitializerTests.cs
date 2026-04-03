@@ -8,7 +8,7 @@ namespace Asmroner.Infrastructure.Tests;
 public class DatabaseInitializerTests
 {
     [Fact]
-    public async Task DatabaseInitializer_ShouldCreateNewSchema_AndDropUnusedLegacyTables()
+    public async Task DatabaseInitializer_ShouldCreateNewSchema_AndEnsureSyncTables()
     {
         var tempRoot = CreateTempRoot();
         try
@@ -25,12 +25,16 @@ public class DatabaseInitializerTests
             await using var connection = CreateConnection(pathService.DatabaseFilePath);
             await connection.OpenAsync();
 
-            Assert.False(await TableExistsAsync(connection, "MetadataWork"));
-            Assert.False(await TableExistsAsync(connection, "WorkSyncInfo"));
+            Assert.True(await TableExistsAsync(connection, "MetadataWork"));
+            Assert.True(await TableExistsAsync(connection, "WorkSyncInfo"));
             Assert.True(await TableExistsAsync(connection, "AppConfig"));
             Assert.True(await TableExistsAsync(connection, "UiState"));
             Assert.True(await TableExistsAsync(connection, "FavoriteWork"));
 
+            Assert.True(await TableHasColumnAsync(connection, "MetadataWork", "CircleName"));
+            Assert.True(await TableHasColumnAsync(connection, "MetadataWork", "SourceId"));
+            Assert.True(await TableHasColumnAsync(connection, "WorkSyncInfo", "MetadataWorkId"));
+            Assert.True(await TableHasColumnAsync(connection, "WorkSyncInfo", "FailReason"));
             Assert.True(await TableHasColumnAsync(connection, "AppConfig", "ConfigKey"));
             Assert.True(await TableHasColumnAsync(connection, "AppConfig", "JsonValue"));
             Assert.False(await TableHasColumnAsync(connection, "AppConfig", "Id"));
@@ -77,6 +81,8 @@ public class DatabaseInitializerTests
 
             Assert.True(await TableHasColumnAsync(connection, "AppConfig", "ConfigKey"));
             Assert.False(await TableHasColumnAsync(connection, "AppConfig", "Id"));
+            Assert.True(await TableHasColumnAsync(connection, "MetadataWork", "CircleName"));
+            Assert.True(await TableHasColumnAsync(connection, "WorkSyncInfo", "MetadataWorkId"));
             Assert.Equal(3, await CountSplitConfigRowsAsync(connection));
         }
         finally

@@ -9,6 +9,34 @@ namespace Asmroner.Infrastructure.Tests;
 public class AsmrApiClientTests
 {
     [Fact]
+    public async Task GetMetadataWorksAsync_ShouldUseWorksEndpoint_AndSubtitleFlag()
+    {
+        HttpRequestMessage? capturedRequest = null;
+
+        var factory = new RecordingHttpClientFactory();
+        factory.Register("AsmrApi", new RecordingHttpMessageHandler(request =>
+        {
+            capturedRequest = request;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"works\":[{\"id\":501,\"title\":\"Sync Title\",\"circle_id\":8,\"name\":\"Circle\",\"nsfw\":false,\"release\":\"2026-04-02\",\"dl_count\":15,\"price\":100,\"review_count\":2,\"rate_count\":3,\"rate_average_2dp\":4.5,\"has_subtitle\":true,\"create_date\":\"2026-04-02\",\"vas\":[{\"id\":\"1\",\"name\":\"VA\"}],\"tags\":[{\"id\":1,\"name\":\"tag\"}],\"duration\":1200,\"source_type\":\"DLSITE\",\"source_id\":\"RJ501\"}],\"pagination\":{\"currentPage\":2,\"pageSize\":50,\"totalCount\":120}}", Encoding.UTF8, "application/json"),
+            });
+        }));
+
+        var sut = new AsmrApiClient(
+            factory,
+            new StubApiEndpointUrlService("https://api.example.com"),
+            new StubAuthService(new ApiToken { AccessToken = "jwt-token" }));
+
+        var result = await sut.GetMetadataWorksAsync(page: 2, pageSize: 50, subtitleOnly: true);
+
+        Assert.NotNull(capturedRequest?.RequestUri);
+        Assert.Equal("/api/works?order=release&sort=desc&page=2&pageSize=50&subtitle=1", capturedRequest!.RequestUri!.PathAndQuery);
+        Assert.Equal(120, result.Pagination.TotalCount);
+        Assert.Equal("RJ501", Assert.Single(result.Works).SourceId);
+    }
+
+    [Fact]
     public async Task AsmrApiClient_ShouldMapHttpErrors()
     {
         var factory = new RecordingHttpClientFactory();

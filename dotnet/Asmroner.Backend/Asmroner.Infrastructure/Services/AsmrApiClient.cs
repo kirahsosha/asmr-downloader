@@ -27,6 +27,13 @@ public sealed class AsmrApiClient : IAsmrApiClient
         _authService = authService;
     }
 
+    public Task<MetadataSyncPageDto> GetMetadataWorksAsync(int page, int pageSize, bool subtitleOnly = false, CancellationToken cancellationToken = default)
+    {
+        var normalizedPage = Math.Max(1, page);
+        var normalizedPageSize = Math.Max(1, pageSize);
+        return GetAsync<MetadataSyncPageDto>(AsmrApiPaths.BuildWorksQuery(normalizedPage, normalizedPageSize, subtitleOnly), cancellationToken);
+    }
+
     public async Task<WorkInfoDto> GetWorkInfoAsync(string id, CancellationToken cancellationToken = default)
     {
         var numericId = await ResolveApiNumericIdAsync(id, cancellationToken);

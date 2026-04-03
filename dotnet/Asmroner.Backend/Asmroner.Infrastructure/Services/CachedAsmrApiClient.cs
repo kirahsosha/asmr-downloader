@@ -15,6 +15,11 @@ public sealed class CachedAsmrApiClient : IAsmrApiClient
         _workInfoCache = workInfoCache;
     }
 
+    public Task<MetadataSyncPageDto> GetMetadataWorksAsync(int page, int pageSize, bool subtitleOnly = false, CancellationToken cancellationToken = default)
+    {
+        return _inner.GetMetadataWorksAsync(page, pageSize, subtitleOnly, cancellationToken);
+    }
+
     public async Task<WorkInfoDto> GetWorkInfoAsync(string id, CancellationToken cancellationToken = default)
     {
         if (_workInfoCache.TryGet(id, WorkInfoCacheRequirement.Full, out var cachedWorkInfo) && cachedWorkInfo is not null)
