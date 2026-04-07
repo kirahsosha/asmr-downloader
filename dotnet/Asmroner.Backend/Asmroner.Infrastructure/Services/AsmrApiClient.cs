@@ -66,6 +66,43 @@ public sealed class AsmrApiClient : IAsmrApiClient
         return result.Works;
     }
 
+    public async Task DownloadFileAsync(string url, string destinationPath, CancellationToken cancellationToken = default)
+    {
+        await EnsureAuthenticatedAsync(cancellationToken);
+        var token = await _authService.GetCurrentTokenAsync(cancellationToken);
+        var requestUri = await ResolveRequestUriAsync(url, cancellationToken);
+        var client = _httpClientFactory.CreateClient("AsmrApi");
+
+        using var request = CreateRequest(HttpMethod.Get, requestUri, acceptHeader: "*/*");
+        if (token is not null)
+        {
+            request.Headers.Remove("Authorization");
+            request.Headers.TryAddWithoutValidation("Authorization", token.ToAuthorizationHeader());
+        }
+
+        using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCancellation.CancelAfter(RequestTimeout);
+
+        using var response = await client.SendAsync(
+            request,
+            HttpCompletionOption.ResponseHeadersRead,
+            timeoutCancellation.Token);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw await CreateExceptionAsync(response, AsmronerConstants.Api.ErrorCodes.RequestFailed, timeoutCancellation.Token);
+        }
+
+        var directory = Path.GetDirectoryName(destinationPath);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        await using var responseStream = await response.Content.ReadAsStreamAsync(timeoutCancellation.Token);
+        await using var outputStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
+        await responseStream.CopyToAsync(outputStream, timeoutCancellation.Token);
+    }
+
     private async Task<T> GetAsync<T>(string path, CancellationToken cancellationToken)
     {
         return await SendAsync<T>(HttpMethod.Get, path, body: null, cancellationToken);
@@ -81,9 +118,8 @@ public sealed class AsmrApiClient : IAsmrApiClient
         await EnsureAuthenticatedAsync(cancellationToken);
         var token = await _authService.GetCurrentTokenAsync(cancellationToken);
 
-        var currentBaseUrl = await _apiEndpointUrlService.GetCurrentBaseUrlAsync(cancellationToken);
         var client = _httpClientFactory.CreateClient("AsmrApi");
-        var requestUri = BuildRequestUri(currentBaseUrl, path);
+        var requestUri = await ResolveRequestUriAsync(path, cancellationToken);
         using var request = CreateRequest(method, requestUri);
         if (token is not null)
         {
@@ -117,11 +153,22 @@ public sealed class AsmrApiClient : IAsmrApiClient
         }
     }
 
-    private static HttpRequestMessage CreateRequest(HttpMethod method, string requestUri)
+    private async Task<string> ResolveRequestUriAsync(string pathOrAbsoluteUrl, CancellationToken cancellationToken)
+    {
+        if (Uri.TryCreate(pathOrAbsoluteUrl, UriKind.Absolute, out var absoluteUri))
+        {
+            return absoluteUri.ToString();
+        }
+
+        var currentBaseUrl = await _apiEndpointUrlService.GetCurrentBaseUrlAsync(cancellationToken);
+        return BuildRequestUri(currentBaseUrl, pathOrAbsoluteUrl);
+    }
+
+    private static HttpRequestMessage CreateRequest(HttpMethod method, string requestUri, string acceptHeader = "application/json")
     {
         var request = new HttpRequestMessage(method, requestUri);
         request.Headers.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36");
-        request.Headers.Accept.ParseAdd("application/json");
+        request.Headers.Accept.ParseAdd(acceptHeader);
         return request;
     }
 

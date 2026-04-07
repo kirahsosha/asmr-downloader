@@ -48,6 +48,11 @@ public sealed class CachedAsmrApiClient : IAsmrApiClient
         return await _inner.GetTracksAsync(id, cancellationToken);
     }
 
+    public Task DownloadFileAsync(string url, string destinationPath, CancellationToken cancellationToken = default)
+    {
+        return _inner.DownloadFileAsync(url, destinationPath, cancellationToken);
+    }
+
     public async Task<SearchResultDto> SearchAsync(string query, CancellationToken cancellationToken = default)
     {
         var result = await _inner.SearchAsync(query, cancellationToken);

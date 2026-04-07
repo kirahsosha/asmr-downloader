@@ -46,6 +46,7 @@ public partial class SettingsView : UserControl
         {
             Downloader =
             {
+                DownloadDataFolder = _appPathService.DefaultDownloadDataDirectory,
                 SyncDataFolder = _appPathService.DefaultSyncDataDirectory,
             },
         };
@@ -146,6 +147,11 @@ public partial class SettingsView : UserControl
             throw new InvalidOperationException("重试次数必须是整数。");
         }
 
+        if (!int.TryParse(MetadataValidityDaysTextBox.Text, out var metadataValidityDays))
+        {
+            throw new InvalidOperationException("元数据有效期必须是整数。");
+        }
+
         if (!double.TryParse(SyncQpsTextBox.Text, out var syncQps))
         {
             throw new InvalidOperationException("同步 QPS 必须是数字。");
@@ -192,7 +198,9 @@ public partial class SettingsView : UserControl
                 ProxyUrl = ProxyUrlTextBox.Text.Trim(),
                 MaxWorkers = maxWorkers,
                 MaxRetries = maxRetries,
+                DownloadDataFolder = DownloadDataFolderTextBox.Text.Trim(),
                 SyncDataFolder = SyncDataFolderTextBox.Text.Trim(),
+                MetadataValidityDays = metadataValidityDays,
                 SyncWantedSize = SyncWantedSizeTextBox.Text.Trim(),
                 PreferFormats = PreferFormatsTextBox.Text.Trim(),
             },
@@ -216,9 +224,13 @@ public partial class SettingsView : UserControl
         ProxyUrlTextBox.Text = config.Downloader.ProxyUrl;
         MaxWorkersTextBox.Text = config.Downloader.MaxWorkers.ToString();
         MaxRetriesTextBox.Text = config.Downloader.MaxRetries.ToString();
+        DownloadDataFolderTextBox.Text = string.IsNullOrWhiteSpace(config.Downloader.DownloadDataFolder)
+            ? _appPathService.DefaultDownloadDataDirectory
+            : config.Downloader.DownloadDataFolder;
         SyncDataFolderTextBox.Text = string.IsNullOrWhiteSpace(config.Downloader.SyncDataFolder)
             ? _appPathService.DefaultSyncDataDirectory
             : config.Downloader.SyncDataFolder;
+        MetadataValidityDaysTextBox.Text = config.Downloader.MetadataValidityDays.ToString();
         SyncWantedSizeTextBox.Text = config.Downloader.SyncWantedSize;
         PreferFormatsTextBox.Text = BuildPreferFormatsForDisplay(config.Downloader);
         SyncQpsTextBox.Text = config.Limit.SyncQps.ToString();

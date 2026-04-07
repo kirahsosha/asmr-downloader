@@ -24,6 +24,8 @@ public class DownloadViewXamlTests
         Assert.Contains("x:Name=\"ImportFavoritesButton\"", content, StringComparison.Ordinal);
         Assert.Contains("Content=\"从收藏夹导入\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"StatusTextBlock\"", content, StringComparison.Ordinal);
+        Assert.Contains("Style=\"{StaticResource StatusInfoPanelStyle}\"", content, StringComparison.Ordinal);
+        Assert.Contains("Style=\"{StaticResource StatusInfoTextStyle}\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
         Assert.NotNull(doc.Root);

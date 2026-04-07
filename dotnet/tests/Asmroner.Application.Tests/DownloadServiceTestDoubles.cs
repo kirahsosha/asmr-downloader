@@ -1,3 +1,4 @@
+using System.Text;
 using System.Collections.Concurrent;
 using Asmroner.Core.Api;
 using Asmroner.Core.Configuration;
@@ -16,15 +17,18 @@ internal sealed class ScriptedApiClient : IAsmrApiClient
     private readonly int _trackCount;
     private readonly int _workInfoDelayMilliseconds;
     private readonly bool _throwOnAnyWorkInfoCall;
+    private readonly Dictionary<string, byte[]> _downloadPayloads;
     private int _failWorkInfoAttempts;
     private int _inflightWorkInfo;
     private int _maxObservedWorkInfoConcurrency;
     private int _workInfoCallCount;
     private readonly ConcurrentQueue<string> _trackRequestIds = new();
+    private readonly ConcurrentQueue<string> _downloadFileRequests = new();
 
     public int WorkInfoCallCount => _workInfoCallCount;
     public int MaxObservedWorkInfoConcurrency => _maxObservedWorkInfoConcurrency;
     public IReadOnlyList<string> TrackRequestIds => _trackRequestIds.ToArray();
+    public IReadOnlyList<string> DownloadFileRequests => _downloadFileRequests.ToArray();
 
     public ScriptedApiClient(
         IEnumerable<string>? failOnWorkInfoIds = null,
@@ -34,7 +38,8 @@ internal sealed class ScriptedApiClient : IAsmrApiClient
         bool throwOnWorkInfo = false,
         int trackCount = 1,
         int failWorkInfoAttempts = 0,
-        int workInfoDelayMilliseconds = 0)
+        int workInfoDelayMilliseconds = 0,
+        IReadOnlyDictionary<string, byte[]>? downloadPayloads = null)
     {
         _failOnWorkInfoIds = new HashSet<string>(
             failOnWorkInfoIds ?? Array.Empty<string>(),
@@ -47,6 +52,9 @@ internal sealed class ScriptedApiClient : IAsmrApiClient
         _trackCount = Math.Max(1, trackCount);
         _failWorkInfoAttempts = failWorkInfoAttempts;
         _workInfoDelayMilliseconds = Math.Max(0, workInfoDelayMilliseconds);
+        _downloadPayloads = downloadPayloads is null
+            ? new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, byte[]>(downloadPayloads, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<WorkInfoDto> GetWorkInfoAsync(string id, CancellationToken cancellationToken = default)
@@ -142,6 +150,22 @@ internal sealed class ScriptedApiClient : IAsmrApiClient
         return Task.FromResult<IReadOnlyList<TrackDto>>(tracks);
     }
 
+    public async Task DownloadFileAsync(string url, string destinationPath, CancellationToken cancellationToken = default)
+    {
+        _downloadFileRequests.Enqueue(url);
+
+        var directory = Path.GetDirectoryName(destinationPath);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        var payload = _downloadPayloads.TryGetValue(url, out var bytes)
+            ? bytes
+            : Encoding.UTF8.GetBytes($"payload:{url}");
+        await File.WriteAllBytesAsync(destinationPath, payload, cancellationToken);
+    }
+
     public Task<SearchResultDto> SearchAsync(string query, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
@@ -192,17 +216,22 @@ internal sealed class TestConfigurationService : IConfigurationService
     private readonly AppConfig _config;
 
     public TestConfigurationService(
-        string syncDataFolder,
+        string dataRoot,
         int maxWorkers = 4,
         string? preferFormats = null,
         string syncWantedSize = "5GB",
-        bool hdAudioOnly = true)
+        bool hdAudioOnly = true,
+        string? downloadDataFolder = null,
+        string? syncDownloadDataFolder = null,
+        int metadataValidityDays = 30)
     {
         _config = new AppConfig
         {
             Downloader = new DownloaderOptions
             {
-                SyncDataFolder = syncDataFolder,
+                DownloadDataFolder = downloadDataFolder ?? dataRoot,
+                SyncDataFolder = syncDownloadDataFolder ?? dataRoot,
+                MetadataValidityDays = metadataValidityDays,
                 SyncWantedSize = syncWantedSize,
                 PreferFormats = preferFormats ?? "mp3,wav,flac,jpg,jpeg,png,gif,webp,mp4,mkv,avi,webm,txt,lrc,ass",
                 MaxWorkers = maxWorkers,
@@ -239,6 +268,7 @@ internal sealed class TestAppPathService : IAppPathService
         MetadataDirectory = root;
         DefaultConfigFilePath = Path.Combine(root, "config.json");
         DatabaseFilePath = Path.Combine(root, "asmroner.db");
+        DefaultDownloadDataDirectory = Path.Combine(root, "download-data");
         DefaultSyncDataDirectory = Path.Combine(root, "sync-data");
         LogsDirectory = Path.Combine(root, "logs");
     }
@@ -248,6 +278,8 @@ internal sealed class TestAppPathService : IAppPathService
     public string DefaultConfigFilePath { get; }
 
     public string DatabaseFilePath { get; }
+
+    public string DefaultDownloadDataDirectory { get; }
 
     public string DefaultSyncDataDirectory { get; }
 
@@ -395,94 +427,138 @@ internal sealed class TestWorkInfoCache : IWorkInfoCache
 {
     private readonly Dictionary<string, CachedWorkInfoEntry> _entries = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _lookupToCanonicalSourceId = new(StringComparer.OrdinalIgnoreCase);
+    private readonly object _lock = new();
 
     public bool TryGet(string lookupKey, WorkInfoCacheRequirement requirement, out WorkInfoDto? workInfo)
     {
-        workInfo = null;
-        if (string.IsNullOrWhiteSpace(lookupKey))
+        lock (_lock)
         {
-            return false;
-        }
-
-        foreach (var candidate in BuildLookupKeys(lookupKey))
-        {
-            if (!_lookupToCanonicalSourceId.TryGetValue(candidate, out var canonicalSourceId))
-            {
-                continue;
-            }
-
-            if (!_entries.TryGetValue(canonicalSourceId, out var entry))
-            {
-                continue;
-            }
-
-            if ((int)entry.CacheLevel < (int)requirement)
+            workInfo = null;
+            if (string.IsNullOrWhiteSpace(lookupKey))
             {
                 return false;
             }
 
-            workInfo = entry.WorkInfo;
-            return true;
-        }
+            foreach (var candidate in BuildLookupKeys(lookupKey))
+            {
+                if (!_lookupToCanonicalSourceId.TryGetValue(candidate, out var canonicalSourceId))
+                {
+                    continue;
+                }
 
-        return false;
+                if (!_entries.TryGetValue(canonicalSourceId, out var entry))
+                {
+                    continue;
+                }
+
+                if ((int)entry.CacheLevel < (int)requirement)
+                {
+                    return false;
+                }
+
+                workInfo = entry.WorkInfo;
+                return true;
+            }
+
+            return false;
+        }
     }
 
     public void Set(string lookupKey, WorkInfoDto workInfo, WorkInfoCacheEntryLevel cacheLevel)
     {
         ArgumentNullException.ThrowIfNull(workInfo);
-
-        var canonicalSourceId = SourceIdNormalizer.Normalize(workInfo.SourceId);
-        if (string.IsNullOrWhiteSpace(canonicalSourceId))
+        lock (_lock)
         {
-            canonicalSourceId = SourceIdNormalizer.Normalize(lookupKey);
+            var canonicalSourceId = SourceIdNormalizer.Normalize(workInfo.SourceId);
+            if (string.IsNullOrWhiteSpace(canonicalSourceId))
+            {
+                canonicalSourceId = SourceIdNormalizer.Normalize(lookupKey);
+            }
+
+            if (string.IsNullOrWhiteSpace(canonicalSourceId))
+            {
+                return;
+            }
+
+            if (_entries.TryGetValue(canonicalSourceId, out var existing) && existing.CacheLevel > cacheLevel)
+            {
+                UpdateAliases(canonicalSourceId, lookupKey, existing.WorkInfo);
+                return;
+            }
+
+            var normalized = new WorkInfoDto
+            {
+                Id = workInfo.Id,
+                Title = workInfo.Title,
+                Release = workInfo.Release,
+                HasSubtitle = workInfo.HasSubtitle,
+                SourceId = canonicalSourceId,
+                MainCoverUrl = workInfo.MainCoverUrl,
+                WorkAttributes = workInfo.WorkAttributes,
+                LanguageEditions = workInfo.LanguageEditions,
+                OtherLanguageEditionsInDb = workInfo.OtherLanguageEditionsInDb,
+                TranslationInfo = workInfo.TranslationInfo,
+            };
+
+            _entries[canonicalSourceId] = new CachedWorkInfoEntry(normalized, cacheLevel);
+            UpdateAliases(canonicalSourceId, lookupKey, normalized);
         }
-
-        if (string.IsNullOrWhiteSpace(canonicalSourceId))
-        {
-            return;
-        }
-
-        if (_entries.TryGetValue(canonicalSourceId, out var existing) && existing.CacheLevel > cacheLevel)
-        {
-            UpdateAliases(canonicalSourceId, lookupKey, existing.WorkInfo);
-            return;
-        }
-
-        var normalized = new WorkInfoDto
-        {
-            Id = workInfo.Id,
-            Title = workInfo.Title,
-            Release = workInfo.Release,
-            HasSubtitle = workInfo.HasSubtitle,
-            SourceId = canonicalSourceId,
-            MainCoverUrl = workInfo.MainCoverUrl,
-            WorkAttributes = workInfo.WorkAttributes,
-            LanguageEditions = workInfo.LanguageEditions,
-            OtherLanguageEditionsInDb = workInfo.OtherLanguageEditionsInDb,
-            TranslationInfo = workInfo.TranslationInfo,
-        };
-
-        _entries[canonicalSourceId] = new CachedWorkInfoEntry(normalized, cacheLevel);
-        UpdateAliases(canonicalSourceId, lookupKey, normalized);
     }
 
     public void SetMany(IReadOnlyDictionary<string, WorkInfoDto> workInfos, WorkInfoCacheEntryLevel cacheLevel)
     {
-        foreach (var (lookupKey, workInfo) in workInfos)
+        lock (_lock)
         {
-            if (workInfo is null)
+            foreach (var (lookupKey, workInfo) in workInfos)
             {
-                continue;
-            }
+                if (workInfo is null)
+                {
+                    continue;
+                }
 
-            Set(lookupKey, workInfo, cacheLevel);
+                var canonicalSourceId = SourceIdNormalizer.Normalize(workInfo.SourceId);
+                if (string.IsNullOrWhiteSpace(canonicalSourceId))
+                {
+                    canonicalSourceId = SourceIdNormalizer.Normalize(lookupKey);
+                }
+
+                if (string.IsNullOrWhiteSpace(canonicalSourceId))
+                {
+                    continue;
+                }
+
+                if (_entries.TryGetValue(canonicalSourceId, out var existing) && existing.CacheLevel > cacheLevel)
+                {
+                    UpdateAliases(canonicalSourceId, lookupKey, existing.WorkInfo);
+                    continue;
+                }
+
+                var normalized = new WorkInfoDto
+                {
+                    Id = workInfo.Id,
+                    Title = workInfo.Title,
+                    Release = workInfo.Release,
+                    HasSubtitle = workInfo.HasSubtitle,
+                    SourceId = canonicalSourceId,
+                    MainCoverUrl = workInfo.MainCoverUrl,
+                    WorkAttributes = workInfo.WorkAttributes,
+                    LanguageEditions = workInfo.LanguageEditions,
+                    OtherLanguageEditionsInDb = workInfo.OtherLanguageEditionsInDb,
+                    TranslationInfo = workInfo.TranslationInfo,
+                };
+
+                _entries[canonicalSourceId] = new CachedWorkInfoEntry(normalized, cacheLevel);
+                UpdateAliases(canonicalSourceId, lookupKey, normalized);
+            }
         }
     }
 
     public IReadOnlyDictionary<string, WorkInfoDto> GetSnapshot()
     {
-        return _entries.ToDictionary(static item => item.Key, static item => item.Value.WorkInfo, StringComparer.OrdinalIgnoreCase);
+        lock (_lock)
+        {
+            return _entries.ToDictionary(static item => item.Key, static item => item.Value.WorkInfo, StringComparer.OrdinalIgnoreCase);
+        }
     }
 
     private void UpdateAliases(string canonicalSourceId, string lookupKey, WorkInfoDto workInfo)

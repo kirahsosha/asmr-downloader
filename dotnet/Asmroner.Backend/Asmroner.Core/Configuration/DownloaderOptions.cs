@@ -29,7 +29,11 @@ public sealed class DownloaderOptions
 
     public int MaxRetries { get; set; } = 3;
 
+    public string DownloadDataFolder { get; set; } = string.Empty;
+
     public string SyncDataFolder { get; set; } = string.Empty;
+
+    public int MetadataValidityDays { get; set; } = 30;
 
     public string SyncWantedSize { get; set; } = "5GB";
 

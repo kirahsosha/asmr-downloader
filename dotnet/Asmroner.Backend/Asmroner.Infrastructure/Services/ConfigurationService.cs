@@ -104,9 +104,9 @@ public sealed class ConfigurationService : IConfigurationService
             errors.Add("重试次数不能小于 0。");
         }
 
-        if (string.IsNullOrWhiteSpace(config.Downloader.SyncDataFolder))
+        if (config.Downloader.MetadataValidityDays <= 0)
         {
-            errors.Add("同步目录不能为空。");
+            errors.Add("元数据有效期必须大于 0 天。");
         }
 
         try
@@ -189,7 +189,13 @@ public sealed class ConfigurationService : IConfigurationService
             hasAnySection = true;
         }
 
-        return hasAnySection ? loaded : null;
+        if (!hasAnySection)
+        {
+            return null;
+        }
+
+        sections.TryGetValue(DownloaderSectionKey, out var downloaderJson);
+        return NormalizeLoadedConfig(loaded, downloaderJson, downloaderSectionOnly: true);
     }
 
     private async Task<AppConfig?> LoadFromDefaultConfigFileAsync(CancellationToken cancellationToken)
@@ -209,7 +215,7 @@ public sealed class ConfigurationService : IConfigurationService
                 throw new InvalidOperationException("默认配置文件格式无效: 根对象不能为空。");
             }
 
-            return NormalizeLoadedConfig(parsed);
+            return NormalizeLoadedConfig(parsed, content, downloaderSectionOnly: false);
         }
         catch (JsonException ex)
         {
@@ -313,14 +319,22 @@ public sealed class ConfigurationService : IConfigurationService
         }
     }
 
-    private static AppConfig NormalizeLoadedConfig(AppConfig config)
+    private AppConfig NormalizeLoadedConfig(AppConfig config, string? rawJson, bool downloaderSectionOnly)
     {
-        return new AppConfig
+        var normalized = new AppConfig
         {
             User = config.User ?? new UserOptions(),
             Downloader = config.Downloader ?? new DownloaderOptions(),
             Limit = config.Limit ?? new LimitOptions(),
         };
+
+        if (ShouldResetLegacyDirectoryFields(rawJson, downloaderSectionOnly))
+        {
+            normalized.Downloader.DownloadDataFolder = string.Empty;
+            normalized.Downloader.SyncDataFolder = string.Empty;
+        }
+
+        return normalized;
     }
 
     private static AppConfig CloneForStorage(AppConfig config)
@@ -341,7 +355,9 @@ public sealed class ConfigurationService : IConfigurationService
                 ProxyUrl = config.Downloader.ProxyUrl,
                 MaxWorkers = config.Downloader.MaxWorkers,
                 MaxRetries = config.Downloader.MaxRetries,
+                DownloadDataFolder = config.Downloader.DownloadDataFolder,
                 SyncDataFolder = config.Downloader.SyncDataFolder,
+                MetadataValidityDays = config.Downloader.MetadataValidityDays,
                 SyncWantedSize = config.Downloader.SyncWantedSize,
                 PreferFormats = config.Downloader.PreferFormats,
                 HdAudioOnly = config.Downloader.HdAudioOnly,
@@ -356,6 +372,42 @@ public sealed class ConfigurationService : IConfigurationService
                 DownloadJitterMax = config.Limit.DownloadJitterMax,
             },
         };
+    }
+
+    private static bool ShouldResetLegacyDirectoryFields(string? rawJson, bool downloaderSectionOnly)
+    {
+        if (string.IsNullOrWhiteSpace(rawJson))
+        {
+            return false;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(rawJson);
+            var downloaderElement = downloaderSectionOnly
+                ? document.RootElement
+                : TryGetPropertyIgnoreCase(document.RootElement, "downloader", out var element)
+                    ? element
+                    : default;
+
+            if (downloaderElement.ValueKind != JsonValueKind.Object)
+            {
+                return false;
+            }
+
+            return !TryGetPropertyIgnoreCase(downloaderElement, "downloadDataFolder", out _)
+                && TryGetPropertyIgnoreCase(downloaderElement, "syncDataFolder", out _);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool ShouldResetMigratedLegacyDirectoryFields(DownloaderOptions downloader)
+    {
+        return string.IsNullOrWhiteSpace(downloader.DownloadDataFolder)
+            && !string.IsNullOrWhiteSpace(downloader.SyncDataFolder);
     }
 
     private static void MergeLegacyPreferFormatsIfNeeded(AppConfig config, string legacyJson)
@@ -467,6 +519,12 @@ public sealed class ConfigurationService : IConfigurationService
                     if (legacyConfig is not null)
                     {
                         MergeLegacyPreferFormatsIfNeeded(legacyConfig, legacyJson);
+                        if (ShouldResetLegacyDirectoryFields(legacyJson, downloaderSectionOnly: false) ||
+                            ShouldResetMigratedLegacyDirectoryFields(legacyConfig.Downloader))
+                        {
+                            legacyConfig.Downloader.DownloadDataFolder = string.Empty;
+                            legacyConfig.Downloader.SyncDataFolder = string.Empty;
+                        }
                     }
                 }
                 catch

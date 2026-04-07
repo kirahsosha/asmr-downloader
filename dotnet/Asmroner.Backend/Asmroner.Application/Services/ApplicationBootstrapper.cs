@@ -38,6 +38,11 @@ public sealed class ApplicationBootstrapper : IApplicationBootstrapper
                     new[] { "配置文件不存在，请先完成设置。" });
             }
 
+            if (string.IsNullOrWhiteSpace(config.Downloader.DownloadDataFolder))
+            {
+                config.Downloader.DownloadDataFolder = _appPathService.DefaultDownloadDataDirectory;
+            }
+
             if (string.IsNullOrWhiteSpace(config.Downloader.SyncDataFolder))
             {
                 config.Downloader.SyncDataFolder = _appPathService.DefaultSyncDataDirectory;
@@ -49,6 +54,7 @@ public sealed class ApplicationBootstrapper : IApplicationBootstrapper
                 return BootstrapResult.SetupRequired(config, validationErrors);
             }
 
+            Directory.CreateDirectory(config.Downloader.DownloadDataFolder);
             Directory.CreateDirectory(config.Downloader.SyncDataFolder);
             return BootstrapResult.Success(config);
         }
@@ -64,6 +70,7 @@ public sealed class ApplicationBootstrapper : IApplicationBootstrapper
         {
             Downloader =
             {
+                DownloadDataFolder = _appPathService.DefaultDownloadDataDirectory,
                 SyncDataFolder = _appPathService.DefaultSyncDataDirectory,
             },
         };

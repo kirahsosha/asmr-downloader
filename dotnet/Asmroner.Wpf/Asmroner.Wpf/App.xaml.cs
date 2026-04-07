@@ -62,6 +62,8 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<ISearchExportService, SearchExportService>();
                 services.AddSingleton<ISearchImportService, SearchImportService>();
                 services.AddSingleton<IEnqueueWorkInfoResolver, EnqueueWorkInfoResolver>();
+                services.AddSingleton<IMetadataWorkInfoResolver, MetadataWorkInfoResolver>();
+                services.AddSingleton<ISyncWorkInfoResolver, SyncWorkInfoResolver>();
                 services.AddSingleton<ISearchStateStore, SearchStateStore>();
                 services.AddSingleton<IRateLimiterService, RateLimiterService>();
                 services.AddSingleton<IDownloadService, Asmroner.Application.Services.DownloadService>();

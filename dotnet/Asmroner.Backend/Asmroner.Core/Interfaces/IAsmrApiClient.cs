@@ -10,6 +10,8 @@ public interface IAsmrApiClient
 
     Task<IReadOnlyList<TrackDto>> GetTracksAsync(string id, CancellationToken cancellationToken = default);
 
+    Task DownloadFileAsync(string url, string destinationPath, CancellationToken cancellationToken = default);
+
     Task<SearchResultDto> SearchAsync(string query, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<SearchWorkDto>> GetPopularAsync(CancellationToken cancellationToken = default);

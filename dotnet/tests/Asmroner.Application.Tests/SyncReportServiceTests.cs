@@ -102,9 +102,31 @@ public class SyncReportServiceTests
             throw new NotImplementedException();
         }
 
+        public Task<IReadOnlyDictionary<string, MetadataWorkItem>> GetMetadataWorksBySourceIdsAsync(IReadOnlyCollection<string> sourceIds, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyDictionary<string, MetadataWorkItem>>(
+                new Dictionary<string, MetadataWorkItem>(StringComparer.OrdinalIgnoreCase));
+        }
+
+        public Task<IReadOnlyList<int>> GetExpiredMetadataWorkIdsAsync(DateTime updatedBefore, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<int>>(Array.Empty<int>());
+        }
+
+        public Task<IReadOnlyList<MetadataWorkItem>> GetAllMetadataWorksAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<MetadataWorkItem>>(Array.Empty<MetadataWorkItem>());
+        }
+
         public Task<SyncDownloadSnapshot> GetDownloadSnapshotAsync(CancellationToken cancellationToken = default)
         {
             return Task.FromResult(_downloadSnapshot);
+        }
+
+        public Task<IReadOnlyDictionary<int, WorkSyncInfoItem>> GetWorkSyncInfoMapAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyDictionary<int, WorkSyncInfoItem>>(
+                new Dictionary<int, WorkSyncInfoItem>());
         }
 
         public Task<int> CleanupPendingSyncDownloadsAsync(CancellationToken cancellationToken = default)

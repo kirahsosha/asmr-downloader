@@ -73,6 +73,120 @@ public class DownloadServiceTests
     }
 
     [Fact]
+    public async Task StartAsync_ShouldCopyMatchingFiles_FromSyncDirectory()
+    {
+        var tempRoot = CreateTempRoot("copy-from-sync");
+        var downloadRoot = Path.Combine(tempRoot, "download-data");
+        var syncRoot = Path.Combine(tempRoot, "sync-data");
+        Directory.CreateDirectory(downloadRoot);
+        Directory.CreateDirectory(syncRoot);
+
+        var workInfo = new Asmroner.Core.Api.WorkInfoDto
+        {
+            Id = 5001,
+            SourceId = "RJ5001",
+            Title = "Copy Title",
+            Release = "2026-03-15",
+            HasSubtitle = false,
+        };
+        var apiClient = new ScriptedApiClient(
+            workInfos: new[] { workInfo },
+            tracks: new[]
+            {
+                new Asmroner.Core.Api.TrackDto
+                {
+                    Title = "track-1",
+                    MediaDownloadUrl = "https://cdn.example.com/a/track-1.mp3",
+                },
+            },
+            downloadPayloads: new Dictionary<string, byte[]>
+            {
+                ["https://cdn.example.com/a/track-1.mp3"] = new byte[] { 0x01, 0x02, 0x03 },
+            });
+
+        var syncFolder = Path.Combine(syncRoot, "[RJ5001]Copy Title");
+        Directory.CreateDirectory(syncFolder);
+        var syncFile = Path.Combine(syncFolder, "track-1.mp3");
+        var expectedPayload = new byte[] { 0x10, 0x20, 0x30, 0x40 };
+        await File.WriteAllBytesAsync(syncFile, expectedPayload);
+
+        var sut = new DownloadService(
+            apiClient,
+            new TestConfigurationService(
+                tempRoot,
+                downloadDataFolder: downloadRoot,
+                syncDownloadDataFolder: syncRoot),
+            new SearchStateStore(),
+            new TestAppPathService(tempRoot),
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
+
+        var result = await sut.StartAsync("RJ5001");
+        var downloadedFile = Path.Combine(downloadRoot, "[RJ5001]Copy Title", "track-1.mp3");
+
+        Assert.NotNull(result);
+        Assert.Equal(DownloadTaskStatus.Completed, result!.Status);
+        Assert.True(File.Exists(downloadedFile));
+        Assert.Equal(expectedPayload, await File.ReadAllBytesAsync(downloadedFile));
+        Assert.Empty(apiClient.DownloadFileRequests);
+    }
+
+    [Fact]
+    public async Task StartAsync_ShouldDownloadRealFiles_WhenNoExistingFileInEitherDirectory()
+    {
+        var tempRoot = CreateTempRoot("download-real-file");
+        var downloadRoot = Path.Combine(tempRoot, "download-data");
+        var syncRoot = Path.Combine(tempRoot, "sync-data");
+        Directory.CreateDirectory(downloadRoot);
+        Directory.CreateDirectory(syncRoot);
+
+        var trackUrl = "https://cdn.example.com/a/track-2.flac";
+        var payload = new byte[] { 0x41, 0x53, 0x4D, 0x52, 0x21 };
+        var workInfo = new Asmroner.Core.Api.WorkInfoDto
+        {
+            Id = 5002,
+            SourceId = "RJ5002",
+            Title = "Download Title",
+            Release = "2026-04-08",
+            HasSubtitle = false,
+        };
+        var apiClient = new ScriptedApiClient(
+            workInfos: new[] { workInfo },
+            tracks: new[]
+            {
+                new Asmroner.Core.Api.TrackDto
+                {
+                    Title = "track-2",
+                    MediaDownloadUrl = trackUrl,
+                },
+            },
+            downloadPayloads: new Dictionary<string, byte[]>
+            {
+                [trackUrl] = payload,
+            });
+
+        var sut = new DownloadService(
+            apiClient,
+            new TestConfigurationService(
+                tempRoot,
+                downloadDataFolder: downloadRoot,
+                syncDownloadDataFolder: syncRoot),
+            new SearchStateStore(),
+            new TestAppPathService(tempRoot),
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
+
+        var result = await sut.StartAsync("RJ5002");
+        var downloadedFile = Path.Combine(downloadRoot, "[RJ5002]Download Title", "track-2.flac");
+
+        Assert.NotNull(result);
+        Assert.Equal(DownloadTaskStatus.Completed, result!.Status);
+        Assert.Equal([trackUrl], apiClient.DownloadFileRequests);
+        Assert.True(File.Exists(downloadedFile));
+        Assert.Equal(payload, await File.ReadAllBytesAsync(downloadedFile));
+    }
+
+    [Fact]
     public async Task RunQueuedAsync_ShouldMarkTaskFailed_WhenApiThrows()
     {
         var tempRoot = CreateTempRoot("run-queued-failed");

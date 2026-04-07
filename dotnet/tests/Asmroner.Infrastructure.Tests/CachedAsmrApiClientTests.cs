@@ -143,6 +143,11 @@ public class CachedAsmrApiClientTests
             return Task.FromResult<IReadOnlyList<TrackDto>>(Array.Empty<TrackDto>());
         }
 
+        public Task DownloadFileAsync(string url, string destinationPath, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
         public Task<SearchResultDto> SearchAsync(string query, CancellationToken cancellationToken = default)
         {
             return Task.FromResult(SearchResult);

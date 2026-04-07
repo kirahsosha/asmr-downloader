@@ -23,7 +23,7 @@ public class ConfigurationServiceTests
             },
             Downloader = new DownloaderOptions
             {
-                SyncDataFolder = string.Empty,
+                MetadataValidityDays = 0,
                 SyncWantedSize = "abc",
                 MaxWorkers = 0,
                 MaxRetries = -1,
@@ -45,7 +45,7 @@ public class ConfigurationServiceTests
         Assert.Contains("密码不能为空。", errors);
         Assert.Contains("并发工作数必须大于 0。", errors);
         Assert.Contains("重试次数不能小于 0。", errors);
-        Assert.Contains("同步目录不能为空。", errors);
+        Assert.Contains("元数据有效期必须大于 0 天。", errors);
         Assert.Contains(errors, static message => message.Contains("同步容量上限", StringComparison.Ordinal));
         Assert.Contains("QPS 必须大于 0。", errors);
         Assert.Contains("同步抖动最小值不能大于最大值。", errors);
@@ -73,7 +73,9 @@ public class ConfigurationServiceTests
                     ApiCandidateUrls = "https://api-custom.example.com;https://api-fallback.example.com",
                     PublishSourceUrls = "https://publish-a.example.com;https://publish-b.example.com",
                     WorkPageUrlTemplate = "https://example.com/work/{RJID}",
+                    DownloadDataFolder = Path.Combine(tempRoot, "download"),
                     SyncDataFolder = Path.Combine(tempRoot, "sync"),
+                    MetadataValidityDays = 45,
                     MaxWorkers = 8,
                     MaxRetries = 5,
                     PreferFormats = "mp3,m4a",
@@ -95,6 +97,9 @@ public class ConfigurationServiceTests
             Assert.Equal("https://api-custom.example.com;https://api-fallback.example.com", loaded.Downloader.ApiCandidateUrls);
             Assert.Equal("https://publish-a.example.com;https://publish-b.example.com", loaded.Downloader.PublishSourceUrls);
             Assert.Equal("https://example.com/work/{RJID}", loaded.Downloader.WorkPageUrlTemplate);
+            Assert.Equal(Path.Combine(tempRoot, "download"), loaded.Downloader.DownloadDataFolder);
+            Assert.Equal(Path.Combine(tempRoot, "sync"), loaded.Downloader.SyncDataFolder);
+            Assert.Equal(45, loaded.Downloader.MetadataValidityDays);
             Assert.Equal(8, loaded.Downloader.MaxWorkers);
             Assert.Equal(5, loaded.Downloader.MaxRetries);
             Assert.Equal("mp3,m4a", loaded.Downloader.PreferFormats);
@@ -126,7 +131,9 @@ public class ConfigurationServiceTests
                 Downloader = new DownloaderOptions
                 {
                     ApiUrl = "https://defaults.example.com",
+                    DownloadDataFolder = Path.Combine(tempRoot, "download-default"),
                     SyncDataFolder = Path.Combine(tempRoot, "sync-default"),
+                    MetadataValidityDays = 21,
                     MaxWorkers = 7,
                     MaxRetries = 1,
                     HdAudioOnly = false,
@@ -147,6 +154,9 @@ public class ConfigurationServiceTests
             Assert.NotNull(loaded);
             Assert.Equal("default-user", loaded!.User.Account);
             Assert.Equal("https://defaults.example.com", loaded.Downloader.ApiUrl);
+            Assert.Equal(Path.Combine(tempRoot, "download-default"), loaded.Downloader.DownloadDataFolder);
+            Assert.Equal(Path.Combine(tempRoot, "sync-default"), loaded.Downloader.SyncDataFolder);
+            Assert.Equal(21, loaded.Downloader.MetadataValidityDays);
             Assert.Equal(7, loaded.Downloader.MaxWorkers);
             Assert.False(loaded.Downloader.HdAudioOnly);
             Assert.Equal(4, loaded.Limit.SyncQps);
@@ -174,6 +184,7 @@ public class ConfigurationServiceTests
                 Downloader = new DownloaderOptions
                 {
                     ApiUrl = "https://defaults.example.com",
+                    DownloadDataFolder = Path.Combine(tempRoot, "download-default"),
                     SyncDataFolder = Path.Combine(tempRoot, "sync-default"),
                 },
             };
@@ -192,7 +203,9 @@ public class ConfigurationServiceTests
                 Downloader = new DownloaderOptions
                 {
                     ApiUrl = "https://sqlite.example.com",
+                    DownloadDataFolder = Path.Combine(tempRoot, "download-sqlite"),
                     SyncDataFolder = Path.Combine(tempRoot, "sync-sqlite"),
+                    MetadataValidityDays = 14,
                     MaxWorkers = 9,
                 },
                 Limit = new LimitOptions
@@ -207,6 +220,9 @@ public class ConfigurationServiceTests
             Assert.NotNull(loaded);
             Assert.Equal("sqlite-account", loaded!.User.Account);
             Assert.Equal("https://sqlite.example.com", loaded.Downloader.ApiUrl);
+            Assert.Equal(Path.Combine(tempRoot, "download-sqlite"), loaded.Downloader.DownloadDataFolder);
+            Assert.Equal(Path.Combine(tempRoot, "sync-sqlite"), loaded.Downloader.SyncDataFolder);
+            Assert.Equal(14, loaded.Downloader.MetadataValidityDays);
             Assert.Equal(9, loaded.Downloader.MaxWorkers);
             Assert.Equal(9, loaded.Limit.SyncQps);
         }
@@ -235,6 +251,7 @@ public class ConfigurationServiceTests
                 Downloader = new DownloaderOptions
                 {
                     ApiUrl = "https://legacy.example.com",
+                    DownloadDataFolder = string.Empty,
                     SyncDataFolder = Path.Combine(tempRoot, "legacy-sync"),
                     PreferFormats = "wav,flac",
                     HdAudioOnly = false,
@@ -254,6 +271,8 @@ public class ConfigurationServiceTests
             Assert.NotNull(loaded);
             Assert.Equal("legacy-user", loaded!.User.Account);
             Assert.Equal("https://legacy.example.com", loaded.Downloader.ApiUrl);
+            Assert.Equal(string.Empty, loaded.Downloader.DownloadDataFolder);
+            Assert.Equal(string.Empty, loaded.Downloader.SyncDataFolder);
             Assert.Equal("wav,flac", loaded.Downloader.PreferFormats);
 
             Assert.True(await TableHasColumnAsync(pathService.DatabaseFilePath, "AppConfig", "ConfigKey"));

@@ -194,6 +194,12 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
                     if (legacyConfig is not null)
                     {
                         MergeLegacyPreferFormatsIfNeeded(legacyConfig, legacyJson);
+                        if (ShouldResetLegacyDirectoryFields(legacyJson) ||
+                            ShouldResetMigratedLegacyDirectoryFields(legacyConfig.Downloader))
+                        {
+                            legacyConfig.Downloader.DownloadDataFolder = string.Empty;
+                            legacyConfig.Downloader.SyncDataFolder = string.Empty;
+                        }
                     }
                 }
                 catch
@@ -269,7 +275,9 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
                 ProxyUrl = config.Downloader.ProxyUrl,
                 MaxWorkers = config.Downloader.MaxWorkers,
                 MaxRetries = config.Downloader.MaxRetries,
+                DownloadDataFolder = config.Downloader.DownloadDataFolder,
                 SyncDataFolder = config.Downloader.SyncDataFolder,
+                MetadataValidityDays = config.Downloader.MetadataValidityDays,
                 SyncWantedSize = config.Downloader.SyncWantedSize,
                 PreferFormats = config.Downloader.PreferFormats,
                 HdAudioOnly = config.Downloader.HdAudioOnly,
@@ -329,6 +337,32 @@ public sealed class DatabaseInitializer : IDatabaseInitializer
         }
 
         return property.GetString() ?? string.Empty;
+    }
+
+    private static bool ShouldResetLegacyDirectoryFields(string rawJson)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(rawJson);
+            if (!TryGetPropertyIgnoreCase(document.RootElement, "downloader", out var downloaderElement) ||
+                downloaderElement.ValueKind != JsonValueKind.Object)
+            {
+                return false;
+            }
+
+            return !TryGetPropertyIgnoreCase(downloaderElement, "downloadDataFolder", out _)
+                && TryGetPropertyIgnoreCase(downloaderElement, "syncDataFolder", out _);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static bool ShouldResetMigratedLegacyDirectoryFields(DownloaderOptions downloader)
+    {
+        return string.IsNullOrWhiteSpace(downloader.DownloadDataFolder)
+            && !string.IsNullOrWhiteSpace(downloader.SyncDataFolder);
     }
 
     private static bool TryGetPropertyIgnoreCase(JsonElement element, string propertyName, out JsonElement property)

@@ -583,10 +583,12 @@
             </Grid>
         </Border>
 
-        <TextBlock x:Name="StatusTextBlock"
-                   Grid.Row="3"
-                   Margin="2,2,0,0"
-                   Foreground="#FF2F4B67"
-                   Text="请输入关键词并执行搜索。"/>
+        <Border Grid.Row="3"
+                Margin="2,2,0,0"
+                Style="{StaticResource StatusInfoPanelStyle}">
+            <TextBlock x:Name="StatusTextBlock"
+                       Style="{StaticResource StatusInfoTextStyle}"
+                       Text="请输入关键词并执行搜索。"/>
+        </Border>
     </Grid>
 </UserControl>

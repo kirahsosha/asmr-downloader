@@ -1,4 +1,3 @@
-using System.Text;
 using System.Collections.Concurrent;
 using System.Globalization;
 using Asmroner.Core.Api;
@@ -49,7 +48,7 @@ public sealed class DownloadService : IDownloadService
         var config = await _configurationService.LoadAsync(cancellationToken);
         var preferExtensions = DownloadFilterParser.ParsePreferExtensions(config?.Downloader);
         var parsedFilter = DownloadFilterParser.ParseFileFilter(fileFilter);
-        var targetRoot = ResolveTargetRoot(config?.Downloader.SyncDataFolder);
+        var runDirectories = ResolveRunDirectories(config, options: null);
         var maxWorkers = NormalizeMaxWorkers(config?.Downloader.MaxWorkers ?? 4);
 
         var created = new List<DownloadTaskItem>(sourceIds.Count);
@@ -81,7 +80,7 @@ public sealed class DownloadService : IDownloadService
                     return;
                 }
 
-                await RunSingleAsync(task, targetRoot, preferExtensions, parsedFilter, hdAudioOnly, config, cancellationToken);
+                await RunSingleAsync(task, runDirectories, options: null, preferExtensions, parsedFilter, hdAudioOnly, config, cancellationToken);
             }
             finally
             {
@@ -95,7 +94,7 @@ public sealed class DownloadService : IDownloadService
         return created;
     }
 
-    public async Task<DownloadTaskItem?> StartAsync(string sourceId, string? fileFilter = null, Guid? preferredTaskId = null, bool hdAudioOnly = false, CancellationToken cancellationToken = default)
+    public async Task<DownloadTaskItem?> StartAsync(string sourceId, string? fileFilter = null, Guid? preferredTaskId = null, bool hdAudioOnly = false, DownloadStartOptions? options = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(sourceId))
         {
@@ -105,7 +104,7 @@ public sealed class DownloadService : IDownloadService
         var config = await _configurationService.LoadAsync(cancellationToken);
         var preferExtensions = DownloadFilterParser.ParsePreferExtensions(config?.Downloader);
         var parsedFilter = DownloadFilterParser.ParseFileFilter(fileFilter);
-        var targetRoot = ResolveTargetRoot(config?.Downloader.SyncDataFolder);
+        var runDirectories = ResolveRunDirectories(config, options);
 
         DownloadTaskItem task;
         var normalizedSourceId = sourceId.Trim();
@@ -119,7 +118,7 @@ public sealed class DownloadService : IDownloadService
             }
         }
 
-        await RunSingleAsync(task, targetRoot, preferExtensions, parsedFilter, hdAudioOnly, config, cancellationToken);
+        await RunSingleAsync(task, runDirectories, options, preferExtensions, parsedFilter, hdAudioOnly, config, cancellationToken);
         _searchStateStore.RemoveFromQueue(new[] { task.SourceId });
         return task;
     }
@@ -168,7 +167,7 @@ public sealed class DownloadService : IDownloadService
         }
     }
 
-    public async Task<DownloadTaskItem?> RetryFailedAsync(Guid taskId, string? fileFilter = null, bool hdAudioOnly = false, CancellationToken cancellationToken = default)
+    public async Task<DownloadTaskItem?> RetryFailedAsync(Guid taskId, string? fileFilter = null, bool hdAudioOnly = false, DownloadStartOptions? options = null, CancellationToken cancellationToken = default)
     {
         DownloadTaskItem? task;
 
@@ -187,9 +186,9 @@ public sealed class DownloadService : IDownloadService
         var config = await _configurationService.LoadAsync(cancellationToken);
         var preferExtensions = DownloadFilterParser.ParsePreferExtensions(config?.Downloader);
         var parsedFilter = DownloadFilterParser.ParseFileFilter(fileFilter);
-        var targetRoot = ResolveTargetRoot(config?.Downloader.SyncDataFolder);
+        var runDirectories = ResolveRunDirectories(config, options);
 
-        await RunSingleAsync(task, targetRoot, preferExtensions, parsedFilter, hdAudioOnly, config, cancellationToken);
+        await RunSingleAsync(task, runDirectories, options, preferExtensions, parsedFilter, hdAudioOnly, config, cancellationToken);
         return task;
     }
 
@@ -238,7 +237,8 @@ public sealed class DownloadService : IDownloadService
 
     private async Task RunSingleAsync(
         DownloadTaskItem task,
-        string targetRoot,
+        DownloadRunDirectories runDirectories,
+        DownloadStartOptions? options,
         IReadOnlyList<string> preferExtensions,
         IReadOnlyList<(string Term, bool IsExclude)> fileFilter,
         bool hdAudioOnly,
@@ -269,7 +269,7 @@ public sealed class DownloadService : IDownloadService
 
             if (!_workInfoCache.TryGet(task.SourceId, WorkInfoCacheRequirement.Full, out var workInfo) || workInfo is null)
             {
-                workInfo = await _apiClient.GetWorkInfoAsync(task.SourceId, runCancellationToken);
+                workInfo = await _apiClient.GetWorkInfoAsync(ResolveWorkLookupId(task.SourceId, options), runCancellationToken);
                 _workInfoCache.Set(task.SourceId, workInfo, WorkInfoCacheEntryLevel.Full);
             }
 
@@ -279,8 +279,13 @@ public sealed class DownloadService : IDownloadService
             }
 
             var folderName = BuildFolderName(workInfo);
-            var targetDirectory = Path.Combine(targetRoot, folderName);
+            var targetDirectory = Path.Combine(runDirectories.TargetRoot, folderName);
             Directory.CreateDirectory(targetDirectory);
+            var lookupDirectories = runDirectories.LookupRoots
+                .Select(root => Path.Combine(root, folderName))
+                .Where(path => !path.Equals(targetDirectory, StringComparison.OrdinalIgnoreCase))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
             lock (_stateLock)
             {
                 task.TargetDirectory = targetDirectory;
@@ -288,7 +293,7 @@ public sealed class DownloadService : IDownloadService
 
             var trackLookupId = workInfo.Id > 0
                 ? workInfo.Id.ToString(CultureInfo.InvariantCulture)
-                : task.SourceId;
+                : ResolveWorkLookupId(task.SourceId, options);
             var tracks = await _apiClient.GetTracksAsync(trackLookupId, runCancellationToken);
             var allEntries = FlattenTracksWithPath(tracks)
                 .Where(static item => !string.IsNullOrWhiteSpace(item.Url))
@@ -309,6 +314,8 @@ public sealed class DownloadService : IDownloadService
             {
                 mediaEntries = FilterTextSidecarsForRemovedMp3(allEntries, mediaEntries);
             }
+
+            var maxRetries = NormalizeMaxRetries(config?.Downloader.MaxRetries ?? 3);
 
             lock (_stateLock)
             {
@@ -347,8 +354,18 @@ public sealed class DownloadService : IDownloadService
                 Directory.CreateDirectory(subDir);
 
                 var outputPath = Path.Combine(subDir, fileName);
-                var content = $"source={task.SourceId}{Environment.NewLine}title={item.Title}{Environment.NewLine}url={item.Url}{Environment.NewLine}";
-                await File.WriteAllTextAsync(outputPath, content, Encoding.UTF8, runCancellationToken);
+                var relativeFilePath = string.IsNullOrEmpty(item.RelativePath)
+                    ? fileName
+                    : Path.Combine(item.RelativePath, fileName);
+                await EnsureTargetFileAsync(
+                    outputPath,
+                    relativeFilePath,
+                    lookupDirectories,
+                    task.SourceId,
+                    item.Title,
+                    item.Url,
+                    maxRetries,
+                    runCancellationToken);
 
                 lock (_stateLock)
                 {
@@ -442,19 +459,194 @@ public sealed class DownloadService : IDownloadService
         return string.Concat(normalizedPath, "|", normalizedTitle);
     }
 
+    private DownloadRunDirectories ResolveRunDirectories(Core.Configuration.AppConfig? config, DownloadStartOptions? options)
+    {
+        var targetRoot = string.IsNullOrWhiteSpace(options?.TargetRoot)
+            ? ResolveTargetRoot(config?.Downloader.DownloadDataFolder)
+            : ResolveTargetRoot(options.TargetRoot);
+
+        var lookupRoots = (options?.LookupRoots.Count ?? 0) > 0
+            ? options!.LookupRoots
+            : BuildDefaultLookupRoots(config, targetRoot);
+
+        var normalizedLookupRoots = lookupRoots
+            .Where(static root => !string.IsNullOrWhiteSpace(root))
+            .Select(static root => root.Trim())
+            .Where(root => !root.Equals(targetRoot, StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        return new DownloadRunDirectories(targetRoot, normalizedLookupRoots);
+    }
+
+    private IReadOnlyList<string> BuildDefaultLookupRoots(Core.Configuration.AppConfig? config, string targetRoot)
+    {
+        var syncRoot = string.IsNullOrWhiteSpace(config?.Downloader.SyncDataFolder)
+            ? _appPathService.DefaultSyncDataDirectory
+            : config.Downloader.SyncDataFolder.Trim();
+
+        return syncRoot.Equals(targetRoot, StringComparison.OrdinalIgnoreCase)
+            ? Array.Empty<string>()
+            : new[] { syncRoot };
+    }
+
     private string ResolveTargetRoot(string? configured)
     {
         var root = string.IsNullOrWhiteSpace(configured)
-            ? _appPathService.DefaultSyncDataDirectory
+            ? _appPathService.DefaultDownloadDataDirectory
             : configured.Trim();
 
         Directory.CreateDirectory(root);
         return root;
     }
 
+    private static string ResolveWorkLookupId(string sourceId, DownloadStartOptions? options)
+    {
+        if (options?.WorkId is > 0)
+        {
+            return options.WorkId.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        return sourceId;
+    }
+
+    private static string BuildLegacyPlaceholderContent(string sourceId, string title, string url)
+    {
+        return $"source={sourceId}{Environment.NewLine}title={title}{Environment.NewLine}url={url}{Environment.NewLine}";
+    }
+
+    private async Task EnsureTargetFileAsync(
+        string outputPath,
+        string relativeFilePath,
+        IReadOnlyList<string> lookupDirectories,
+        string sourceId,
+        string title,
+        string mediaUrl,
+        int maxRetries,
+        CancellationToken cancellationToken)
+    {
+        if (await IsReusableFileAsync(outputPath, sourceId, title, mediaUrl, cancellationToken))
+        {
+            return;
+        }
+
+        foreach (var lookupDirectory in lookupDirectories)
+        {
+            var candidatePath = Path.Combine(lookupDirectory, relativeFilePath);
+            if (!await IsReusableFileAsync(candidatePath, sourceId, title, mediaUrl, cancellationToken))
+            {
+                continue;
+            }
+
+            var directory = Path.GetDirectoryName(outputPath);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            File.Copy(candidatePath, outputPath, overwrite: true);
+            return;
+        }
+
+        var directoryPath = Path.GetDirectoryName(outputPath);
+        if (!string.IsNullOrWhiteSpace(directoryPath))
+        {
+            Directory.CreateDirectory(directoryPath);
+        }
+
+        await DownloadFileWithRetriesAsync(mediaUrl, outputPath, maxRetries, cancellationToken);
+    }
+
+    private async Task DownloadFileWithRetriesAsync(string mediaUrl, string outputPath, int maxRetries, CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; attempt <= maxRetries; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                if (File.Exists(outputPath))
+                {
+                    File.Delete(outputPath);
+                }
+
+                await _apiClient.DownloadFileAsync(mediaUrl, outputPath, cancellationToken);
+                if (!File.Exists(outputPath) || new FileInfo(outputPath).Length <= 0)
+                {
+                    throw new InvalidOperationException("下载文件为空。");
+                }
+
+                return;
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch
+            {
+                if (File.Exists(outputPath))
+                {
+                    File.Delete(outputPath);
+                }
+
+                if (attempt >= maxRetries)
+                {
+                    throw;
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(250 * (attempt + 1)), cancellationToken);
+            }
+        }
+    }
+
+    private static async Task<bool> IsReusableFileAsync(string path, string sourceId, string title, string mediaUrl, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            return false;
+        }
+
+        var fileInfo = new FileInfo(path);
+        if (fileInfo.Length <= 0)
+        {
+            return false;
+        }
+
+        return !await IsLegacyPlaceholderFileAsync(path, BuildLegacyPlaceholderContent(sourceId, title, mediaUrl), cancellationToken);
+    }
+
+    private static async Task<bool> IsLegacyPlaceholderFileAsync(string path, string legacyPlaceholderContent, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            return false;
+        }
+
+        try
+        {
+            var fileInfo = new FileInfo(path);
+            if (fileInfo.Length <= 0 || fileInfo.Length > 4096)
+            {
+                return false;
+            }
+
+            var actualContent = await File.ReadAllTextAsync(path, cancellationToken);
+            return string.Equals(actualContent, legacyPlaceholderContent, StringComparison.Ordinal);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     private static int NormalizeMaxWorkers(int configured)
     {
         return Math.Clamp(configured, 1, 32);
+    }
+
+    private static int NormalizeMaxRetries(int configured)
+    {
+        return Math.Clamp(configured, 0, 10);
     }
 
     private DownloadTaskItem ResolveStartTargetTask(string sourceId, Guid? preferredTaskId)
@@ -564,4 +756,6 @@ public sealed class DownloadService : IDownloadService
             }
         }
     }
+
+    private sealed record DownloadRunDirectories(string TargetRoot, IReadOnlyList<string> LookupRoots);
 }

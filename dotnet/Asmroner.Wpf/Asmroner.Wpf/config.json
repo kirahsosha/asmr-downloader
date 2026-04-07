@@ -11,7 +11,9 @@
         "proxyUrl": "",
         "maxWorkers": 4,
         "maxRetries": 3,
+        "downloadDataFolder": "",
         "syncDataFolder": "",
+        "metadataValidityDays": 30,
         "syncWantedSize": "5GB",
         "preferFormats": "mp3,wav,flac,jpg,jpeg,png,gif,webp,mp4,mkv,avi,webm,txt,lrc,ass",
         "hdAudioOnly": true

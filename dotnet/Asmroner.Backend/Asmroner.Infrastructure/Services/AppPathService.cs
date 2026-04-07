@@ -18,6 +18,7 @@ public sealed class AppPathService : IAppPathService
         MetadataDirectory = Path.Combine(resolvedHomeDirectory, ".asmroner-data");
         DefaultConfigFilePath = Path.Combine(programDirectory, "config.json");
         DatabaseFilePath = Path.Combine(MetadataDirectory, "asmroner.db");
+        DefaultDownloadDataDirectory = Path.Combine(MetadataDirectory, "download-data");
         DefaultSyncDataDirectory = Path.Combine(MetadataDirectory, "sync-data");
         LogsDirectory = Path.Combine(MetadataDirectory, "logs");
     }
@@ -27,6 +28,8 @@ public sealed class AppPathService : IAppPathService
     public string DefaultConfigFilePath { get; }
 
     public string DatabaseFilePath { get; }
+
+    public string DefaultDownloadDataDirectory { get; }
 
     public string DefaultSyncDataDirectory { get; }
 

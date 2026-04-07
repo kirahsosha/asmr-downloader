@@ -174,7 +174,17 @@
 
                         <TextBlock Style="{StaticResource FieldLabelStyle}"
                                    Text="下载目录"/>
+                        <TextBox x:Name="DownloadDataFolderTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="同步下载目录"/>
                         <TextBox x:Name="SyncDataFolderTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"/>
+
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="元数据有效期(天)"/>
+                        <TextBox x:Name="MetadataValidityDaysTextBox"
                                  Style="{StaticResource FieldTextBoxStyle}"/>
 
                         <TextBlock Style="{StaticResource FieldLabelStyle}"

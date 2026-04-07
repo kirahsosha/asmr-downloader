@@ -8,6 +8,8 @@ public interface IAppPathService
 
     string DatabaseFilePath { get; }
 
+    string DefaultDownloadDataDirectory { get; }
+
     string DefaultSyncDataDirectory { get; }
 
     string LogsDirectory { get; }

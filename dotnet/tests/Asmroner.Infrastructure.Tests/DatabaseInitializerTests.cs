@@ -84,6 +84,11 @@ public class DatabaseInitializerTests
             Assert.True(await TableHasColumnAsync(connection, "MetadataWork", "CircleName"));
             Assert.True(await TableHasColumnAsync(connection, "WorkSyncInfo", "MetadataWorkId"));
             Assert.Equal(3, await CountSplitConfigRowsAsync(connection));
+
+            var downloader = await ReadConfigSectionAsync<DownloaderOptions>(connection, "downloader");
+            Assert.NotNull(downloader);
+            Assert.Equal(string.Empty, downloader!.DownloadDataFolder);
+            Assert.Equal(string.Empty, downloader.SyncDataFolder);
         }
         finally
         {
@@ -168,6 +173,22 @@ public class DatabaseInitializerTests
         await using var command = connection.CreateCommand();
         command.CommandText = "SELECT COUNT(1) FROM AppConfig WHERE ConfigKey IN ('user','downloader','limit');";
         return Convert.ToInt32(await command.ExecuteScalarAsync());
+    }
+
+    private static async Task<T?> ReadConfigSectionAsync<T>(SqliteConnection connection, string sectionKey)
+        where T : class
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT JsonValue FROM AppConfig WHERE ConfigKey = @key LIMIT 1;";
+        command.Parameters.AddWithValue("@key", sectionKey);
+
+        var json = await command.ExecuteScalarAsync() as string;
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return null;
+        }
+
+        return JsonSerializer.Deserialize<T>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web));
     }
 
     private static SqliteConnection CreateConnection(string databaseFilePath)

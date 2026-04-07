@@ -89,6 +89,61 @@ public class MetadataSyncServiceTests
     }
 
     [Fact]
+    public async Task SyncMetadataAsync_ShouldRefreshExpiredMetadata_WhenPreviousRunCompleted()
+    {
+        var uiStateStore = new InMemoryUiStateStore();
+        await uiStateStore.SaveMetadataSyncProgressAsync(new MetadataSyncProgressState
+        {
+            Status = SyncProgressStatuses.Completed,
+            NextPage = 1,
+            ProcessedPageCount = 1,
+            TotalPageCount = 1,
+            RemoteTotalCount = 1,
+            RemoteSubtitleCount = 0,
+            InsertedCount = 1,
+            StartedAt = DateTime.UtcNow.AddDays(-2),
+            UpdatedAt = DateTime.UtcNow.AddDays(-1),
+        });
+
+        var apiClient = new RecordingMetadataApiClient
+        {
+            RemoteTotalCount = 1,
+            RemoteSubtitleCount = 0,
+            Pages =
+            {
+                [1] =
+                [
+                    CreateWork(401, "RJ401", "Updated Title 401"),
+                ],
+            },
+        };
+        var store = new InMemoryMetadataSyncStore(
+        [
+            new MetadataWorkItem
+            {
+                Id = 401,
+                SourceId = "RJ401",
+                Title = "Stale Title 401",
+                UpdatedAt = DateTime.UtcNow.AddDays(-45),
+            },
+        ]);
+        var sut = new MetadataSyncService(
+            apiClient,
+            new TestConfigurationService(Path.GetTempPath(), metadataValidityDays: 30),
+            store,
+            new NoopRateLimiterService(),
+            uiStateStore);
+
+        var result = await sut.SyncMetadataAsync();
+        var refreshed = await store.GetMetadataWorksBySourceIdsAsync(new[] { "RJ401" });
+
+        Assert.Equal(0, result.InsertedCount);
+        Assert.Contains("过期刷新完成", result.Message, StringComparison.Ordinal);
+        Assert.Equal([(1, 1, false), (1, 1, true), (1, 100, false)], apiClient.Calls);
+        Assert.Equal("Updated Title 401", refreshed["RJ401"].Title);
+    }
+
+    [Fact]
     public async Task SyncMetadataAsync_ShouldReport_WhenLocalCountExceedsRemoteCount()
     {
         var uiStateStore = new InMemoryUiStateStore();
@@ -309,6 +364,11 @@ public class MetadataSyncServiceTests
             throw new NotImplementedException();
         }
 
+        public Task DownloadFileAsync(string url, string destinationPath, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<SearchResultDto> SearchAsync(string query, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
@@ -366,6 +426,35 @@ public class MetadataSyncServiceTests
             return insertedCount;
         }
 
+        public Task<IReadOnlyDictionary<string, MetadataWorkItem>> GetMetadataWorksBySourceIdsAsync(IReadOnlyCollection<string> sourceIds, CancellationToken cancellationToken = default)
+        {
+            var normalized = sourceIds
+                .Where(static sourceId => !string.IsNullOrWhiteSpace(sourceId))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var items = _works.Values
+                .Where(work => normalized.Contains(work.SourceId))
+                .ToDictionary(static work => work.SourceId, StringComparer.OrdinalIgnoreCase);
+            return Task.FromResult<IReadOnlyDictionary<string, MetadataWorkItem>>(items);
+        }
+
+        public Task<IReadOnlyList<int>> GetExpiredMetadataWorkIdsAsync(DateTime updatedBefore, CancellationToken cancellationToken = default)
+        {
+            var items = _works.Values
+                .Where(work => work.UpdatedAt < updatedBefore)
+                .Select(static work => work.Id)
+                .OrderBy(static id => id)
+                .ToArray();
+            return Task.FromResult<IReadOnlyList<int>>(items);
+        }
+
+        public Task<IReadOnlyList<MetadataWorkItem>> GetAllMetadataWorksAsync(CancellationToken cancellationToken = default)
+        {
+            var items = _works.Values
+                .OrderBy(static work => work.Id)
+                .ToArray();
+            return Task.FromResult<IReadOnlyList<MetadataWorkItem>>(items);
+        }
+
         public Task<SyncDownloadSnapshot> GetDownloadSnapshotAsync(CancellationToken cancellationToken = default)
         {
             var syncInfos = _syncInfos.Values.ToArray();
@@ -380,6 +469,12 @@ public class MetadataSyncServiceTests
                     .Sum(static item => item.DirSize),
                 LastUpdatedAt = syncInfos.Length == 0 ? null : syncInfos.Max(static item => item.UpdatedAt),
             });
+        }
+
+        public Task<IReadOnlyDictionary<int, WorkSyncInfoItem>> GetWorkSyncInfoMapAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyDictionary<int, WorkSyncInfoItem>>(
+                new Dictionary<int, WorkSyncInfoItem>(_syncInfos));
         }
 
         public Task<int> CleanupPendingSyncDownloadsAsync(CancellationToken cancellationToken = default)

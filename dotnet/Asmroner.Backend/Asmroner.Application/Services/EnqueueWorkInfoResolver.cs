@@ -10,10 +10,12 @@ namespace Asmroner.Application.Services;
 public sealed class EnqueueWorkInfoResolver : IEnqueueWorkInfoResolver
 {
     private readonly IAsmrApiClient _asmrApiClient;
+    private readonly IMetadataSyncStore _metadataSyncStore;
 
-    public EnqueueWorkInfoResolver(IAsmrApiClient asmrApiClient)
+    public EnqueueWorkInfoResolver(IAsmrApiClient asmrApiClient, IMetadataSyncStore metadataSyncStore)
     {
         _asmrApiClient = asmrApiClient;
+        _metadataSyncStore = metadataSyncStore;
     }
 
     public async Task<EnqueueWorkInfoResolutionResult> ResolvePreferTranslatedAsync(IReadOnlyCollection<EnqueueWorkInfoRequest> requests, CancellationToken cancellationToken = default)
@@ -87,6 +89,8 @@ public sealed class EnqueueWorkInfoResolver : IEnqueueWorkInfoResolver
             };
         }
 
+        await UpsertMetadataSummariesAsync(resolvedWorkInfos, cancellationToken);
+
         return new EnqueueWorkInfoResolutionResult
         {
             WorkInfos = resolvedWorkInfos,
@@ -129,5 +133,28 @@ public sealed class EnqueueWorkInfoResolver : IEnqueueWorkInfoResolver
 
         await Task.WhenAll(jobs);
         return new Dictionary<string, WorkInfoDto>(result, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private async Task UpsertMetadataSummariesAsync(IReadOnlyDictionary<string, WorkInfoDto> workInfos, CancellationToken cancellationToken)
+    {
+        if (workInfos.Count == 0)
+        {
+            return;
+        }
+
+        var existingWorks = await _metadataSyncStore.GetMetadataWorksBySourceIdsAsync(workInfos.Keys.ToArray(), cancellationToken);
+        var updatedAt = DateTime.UtcNow;
+        var upsertItems = workInfos
+            .Select(item => MetadataWorkSummaryMapper.MergeFromWorkInfo(
+                item.Value,
+                existingWorks.TryGetValue(item.Key, out var existing) ? existing : null,
+                updatedAt))
+            .Where(static item => item.Id > 0 && !string.IsNullOrWhiteSpace(item.SourceId))
+            .ToArray();
+
+        if (upsertItems.Length > 0)
+        {
+            await _metadataSyncStore.UpsertMetadataWorksAsync(upsertItems, cancellationToken);
+        }
     }
 }

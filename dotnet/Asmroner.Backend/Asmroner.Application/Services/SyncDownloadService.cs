@@ -1,3 +1,4 @@
+using Asmroner.Core.Api;
 using Asmroner.Core.Configuration;
 using Asmroner.Core.Download;
 using Asmroner.Core.Interfaces;
@@ -9,6 +10,7 @@ public sealed class SyncDownloadService
 {
     private readonly IConfigurationService _configurationService;
     private readonly IMetadataSyncStore _metadataSyncStore;
+    private readonly ISyncWorkInfoResolver _syncWorkInfoResolver;
     private readonly IDownloadService _downloadService;
     private readonly IAppPathService _appPathService;
     private readonly IUiStateStore _uiStateStore;
@@ -16,12 +18,14 @@ public sealed class SyncDownloadService
     public SyncDownloadService(
         IConfigurationService configurationService,
         IMetadataSyncStore metadataSyncStore,
+        ISyncWorkInfoResolver syncWorkInfoResolver,
         IDownloadService downloadService,
         IAppPathService appPathService,
         IUiStateStore uiStateStore)
     {
         _configurationService = configurationService;
         _metadataSyncStore = metadataSyncStore;
+        _syncWorkInfoResolver = syncWorkInfoResolver;
         _downloadService = downloadService;
         _appPathService = appPathService;
         _uiStateStore = uiStateStore;
@@ -49,10 +53,22 @@ public sealed class SyncDownloadService
         var config = await _configurationService.LoadAsync(cancellationToken) ?? new AppConfig();
         var sizeLimitBytes = SyncSizeText.ParseBytes(config.Downloader.SyncWantedSize);
         var targetRoot = ResolveTargetRoot(config);
+        var downloadLookupRoot = ResolveDownloadLookupRoot(config);
 
         await _metadataSyncStore.CleanupPendingSyncDownloadsAsync(cancellationToken);
 
         var before = await _metadataSyncStore.GetDownloadSnapshotAsync(cancellationToken);
+        var allWorkInfos = await _syncWorkInfoResolver.ResolveAllAsync(cancellationToken);
+        var syncInfoMap = new Dictionary<int, WorkSyncInfoItem>(await _metadataSyncStore.GetWorkSyncInfoMapAsync(cancellationToken));
+        var isRescanMode = ShouldRescanAllMetadata(progress, resumedFromProgress, before, allWorkInfos.Count);
+        var candidates = BuildProcessingCandidates(allWorkInfos, syncInfoMap, isRescanMode, resumedFromProgress, progress.LastProcessedSourceId);
+        var baseDownloadOptions = new DownloadStartOptions
+        {
+            TargetRoot = targetRoot,
+            LookupRoots = string.IsNullOrWhiteSpace(downloadLookupRoot)
+                ? Array.Empty<string>()
+                : new[] { downloadLookupRoot },
+        };
         var startedAt = resumedFromProgress
             ? progress.StartedAt ?? DateTime.UtcNow
             : DateTime.UtcNow;
@@ -63,12 +79,12 @@ public sealed class SyncDownloadService
             ? progress.CompletedSizeBytesBefore
             : before.CompletedSizeBytes;
         var completedSizeBytes = before.CompletedSizeBytes;
-        var remainingMetadataCount = before.RemainingMetadataCount;
+        var remainingMetadataCount = candidates.Count;
         var lastProcessedSourceId = resumedFromProgress
             ? progress.LastProcessedSourceId
             : string.Empty;
 
-        if (!resumedFromProgress && before.CompletedSizeBytes >= sizeLimitBytes)
+        if (!resumedFromProgress && !isRescanMode && before.CompletedSizeBytes >= sizeLimitBytes)
         {
             await _uiStateStore.SaveSyncDownloadProgressAsync(
                 BuildProgressState(
@@ -114,35 +130,51 @@ public sealed class SyncDownloadService
         var failedCount = 0;
         var reachedSizeLimit = false;
 
-        while (completedSizeBytes < sizeLimitBytes)
+        foreach (var candidate in candidates)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var candidate = (await _metadataSyncStore.GetSyncDownloadCandidatesAsync(1, cancellationToken)).SingleOrDefault();
-            if (candidate is null)
+            if (!isRescanMode && completedSizeBytes >= sizeLimitBytes)
             {
+                reachedSizeLimit = true;
                 break;
             }
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             processedCount++;
             cumulativeProcessedCount++;
             remainingMetadataCount = Math.Max(0, remainingMetadataCount - 1);
             lastProcessedSourceId = candidate.SourceId;
             var expectedPath = SyncDownloadPathPolicy.BuildTargetDirectory(targetRoot, candidate.SourceId, candidate.Title);
-            var pendingItem = await _metadataSyncStore.CreatePendingWorkSyncInfoAsync(candidate, expectedPath, cancellationToken);
+            syncInfoMap.TryGetValue(candidate.Id, out var existingSyncInfo);
+            var pendingItem = await CreateOrUpdatePendingSyncInfoAsync(existingSyncInfo, candidate, expectedPath, cancellationToken);
+            var downloadOptions = new DownloadStartOptions
+            {
+                TargetRoot = baseDownloadOptions.TargetRoot,
+                LookupRoots = baseDownloadOptions.LookupRoots,
+                WorkId = candidate.Id,
+            };
             var task = await _downloadService.StartAsync(
                 candidate.SourceId,
                 hdAudioOnly: config.Downloader.HdAudioOnly,
+                options: downloadOptions,
                 cancellationToken: cancellationToken);
 
             var updatedItem = BuildCompletedSyncInfo(pendingItem, candidate, task, expectedPath);
             await _metadataSyncStore.UpdateWorkSyncInfoAsync(updatedItem, cancellationToken);
+            syncInfoMap[candidate.Id] = updatedItem;
+
+            var previousCompletedSize = existingSyncInfo is not null && string.Equals(existingSyncInfo.Status, "COMPLETED", StringComparison.Ordinal)
+                ? existingSyncInfo.DirSize
+                : 0L;
+            var currentCompletedSize = string.Equals(updatedItem.Status, "COMPLETED", StringComparison.Ordinal)
+                ? updatedItem.DirSize
+                : 0L;
+            completedSizeBytes += currentCompletedSize - previousCompletedSize;
 
             if (updatedItem.Status == "COMPLETED")
             {
                 completedCount++;
                 cumulativeCompletedCount++;
-                completedSizeBytes += updatedItem.DirSize;
             }
             else
             {
@@ -150,7 +182,7 @@ public sealed class SyncDownloadService
                 cumulativeFailedCount++;
             }
 
-            if (completedSizeBytes >= sizeLimitBytes)
+            if (!isRescanMode && completedSizeBytes >= sizeLimitBytes)
             {
                 reachedSizeLimit = true;
                 break;
@@ -189,26 +221,26 @@ public sealed class SyncDownloadService
                         updatedAt: DateTime.UtcNow),
                     cancellationToken);
 
-                var afterStopped = await _metadataSyncStore.GetDownloadSnapshotAsync(cancellationToken);
                 return new SyncDownloadRunResult
                 {
                     ProcessedCount = processedCount,
                     CompletedCount = completedCount,
                     FailedCount = failedCount,
-                    RemainingMetadataCountAfter = afterStopped.RemainingMetadataCount,
+                    RemainingMetadataCountAfter = remainingMetadataCount,
                     CompletedSizeBytesBefore = before.CompletedSizeBytes,
-                    CompletedSizeBytesAfter = afterStopped.CompletedSizeBytes,
+                    CompletedSizeBytesAfter = completedSizeBytes,
                     SizeLimitBytes = sizeLimitBytes,
                     ReachedSizeLimit = false,
                     LastProcessedSourceId = lastProcessedSourceId,
-                    Message = $"同步下载已按请求停止：当前作品已完成，成功 {completedCount} 项，失败 {failedCount} 项，剩余待同步 {afterStopped.RemainingMetadataCount} 项。",
+                    Message = isRescanMode
+                        ? $"同步下载校验已按请求停止：当前作品已完成，成功 {completedCount} 项，失败 {failedCount} 项，剩余待校验 {remainingMetadataCount} 项。"
+                        : $"同步下载已按请求停止：当前作品已完成，成功 {completedCount} 项，失败 {failedCount} 项，剩余待同步 {remainingMetadataCount} 项。",
                     WasStopped = true,
                     ResumedFromProgress = resumedFromProgress,
                 };
             }
         }
 
-        var after = await _metadataSyncStore.GetDownloadSnapshotAsync(cancellationToken);
         if (processedCount == 0)
         {
             await _uiStateStore.SaveSyncDownloadProgressAsync(
@@ -218,18 +250,26 @@ public sealed class SyncDownloadService
                     processedCount: cumulativeProcessedCount,
                     completedCount: cumulativeCompletedCount,
                     failedCount: cumulativeFailedCount,
-                    remainingMetadataCountAfter: after.RemainingMetadataCount,
+                    remainingMetadataCountAfter: remainingMetadataCount,
                     completedSizeBytesBefore: cumulativeSizeBefore,
-                    completedSizeBytesAfter: after.CompletedSizeBytes,
+                    completedSizeBytesAfter: completedSizeBytes,
                     sizeLimitBytes,
                     startedAt,
                     updatedAt: DateTime.UtcNow),
                 cancellationToken);
 
             return BuildNoOpResult(
-                after,
+                new SyncDownloadSnapshot
+                {
+                    PendingCount = before.PendingCount,
+                    CompletedCount = before.CompletedCount,
+                    FailedCount = before.FailedCount,
+                    RemainingMetadataCount = remainingMetadataCount,
+                    CompletedSizeBytes = completedSizeBytes,
+                    LastUpdatedAt = before.LastUpdatedAt,
+                },
                 sizeLimitBytes,
-                "没有待同步下载的新作品。",
+                isRescanMode ? "没有可校验的同步下载作品。" : "没有待同步下载的新作品。",
                 reachedSizeLimit: false,
                 resumedFromProgress,
                 lastProcessedSourceId);
@@ -242,9 +282,9 @@ public sealed class SyncDownloadService
                 processedCount: cumulativeProcessedCount,
                 completedCount: cumulativeCompletedCount,
                 failedCount: cumulativeFailedCount,
-                remainingMetadataCountAfter: after.RemainingMetadataCount,
+                remainingMetadataCountAfter: remainingMetadataCount,
                 completedSizeBytesBefore: cumulativeSizeBefore,
-                completedSizeBytesAfter: after.CompletedSizeBytes,
+                completedSizeBytesAfter: completedSizeBytes,
                 sizeLimitBytes,
                 startedAt,
                 updatedAt: DateTime.UtcNow),
@@ -255,15 +295,17 @@ public sealed class SyncDownloadService
             ProcessedCount = processedCount,
             CompletedCount = completedCount,
             FailedCount = failedCount,
-            RemainingMetadataCountAfter = after.RemainingMetadataCount,
+            RemainingMetadataCountAfter = remainingMetadataCount,
             CompletedSizeBytesBefore = before.CompletedSizeBytes,
-            CompletedSizeBytesAfter = after.CompletedSizeBytes,
+            CompletedSizeBytesAfter = completedSizeBytes,
             SizeLimitBytes = sizeLimitBytes,
             ReachedSizeLimit = reachedSizeLimit,
             LastProcessedSourceId = lastProcessedSourceId,
-            Message = reachedSizeLimit
-                ? $"同步下载完成：成功 {completedCount} 项，失败 {failedCount} 项，已达到容量上限 {SyncSizeText.FormatBytes(sizeLimitBytes)}。"
-                : $"同步下载完成：成功 {completedCount} 项，失败 {failedCount} 项，剩余待同步 {after.RemainingMetadataCount} 项。",
+            Message = isRescanMode
+                ? $"同步下载校验完成：成功 {completedCount} 项，失败 {failedCount} 项。"
+                : reachedSizeLimit
+                    ? $"同步下载完成：成功 {completedCount} 项，失败 {failedCount} 项，已达到容量上限 {SyncSizeText.FormatBytes(sizeLimitBytes)}。"
+                    : $"同步下载完成：成功 {completedCount} 项，失败 {failedCount} 项，剩余待同步 {remainingMetadataCount} 项。",
             WasStopped = false,
             ResumedFromProgress = resumedFromProgress,
         };
@@ -274,6 +316,13 @@ public sealed class SyncDownloadService
         var config = await _configurationService.LoadAsync(cancellationToken) ?? new AppConfig();
         var before = await _metadataSyncStore.GetDownloadSnapshotAsync(cancellationToken);
         var failedItems = await _metadataSyncStore.GetFailedSyncDownloadsAsync(cancellationToken);
+        var baseRetryOptions = new DownloadStartOptions
+        {
+            TargetRoot = ResolveTargetRoot(config),
+            LookupRoots = string.IsNullOrWhiteSpace(ResolveDownloadLookupRoot(config))
+                ? Array.Empty<string>()
+                : new[] { ResolveDownloadLookupRoot(config) },
+        };
 
         if (failedItems.Count == 0)
         {
@@ -290,6 +339,7 @@ public sealed class SyncDownloadService
             var updatedItem = await RetryFailedItemAsync(
                 failedItem,
                 config.Downloader.HdAudioOnly,
+                baseRetryOptions,
                 cancellationToken);
             await _metadataSyncStore.UpdateWorkSyncInfoAsync(updatedItem, cancellationToken);
 
@@ -325,6 +375,13 @@ public sealed class SyncDownloadService
             : config.Downloader.SyncDataFolder.Trim();
         Directory.CreateDirectory(targetRoot);
         return targetRoot;
+    }
+
+    private string ResolveDownloadLookupRoot(AppConfig config)
+    {
+        return string.IsNullOrWhiteSpace(config.Downloader.DownloadDataFolder)
+            ? _appPathService.DefaultDownloadDataDirectory
+            : config.Downloader.DownloadDataFolder.Trim();
     }
 
     private static SyncDownloadRunResult BuildNoOpResult(
@@ -369,6 +426,7 @@ public sealed class SyncDownloadService
     private async Task<WorkSyncInfoItem> RetryFailedItemAsync(
         WorkSyncInfoItem failedItem,
         bool hdAudioOnly,
+        DownloadStartOptions options,
         CancellationToken cancellationToken)
     {
         try
@@ -378,6 +436,12 @@ public sealed class SyncDownloadService
             var task = await _downloadService.StartAsync(
                 failedItem.SourceId,
                 hdAudioOnly: hdAudioOnly,
+                options: new DownloadStartOptions
+                {
+                    TargetRoot = options.TargetRoot,
+                    LookupRoots = options.LookupRoots,
+                    WorkId = failedItem.MetadataWorkId,
+                },
                 cancellationToken: cancellationToken);
 
             return BuildRetriedSyncInfo(failedItem, task);
@@ -391,9 +455,94 @@ public sealed class SyncDownloadService
         }
     }
 
+    private static bool ShouldRescanAllMetadata(
+        SyncDownloadProgressState progress,
+        bool resumedFromProgress,
+        SyncDownloadSnapshot snapshot,
+        int metadataCount)
+    {
+        if (metadataCount == 0)
+        {
+            return false;
+        }
+
+        if (resumedFromProgress)
+        {
+            return snapshot.RemainingMetadataCount == 0;
+        }
+
+        return string.Equals(progress.Status, SyncProgressStatuses.Completed, StringComparison.Ordinal);
+    }
+
+    private static IReadOnlyList<WorkInfoDto> BuildProcessingCandidates(
+        IReadOnlyList<WorkInfoDto> allWorkInfos,
+        IReadOnlyDictionary<int, WorkSyncInfoItem> syncInfoMap,
+        bool isRescanMode,
+        bool resumedFromProgress,
+        string lastProcessedSourceId)
+    {
+        IEnumerable<WorkInfoDto> candidates = allWorkInfos
+            .OrderBy(static work => work.Id);
+
+        if (!isRescanMode)
+        {
+            candidates = candidates.Where(work => !syncInfoMap.ContainsKey(work.Id));
+        }
+
+        var orderedCandidates = candidates.ToArray();
+        if (!resumedFromProgress || string.IsNullOrWhiteSpace(lastProcessedSourceId))
+        {
+            return orderedCandidates;
+        }
+
+        var startIndex = Array.FindIndex(
+            orderedCandidates,
+            work => string.Equals(work.SourceId, lastProcessedSourceId, StringComparison.OrdinalIgnoreCase));
+        return startIndex < 0
+            ? orderedCandidates
+            : orderedCandidates[(startIndex + 1)..];
+    }
+
+    private async Task<WorkSyncInfoItem> CreateOrUpdatePendingSyncInfoAsync(
+        WorkSyncInfoItem? existingItem,
+        WorkInfoDto work,
+        string filePath,
+        CancellationToken cancellationToken)
+    {
+        if (existingItem is null)
+        {
+            return await _metadataSyncStore.CreatePendingWorkSyncInfoAsync(
+                MetadataWorkSummaryMapper.MergeFromWorkInfo(work, existing: null, updatedAt: DateTime.UtcNow),
+                filePath,
+                cancellationToken);
+        }
+
+        var pendingItem = BuildPendingSyncInfo(existingItem, work, filePath);
+        await _metadataSyncStore.UpdateWorkSyncInfoAsync(pendingItem, cancellationToken);
+        return pendingItem;
+    }
+
+    private static WorkSyncInfoItem BuildPendingSyncInfo(WorkSyncInfoItem existingItem, WorkInfoDto work, string filePath)
+    {
+        return new WorkSyncInfoItem
+        {
+            Id = existingItem.Id,
+            MetadataWorkId = work.Id,
+            SourceId = work.SourceId,
+            HasSubtitle = work.HasSubtitle,
+            DirSize = existingItem.DirSize,
+            Status = "PENDING",
+            FilePath = filePath,
+            FailReason = string.Empty,
+            RetryCount = existingItem.RetryCount,
+            UpdatedAt = DateTime.UtcNow,
+            FailedAt = null,
+        };
+    }
+
     private static WorkSyncInfoItem BuildCompletedSyncInfo(
         WorkSyncInfoItem pendingItem,
-        MetadataWorkItem metadataWork,
+        WorkInfoDto workInfo,
         DownloadTaskItem? task,
         string expectedPath)
     {
@@ -414,9 +563,9 @@ public sealed class SyncDownloadService
         return new WorkSyncInfoItem
         {
             Id = pendingItem.Id,
-            MetadataWorkId = metadataWork.Id,
-            SourceId = metadataWork.SourceId,
-            HasSubtitle = metadataWork.HasSubtitle,
+            MetadataWorkId = workInfo.Id,
+            SourceId = workInfo.SourceId,
+            HasSubtitle = workInfo.HasSubtitle,
             DirSize = dirSize,
             Status = status,
             FilePath = targetPath,

@@ -20,9 +20,9 @@ public partial class DownloadView : UserControl
     private const int RetryAllMaxConcurrency = AsmronerConstants.Download.RetryAllMaxConcurrency;
     private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
-    private readonly IAsmrApiClient _asmrApiClient;
     private readonly IDownloadService _downloadService;
     private readonly IEnqueueWorkInfoResolver _enqueueWorkInfoResolver;
+    private readonly IMetadataWorkInfoResolver _metadataWorkInfoResolver;
     private readonly IFavoriteStore _favoriteStore;
     private readonly ISearchStateStore _searchStateStore;
     private readonly IUiStateStore _uiStateStore;
@@ -41,9 +41,9 @@ public partial class DownloadView : UserControl
     }
 
     public DownloadView(
-        IAsmrApiClient asmrApiClient,
         IDownloadService downloadService,
         IEnqueueWorkInfoResolver enqueueWorkInfoResolver,
+        IMetadataWorkInfoResolver metadataWorkInfoResolver,
         IFavoriteStore favoriteStore,
         ISearchStateStore searchStateStore,
         IUiStateStore uiStateStore,
@@ -52,9 +52,9 @@ public partial class DownloadView : UserControl
         ISearchImportService importService,
         StartupUnfinishedQueueMetadataRefreshService startupUnfinishedQueueMetadataRefreshService)
     {
-        _asmrApiClient = asmrApiClient;
         _downloadService = downloadService;
         _enqueueWorkInfoResolver = enqueueWorkInfoResolver;
+        _metadataWorkInfoResolver = metadataWorkInfoResolver;
         _favoriteStore = favoriteStore;
         _searchStateStore = searchStateStore;
         _uiStateStore = uiStateStore;
@@ -208,8 +208,10 @@ public partial class DownloadView : UserControl
                 else
                 {
                     StatusTextBlock.Text = "正在获取作品信息...";
-                    workInfos = await ResolveWorkInfoAsync(new[] { sourceId });
-                    candidateSourceIds = workInfos.Keys.ToArray();
+                    var resolution = await ResolveWorkInfoAsync(BuildWorkInfoRequests(new[] { sourceId }));
+                    workInfos = resolution.WorkInfos;
+                    candidateSourceIds = resolution.WorkInfos.Keys.ToArray();
+                    failedCount = resolution.FailedSourceIds.Count;
                 }
 
                 if (candidateSourceIds.Count == 0)
@@ -279,7 +281,9 @@ public partial class DownloadView : UserControl
                 {
                     StatusTextBlock.Text = $"正在获取 {sourceIds.Count} 个作品信息...";
                     queuePlan = BuildQueuePlan(sourceIds);
-                    workInfos = await ResolveWorkInfoAsync(queuePlan.ToEnqueue);
+                    var resolution = await ResolveWorkInfoAsync(BuildWorkInfoRequests(queuePlan.ToEnqueue));
+                    workInfos = resolution.WorkInfos;
+                    failedCount = resolution.FailedSourceIds.Count;
                 }
 
                 if (queuePlan.ToEnqueue.Count == 0)
@@ -560,12 +564,15 @@ public partial class DownloadView : UserControl
                 {
                     StatusTextBlock.Text = $"正在导入 {formatLabel} 文件...";
                     queuePlan = BuildQueuePlan(sourceIds);
-                    workInfos = items
+                    var resolution = await ResolveWorkInfoAsync(items
                         .Where(x => queuePlan.ToEnqueue.Contains(x.SourceId, StringComparer.OrdinalIgnoreCase))
-                        .ToDictionary(
-                            static x => x.SourceId,
-                            static x => new WorkInfoDto { SourceId = x.SourceId, Title = x.Title },
-                            StringComparer.OrdinalIgnoreCase);
+                        .Select(static x => new WorkInfoResolutionRequest
+                        {
+                            SourceId = x.SourceId,
+                        })
+                        .ToArray());
+                    workInfos = resolution.WorkInfos;
+                    failedCount = resolution.FailedSourceIds.Count;
                 }
 
                 if (queuePlan.ToEnqueue.Count == 0)
@@ -655,17 +662,23 @@ public partial class DownloadView : UserControl
                     return;
                 }
 
-                var workInfos = items
+                var resolution = await ResolveWorkInfoAsync(items
                     .Where(item => queuePlan.ToEnqueue.Contains(item.SourceId, StringComparer.OrdinalIgnoreCase))
-                    .ToDictionary(
-                        static item => item.SourceId,
-                        static item => new WorkInfoDto
-                        {
-                            Id = item.WorkId,
-                            SourceId = item.SourceId,
-                            Title = item.Title,
-                        },
-                        StringComparer.OrdinalIgnoreCase);
+                    .Select(static item => new WorkInfoResolutionRequest
+                    {
+                        SourceId = item.SourceId,
+                        WorkId = item.WorkId,
+                    })
+                    .ToArray());
+                var workInfos = resolution.WorkInfos;
+
+                if (workInfos.Count == 0)
+                {
+                    StatusTextBlock.Text = resolution.FailedSourceIds.Count > 0
+                        ? $"收藏夹“{folderTitle}”中的作品信息获取失败 {resolution.FailedSourceIds.Count} 项。"
+                        : $"收藏夹“{folderTitle}”中没有可导入的作品信息。";
+                    return;
+                }
 
                 _searchStateStore.EnqueueForDownload(queuePlan.ToEnqueue);
                 _downloadService.UpsertPrefetchedWorkInfo(workInfos, WorkInfoCacheEntryLevel.Summary);
@@ -675,9 +688,12 @@ public partial class DownloadView : UserControl
                 RefreshView();
 
                 var queueCount = _searchStateStore.GetQueuedSourceIds().Count;
+                var failedSuffix = resolution.FailedSourceIds.Count > 0
+                    ? $"；另有 {resolution.FailedSourceIds.Count} 项解析失败"
+                    : string.Empty;
                 StatusTextBlock.Text = queuePlan.SkippedCount > 0
-            ? $"已从收藏夹“{folderTitle}”导入 {queuePlan.ToEnqueue.Count} 项；已跳过 {queuePlan.SkippedCount} 项，当前队列总数 {queueCount}。"
-            : $"已从收藏夹“{folderTitle}”导入 {queuePlan.ToEnqueue.Count} 项，当前队列总数 {queueCount}。";
+            ? $"已从收藏夹“{folderTitle}”导入 {queuePlan.ToEnqueue.Count} 项；已跳过 {queuePlan.SkippedCount} 项，当前队列总数 {queueCount}{failedSuffix}。"
+            : $"已从收藏夹“{folderTitle}”导入 {queuePlan.ToEnqueue.Count} 项，当前队列总数 {queueCount}{failedSuffix}。";
             },
             disableRunQueue: true,
         failurePrefix: "从收藏夹导入失败",
@@ -690,8 +706,8 @@ public partial class DownloadView : UserControl
         {
             var config = await _configurationService.LoadAsync();
             var path = DownloadDirectoryPathPolicy.Resolve(
-                config?.Downloader.SyncDataFolder,
-                _appPathService.DefaultSyncDataDirectory);
+                config?.Downloader.DownloadDataFolder,
+                _appPathService.DefaultDownloadDataDirectory);
 
             Directory.CreateDirectory(path);
 
@@ -889,31 +905,9 @@ public partial class DownloadView : UserControl
         return true;
     }
 
-    private async Task<IReadOnlyDictionary<string, WorkInfoDto>> ResolveWorkInfoAsync(IReadOnlyList<string> sourceIds)
+    private Task<MetadataWorkInfoResolutionResult> ResolveWorkInfoAsync(IReadOnlyList<WorkInfoResolutionRequest> requests)
     {
-        var result = new ConcurrentDictionary<string, WorkInfoDto>(StringComparer.OrdinalIgnoreCase);
-        using var limiter = new SemaphoreSlim(AsmronerConstants.Download.WorkInfoFetchMaxConcurrency);
-
-        var jobs = sourceIds.Select(async sourceId =>
-        {
-            await limiter.WaitAsync();
-            try
-            {
-                var workInfo = await _asmrApiClient.GetWorkInfoAsync(sourceId);
-                result[sourceId] = workInfo;
-            }
-            catch (Exception ex)
-            {
-                _logger.Warn(ex, "Fetch work info failed for {SourceId} before enqueue.", sourceId);
-            }
-            finally
-            {
-                limiter.Release();
-            }
-        });
-
-        await Task.WhenAll(jobs);
-        return result;
+        return _metadataWorkInfoResolver.ResolveAsync(requests);
     }
 
     private static IReadOnlyDictionary<string, WorkInfoDto> FilterWorkInfoMap(
@@ -935,6 +929,16 @@ public partial class DownloadView : UserControl
     {
         return sourceIds
             .Select(static sourceId => new EnqueueWorkInfoRequest
+            {
+                SourceId = sourceId,
+            })
+            .ToArray();
+    }
+
+    private static IReadOnlyList<WorkInfoResolutionRequest> BuildWorkInfoRequests(IEnumerable<string> sourceIds)
+    {
+        return sourceIds
+            .Select(static sourceId => new WorkInfoResolutionRequest
             {
                 SourceId = sourceId,
             })

@@ -322,4 +322,46 @@ public class AsmrApiClientTests
         Assert.Equal(1, endpointService.GetCurrentBaseUrlCallCount);
         Assert.Equal(0, endpointService.DiscoverAndPersistCallCount);
     }
+
+    [Fact]
+    public async Task DownloadFileAsync_ShouldWriteResponseBody_ToDestinationPath()
+    {
+        HttpRequestMessage? capturedRequest = null;
+        var payload = new byte[] { 0x11, 0x22, 0x33, 0x44 };
+        var factory = new RecordingHttpClientFactory();
+        factory.Register("AsmrApi", new RecordingHttpMessageHandler(request =>
+        {
+            capturedRequest = request;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(payload),
+            });
+        }));
+
+        var sut = new AsmrApiClient(
+            factory,
+            new StubApiEndpointUrlService("https://api.example.com"),
+            new StubAuthService(new ApiToken { AccessToken = "jwt-token" }));
+
+        var tempRoot = Path.Combine(Path.GetTempPath(), "asmroner-api-client-tests", Guid.NewGuid().ToString("N"));
+        var destinationPath = Path.Combine(tempRoot, "nested", "track.bin");
+
+        try
+        {
+            await sut.DownloadFileAsync("https://cdn.example.com/media/track.bin", destinationPath);
+
+            Assert.NotNull(capturedRequest);
+            Assert.Equal("https://cdn.example.com/media/track.bin", capturedRequest!.RequestUri!.ToString());
+            Assert.NotNull(capturedRequest.Headers.Authorization);
+            Assert.True(File.Exists(destinationPath));
+            Assert.Equal(payload, await File.ReadAllBytesAsync(destinationPath));
+        }
+        finally
+        {
+            if (Directory.Exists(tempRoot))
+            {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
 }

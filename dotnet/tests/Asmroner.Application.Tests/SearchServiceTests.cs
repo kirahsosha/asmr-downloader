@@ -100,6 +100,11 @@ public class SearchServiceTests
             throw new NotImplementedException();
         }
 
+        public Task DownloadFileAsync(string url, string destinationPath, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<IReadOnlyList<SearchWorkDto>> GetPopularAsync(CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
@@ -135,6 +140,11 @@ public class SearchServiceTests
         }
 
         public Task<IReadOnlyList<TrackDto>> GetTracksAsync(string id, CancellationToken cancellationToken = default)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task DownloadFileAsync(string url, string destinationPath, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
         }

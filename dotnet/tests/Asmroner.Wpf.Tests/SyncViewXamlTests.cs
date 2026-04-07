@@ -28,6 +28,9 @@ public class SyncViewXamlTests
         Assert.Contains("x:Name=\"StatusTextBlock\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"DetailsTextBox\"", content, StringComparison.Ordinal);
         Assert.Contains("Text=\"同步能力（阶段 5 增强）\"", content, StringComparison.Ordinal);
+        Assert.Contains("Style=\"{StaticResource StatusInfoPanelStyle}\"", content, StringComparison.Ordinal);
+        Assert.Contains("Style=\"{StaticResource StatusInfoTextStyle}\"", content, StringComparison.Ordinal);
+        Assert.Contains("Style=\"{StaticResource StatusInfoMutedTextStyle}\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
         Assert.NotNull(doc.Root);

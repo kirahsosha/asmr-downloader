@@ -1,6 +1,6 @@
 # asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.5.1
+当前跟踪版本：v0.5.2
 
 AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 
@@ -125,6 +125,8 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 | 2026-04-03 | 阶段 5 | Sync 页面缺少“当前页/当前作品完成后停止”的温和停止入口，且应用重启后不会记录未完成的同步元数据/同步下载进度。                                                                                                                      | 阶段 5 同步链路的可恢复性与可控性            | AI + 用户 | 已解决   | 2026-04-03   | 2026-04-03   |
 | 2026-04-03 | 阶段 5 | Sync 页面将开始/停止拆成四个独立按钮，且任一同步运行中会把“刷新统计”一并禁用，导致操作入口分散且无法手动查看实时同步/下载进度。                                                                                                    | Sync 页面操作一致性与实时可观测性            | AI + 用户 | 已解决   | 2026-04-03   | 2026-04-03   |
 | 2026-04-03 | 阶段 5 | Sync 页面合并后的元数据同步主按钮在开始后快速双击时，会把第二次点击误判为 stop request，导致界面提前进入“正在停止”态而后台仍继续同步；同步下载主按钮存在同类顺序型双击风险。                                                       | Sync 页面开始/停止按钮的可控性与一致性       | AI + 用户 | 已解决   | 2026-04-03   | 2026-04-03   |
+| 2026-04-08 | 阶段 5 | Sync 页面复用普通下载链路时，落地文件仍被写成 `source/title/url` 占位文本，导致同步目录中的下载数据错误。                                                                                                                          | Sync 下载结果正确性与重扫校验                | AI + 用户 | 已解决   | 2026-04-08   | 2026-04-08   |
+| 2026-04-08 | 阶段 4 | 当普通下载目录和同步下载目录都没有匹配文件时，`DownloadService` 没有直接请求 `mediaDownloadUrl`，而是写入占位文本，无法实时下载真实文件。                                                                                          | 普通下载链路与双目录补齐行为                 | AI + 用户 | 已解决   | 2026-04-08   | 2026-04-08   |
 
 ## 1.5 变更与验证记录
 
@@ -1093,6 +1095,30 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 4. DoD 判定：是。合并后的元数据同步 / 同步下载主按钮均具备 1 秒启动防抖窗口，快速双击不会再错误切入 stopping 态，且超过窗口后的显式停止语义保持不变。
 5. 下次计划：保持当前 v0.5.1 待提交记录，待用户确认后再创建提交并继续阶段 6（资源库与播放能力迁移）规划。
 
+### 1.5.93 2026-04-07，v0.5.1：下载/同步目录拆分、元数据保鲜与 completed-state 重扫
+
+1. 变更摘要：拆分 Settings 中的普通下载目录与同步下载目录配置，新增“元数据有效期(天)”；新增 `MetadataWork` 优先解析链路，Search/Download 未开启翻译时先命中本地元数据、过期再补拉 API 并回写摘要；同步元数据在 completed-state 下按有效期触发过期刷新；同步下载在 completed-state 下从头校验全部作品，并复用普通下载/同步下载双目录中的已存在文件；同时统一 Search/Download/Sync 三页状态信息面板样式。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/ConfigurationService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/DatabaseInitializer.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/MetadataWorkInfoResolver.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/DownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/MetadataSyncService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/SyncDownloadService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml`、`dotnet/tests/Asmroner.Application.Tests/DownloadServiceTests.cs`、`dotnet/tests/Asmroner.Application.Tests/MetadataSyncServiceTests.cs`、`dotnet/tests/Asmroner.Application.Tests/SyncDownloadServiceTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/ConfigurationServiceTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/DatabaseInitializerTests.cs`。
+3. 验证结果：`rtk dotnet test tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --nologo` 通过（74/74）；`rtk dotnet test tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --nologo` 通过（63/63）；`rtk dotnet test tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --nologo` 通过（158/158）；`rtk dotnet test Asmroner.sln --nologo` 通过（309/309）。
+4. DoD 判定：是。用户本轮要求的 Settings 配置拆分、`MetadataWork` 优先解析、completed-state 过期刷新/全量重扫、双目录复用、状态面板统一与回归测试均已落地。
+5. 下次计划：由用户执行章节 4.1/4.2/4.3/4.4/4.5 受影响项手工回归，重点验证 Settings 新字段、Search/Download 元数据保鲜与双目录复用、以及 Sync completed-state 刷新/校验；章节 1.2/1.3/1.4 状态维持不变，章节 2.1 基线更新为 2026-04-07 的 `309/309` 并补充 2.1.1/2.1.11/2.1.13/2.1.17/2.1.19/2.1.20/2.1.61/2.1.62/2.1.63，章节 3.1 新增单一 `v0.5.1` 待提交记录，章节 4.1/4.2/4.3/4.4/4.5 受影响项已重置为未勾选。
+
+### 1.5.94 2026-04-08，v0.5.2：真实媒体下载、修复 Sync 错误数据与双目录实时补齐
+
+1. 变更摘要：运行时版本升级到 `v0.5.2`；为 `IAsmrApiClient` / `AsmrApiClient` 新增 `mediaDownloadUrl` 直链流式下载能力；`DownloadService` 不再写入 `source/title/url` 占位文本，改为优先复用双目录中的真实文件、识别并忽略旧占位文件、在双目录都缺失时直接实时下载真实媒体；`SyncDownloadService` 为同步下载与失败重试显式透传数值 `WorkId`，确保 Sync 页面复用普通下载链路时落地的也是正确媒体文件。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IAsmrApiClient.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Download/DownloadStartOptions.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/DownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/SyncDownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/AsmrApiClient.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/CachedAsmrApiClient.cs`、`dotnet/tests/Asmroner.Application.Tests/DownloadServiceTests.cs`、`dotnet/tests/Asmroner.Application.Tests/SyncDownloadServiceTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/AsmrApiClientTests.cs`、`README.md`。
+3. 验证结果：`rtk dotnet test tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --nologo` 通过（76/76）；`rtk dotnet test tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --nologo` 通过（64/64）；`rtk dotnet test tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --nologo` 通过（158/158）；`rtk dotnet test Asmroner.sln --nologo` 通过（312/312）。
+4. DoD 判定：是。用户本轮要求的 `v0.5.2` 版本升级、普通下载真实媒体落盘、Sync 错误数据修复、WorkId 透传、单测补齐与文档同步均已完成。
+5. 下次计划：由用户执行章节 4.1/4.3/4.5 的受影响手工回归，重点验证 Settings 版本文案显示 `v0.5.2`、普通下载在双目录缺失时直接实时下载、普通下载对同步目录真实文件的复用，以及 Sync 页面新下载结果不再出现旧的占位文本。
+
+### 1.5.95 2026-04-08，v0.5.2：统一 Search/Download/Sync 的作品 info DTO 边界
+
+1. 变更摘要：新增 `ISyncWorkInfoResolver` / `SyncWorkInfoResolver`，让 Sync 侧与 Search/Download 一样，在应用层统一使用 `WorkInfoDto` 作为作品 info DTO；`SyncDownloadService` 不再直接把 `MetadataWorkItem` 作为跨页作品信息载体，而是在进入同步下载流程前统一映射为 `WorkInfoDto`，仅在写回 SQLite `WorkSyncInfo` 的 pending 记录时再转换回持久化模型；页面行模型与 SQLite 存储模型继续保持分层，不做强制合并。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/ISyncWorkInfoResolver.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/SyncWorkInfoResolver.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/SyncDownloadService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/App.xaml.cs`、`dotnet/tests/Asmroner.Application.Tests/SyncDownloadServiceTests.cs`。
+3. 验证结果：`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --nologo` 通过（77/77）；`rtk dotnet test dotnet/Asmroner.sln --nologo` 通过（313/313）。
+4. DoD 判定：是。Search/Download/Sync 三页的作品 info 解析边界已统一到共享 `WorkInfoDto`，并保留 `SearchWorkItem`、`DownloadTaskItem`、`MetadataWorkItem`、`WorkSyncInfoItem` 作为页面/任务/存储模型，不再把 Sync 元数据存储实体直接当作跨页作品 info DTO 使用。
+5. 下次计划：由用户执行章节 4.4/4.5 的受影响手工回归，重点验证 Search 入队、Download 标题刷新与 Sync 创建待处理记录时的标题、`SourceId` 与字幕标记在共享 `WorkInfoDto` 之后仍保持一致；章节 2.1 基线更新为 2026-04-08 的 `313/313` 并补充 2.1.63 新样例，章节 3.1 继续保持单一 `v0.5.2` 待提交记录，章节 4.4 新增 DTO 一致性专项回归项并保持未勾选。
+
 ---
 
 ## 1.6 维护规则
@@ -1113,37 +1139,39 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-03 的解决方案级回归（306/306）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-08 的解决方案级回归（313/313）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
-| 已创建 | 已通过 | 阶段    | 样例名                                                                                    | 输入                                                | 期望输出                                    |
-| ------ | ------ | ------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------- |
-| [x]    | [x]    | 阶段 4  | `DirectoryNameStrategy_ShouldMatchGoCompatibilityRule`                                    | 含非法字符标题 + SourceId                           | 目录名格式为 `[{SourceId}]{Title}`          |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldCreateCompletedTaskAndFiles`                                        | 入队 1 个 RJID 并执行                               | 任务 `Completed`，文件落地成功，队列清空    |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldMarkTaskFailed_WhenApiThrows`                                       | WorkInfo API 抛异常                                 | 任务状态 `Failed` 且含错误信息              |
-| [x]    | [x]    | 阶段 4  | `CancelAsync_ShouldCancelRunningTask`                                                     | 长任务执行中调用 `CancelAsync`                      | 目标任务最终状态为 `Canceled`               |
-| [x]    | [x]    | 阶段 4  | `CancelAsync_ShouldCancelQueuedTask_BeforeWorkerStarts`                                   | 单 worker 场景下取消排队任务                        | 排队任务状态更新为 `Canceled`               |
-| [x]    | [x]    | 阶段 4  | `RetryFailedAsync_ShouldRetryAndCompleteTask`                                             | 首次失败后重试                                      | 重试计数 +1，任务转为 `Completed`           |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldRespectConfiguredMaxWorkers`                                        | 入队 4 条、`MaxWorkers=2`                           | 最大观测并发不超过且达到 2                  |
-| [x]    | [x]    | 阶段 4  | `StartAsync_ShouldTrackFailedTask_WhenNewTaskFails`                                       | 新任务 `StartAsync` 失败                            | 失败任务仍可在 `GetTasks()` 中追踪          |
-| [x]    | [x]    | 阶段 4  | `StartAsync_ShouldReuseFailedTask_WhenPreferredTaskProvided`                              | 选中失败任务立即下载（带 `preferredTaskId`）        | 复用原 `TaskId` 行并重启，不新增任务行      |
-| [x]    | [x]    | 阶段 4  | `StartAsync_ShouldReuseCanceledTask_WhenPreferredTaskProvided`                            | 选中已取消任务立即下载（带 `preferredTaskId`）      | 复用原 `TaskId` 行并重启，不新增任务行      |
-| [x]    | [x]    | 阶段 4  | `UpsertPrefetchedWorkInfo_ShouldExposeSnapshot_ForCrossViewTitleReuse`                    | Search 侧写入预取 WorkInfo 后读取快照               | 快照可读且包含对应标题映射                  |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldDownloadAllFormats_WhenPreferFormatsEmpty`                          | `PreferFormats` 置空且存在多种扩展名轨道            | 不限扩展名，全部下载                        |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldUsePrefetchedWorkInfo_WithoutApiWorkInfoCall`                       | 预先写入内存 WorkInfo 且 API 禁止 WorkInfo 调用     | 下载成功且不触发 WorkInfo API               |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldFetchWorkInfo_WhenOnlySummaryCacheExists`                           | 仅命中摘要缓存且允许 API 继续补拉完整详情           | 下载成功，且补拉一次 Full WorkInfo          |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldReuseCanceledTask_WhenSameSourceRequeued`                           | 已取消任务再次由 Search 入队后执行队列              | 复用原任务并回流为待执行/完成，不新增重复行 |
-| [x]    | [x]    | 阶段 4  | `CancelAsync_ShouldReturnFalse_WhenTaskDoesNotExist`                                      | 随机 `TaskId` 调取消                                | 返回 `false`                                |
-| [x]    | [x]    | 阶段 4  | `RetryFailedAsync_ShouldNotRetry_WhenTaskIsNotFailed`                                     | 任务状态为 `Completed/Canceled` 调重试              | 返回空或拒绝重试                            |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldContinueOtherTasks_WhenSingleTaskFails`                             | 批量队列中单任务失败                                | 其他任务继续完成                            |
-| [x]    | [x]    | 阶段 4+ | `ClearAllTasksAsync_ShouldStopRunningAndClearQueueAndTasks`                               | 运行中任务 + 待下载队列混合场景                     | 运行任务被停止、任务列表清空、队列清空      |
-| [x]    | [x]    | 阶段 4+ | `ClearAllTasksAsync_ShouldKeepPrefetchedWorkInfoSnapshot_UntilProcessEnds`                | 已写入作品缓存后执行 `ClearAllTasksAsync`           | 清空任务/队列后，进程内作品快照仍可读取     |
-| [x]    | [x]    | 阶段 4+ | `RunQueuedAsync_ShouldSkipTextSidecars_WhenHdAudioOnlyRemovesMp3`                         | 同路径同名 `mp3+wav+txt/lrc/ass`                    | 保留 `wav`，移除对应 `mp3/txt/lrc/ass`      |
-| [x]    | [x]    | 阶段 4+ | `RunQueuedAsync_ShouldKeepTextSidecars_WhenHdAudioOnlyIsFalse`                            | 同路径同名 `mp3+wav+txt/lrc/ass`，hdAudioOnly=false | 全部文件保留并下载                          |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldUsePrefetchedWorkId_ForNonRjTrackLookup`                            | 非 `RJ` `SourceId` + 预取 `WorkId`                  | `tracks` 查询使用数值 `WorkId` 并下载成功   |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldNotAppendDuplicateExtension_WhenTrackTitleAlreadyContainsExtension` | 轨道标题已带 `.mp3`，下载扩展名仍为 `.mp3`          | 落地文件名仅保留单个 `.mp3` 后缀            |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldAppendExtension_WhenTrackTitleDoesNotContainExtension`              | 轨道标题无扩展名，下载扩展名为 `.wav`               | 落地文件名自动补齐 `.wav` 后缀              |
+| 已创建 | 已通过 | 阶段    | 样例名                                                                                    | 输入                                                | 期望输出                                                       |
+| ------ | ------ | ------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 4  | `DirectoryNameStrategy_ShouldMatchGoCompatibilityRule`                                    | 含非法字符标题 + SourceId                           | 目录名格式为 `[{SourceId}]{Title}`                             |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldCreateCompletedTaskAndFiles`                                        | 入队 1 个 RJID 并执行                               | 任务 `Completed`，文件落地成功，队列清空                       |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldMarkTaskFailed_WhenApiThrows`                                       | WorkInfo API 抛异常                                 | 任务状态 `Failed` 且含错误信息                                 |
+| [x]    | [x]    | 阶段 4  | `CancelAsync_ShouldCancelRunningTask`                                                     | 长任务执行中调用 `CancelAsync`                      | 目标任务最终状态为 `Canceled`                                  |
+| [x]    | [x]    | 阶段 4  | `CancelAsync_ShouldCancelQueuedTask_BeforeWorkerStarts`                                   | 单 worker 场景下取消排队任务                        | 排队任务状态更新为 `Canceled`                                  |
+| [x]    | [x]    | 阶段 4  | `RetryFailedAsync_ShouldRetryAndCompleteTask`                                             | 首次失败后重试                                      | 重试计数 +1，任务转为 `Completed`                              |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldRespectConfiguredMaxWorkers`                                        | 入队 4 条、`MaxWorkers=2`                           | 最大观测并发不超过且达到 2                                     |
+| [x]    | [x]    | 阶段 4  | `StartAsync_ShouldTrackFailedTask_WhenNewTaskFails`                                       | 新任务 `StartAsync` 失败                            | 失败任务仍可在 `GetTasks()` 中追踪                             |
+| [x]    | [x]    | 阶段 4  | `StartAsync_ShouldReuseFailedTask_WhenPreferredTaskProvided`                              | 选中失败任务立即下载（带 `preferredTaskId`）        | 复用原 `TaskId` 行并重启，不新增任务行                         |
+| [x]    | [x]    | 阶段 4  | `StartAsync_ShouldReuseCanceledTask_WhenPreferredTaskProvided`                            | 选中已取消任务立即下载（带 `preferredTaskId`）      | 复用原 `TaskId` 行并重启，不新增任务行                         |
+| [x]    | [x]    | 阶段 4  | `UpsertPrefetchedWorkInfo_ShouldExposeSnapshot_ForCrossViewTitleReuse`                    | Search 侧写入预取 WorkInfo 后读取快照               | 快照可读且包含对应标题映射                                     |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldDownloadAllFormats_WhenPreferFormatsEmpty`                          | `PreferFormats` 置空且存在多种扩展名轨道            | 不限扩展名，全部下载                                           |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldUsePrefetchedWorkInfo_WithoutApiWorkInfoCall`                       | 预先写入内存 WorkInfo 且 API 禁止 WorkInfo 调用     | 下载成功且不触发 WorkInfo API                                  |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldFetchWorkInfo_WhenOnlySummaryCacheExists`                           | 仅命中摘要缓存且允许 API 继续补拉完整详情           | 下载成功，且补拉一次 Full WorkInfo                             |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldReuseCanceledTask_WhenSameSourceRequeued`                           | 已取消任务再次由 Search 入队后执行队列              | 复用原任务并回流为待执行/完成，不新增重复行                    |
+| [x]    | [x]    | 阶段 4  | `CancelAsync_ShouldReturnFalse_WhenTaskDoesNotExist`                                      | 随机 `TaskId` 调取消                                | 返回 `false`                                                   |
+| [x]    | [x]    | 阶段 4  | `RetryFailedAsync_ShouldNotRetry_WhenTaskIsNotFailed`                                     | 任务状态为 `Completed/Canceled` 调重试              | 返回空或拒绝重试                                               |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldContinueOtherTasks_WhenSingleTaskFails`                             | 批量队列中单任务失败                                | 其他任务继续完成                                               |
+| [x]    | [x]    | 阶段 4+ | `ClearAllTasksAsync_ShouldStopRunningAndClearQueueAndTasks`                               | 运行中任务 + 待下载队列混合场景                     | 运行任务被停止、任务列表清空、队列清空                         |
+| [x]    | [x]    | 阶段 4+ | `ClearAllTasksAsync_ShouldKeepPrefetchedWorkInfoSnapshot_UntilProcessEnds`                | 已写入作品缓存后执行 `ClearAllTasksAsync`           | 清空任务/队列后，进程内作品快照仍可读取                        |
+| [x]    | [x]    | 阶段 4+ | `RunQueuedAsync_ShouldSkipTextSidecars_WhenHdAudioOnlyRemovesMp3`                         | 同路径同名 `mp3+wav+txt/lrc/ass`                    | 保留 `wav`，移除对应 `mp3/txt/lrc/ass`                         |
+| [x]    | [x]    | 阶段 4+ | `RunQueuedAsync_ShouldKeepTextSidecars_WhenHdAudioOnlyIsFalse`                            | 同路径同名 `mp3+wav+txt/lrc/ass`，hdAudioOnly=false | 全部文件保留并下载                                             |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldUsePrefetchedWorkId_ForNonRjTrackLookup`                            | 非 `RJ` `SourceId` + 预取 `WorkId`                  | `tracks` 查询使用数值 `WorkId` 并下载成功                      |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldNotAppendDuplicateExtension_WhenTrackTitleAlreadyContainsExtension` | 轨道标题已带 `.mp3`，下载扩展名仍为 `.mp3`          | 落地文件名仅保留单个 `.mp3` 后缀                               |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldAppendExtension_WhenTrackTitleDoesNotContainExtension`              | 轨道标题无扩展名，下载扩展名为 `.wav`               | 落地文件名自动补齐 `.wav` 后缀                                 |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldCopyMatchingFiles_FromSyncDirectory`                                    | 下载目录缺失目标文件、同步下载目录已有匹配文件      | 复用同步下载目录中的真实文件到普通下载目录，不重复请求下载接口 |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldDownloadRealFiles_WhenNoExistingFileInEitherDirectory`                  | 普通下载目录与同步下载目录均无目标文件              | 直接调用 `mediaDownloadUrl` 下载真实文件并落盘，不写占位文本   |
 
 #### 2.1.2 Application.Tests / QueryParserServiceTests.cs
 
@@ -1200,18 +1228,19 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 
 #### 2.1.9 Infrastructure.Tests / AsmrApiClientTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                                     | 输入                                                                                       | 期望输出                                                                                     |
-| ------ | ------ | ------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 2 | `AsmrApiClient_ShouldMapHttpErrors`                                                        | 业务请求返回 500                                                                           | 抛出 `AsmrApiException`，错误码为 `api_request_failed`                                       |
-| [x]    | [x]    | 阶段 4 | `GetPopularAsync_ShouldUsePostAndMapWorks`                                                 | 调用热门接口                                                                               | 使用 `POST /api/recommender/popular` 且正确映射返回 `works`，包括 Release、HasSubtitle、Tags |
-| [x]    | [x]    | 阶段 2 | `AsmrApiClient_ShouldAttachBearerToken_OnAuthorizedCalls`                                  | 已登录态调用受保护接口                                                                     | 请求头包含 `Authorization: Bearer xxx`                                                       |
-| [x]    | [x]    | 阶段 4 | `AsmrApiClient_ShouldNormalizeWorkUrlInput_ToWorkEndpointPath`                             | 输入作品 URL 形式 id 调用 `GetWorkInfoAsync`                                               | 请求路径归一化为 `/api/work/{numericId}`（纯数字，无 `RJ` 前缀）并成功调用                   |
-| [x]    | [x]    | 阶段 4 | `AsmrApiClient_ShouldNormalizeNonCanonicalSourceId_ToNumericApiPath`                       | 输入 `RJ-xxxx`/纯数字/`RJxxxx` 形式 id 调用 `GetWorkInfoAsync`                             | 请求路径归一化为 `/api/work/{numericId}`（纯数字，无 `RJ` 前缀）                             |
-| [x]    | [x]    | 阶段 4 | `AsmrApiClient_SearchAsync_ShouldNotDoubleEncodeQuery`                                     | 输入已编码 query（含高级筛选 token）调用 `SearchAsync`                                     | 请求 URL 不出现 `%25` 二次编码序列                                                           |
-| [x]    | [x]    | 阶段 4 | `AsmrApiClient_ShouldDeserializeTranslationMetadata_OnWorkInfoResponse`                    | 含 `translation_info`、`language_editions`、`other_language_editions_in_db` 的作品详情响应 | 正确反序列化当前语言、关联翻译版本与原作标记，供入队优先级选择复用                           |
-| [x]    | [x]    | 阶段 4 | `AsmrApiClient_ShouldResolveNonNumericSourceId_ToNumericWorkEndpointPath`                  | 输入 `BJ02370869` 这类 `source_id` 调用 `GetWorkInfoAsync`                                 | 先通过搜索结果解析数值 `workId`，再请求 `/api/work/{numericId}`                              |
-| [x]    | [x]    | 阶段 4 | `AsmrApiClient_GetTracksAsync_ShouldResolveNonNumericSourceId_ToNumericTracksEndpointPath` | 输入 `BJ02370869` 这类 `source_id` 调用 `GetTracksAsync`                                   | 先通过搜索结果解析数值 `workId`，再请求 `/api/tracks/{numericId}`                            |
-| [x]    | [x]    | 阶段 5 | `GetMetadataWorksAsync_ShouldUseWorksEndpoint_AndSubtitleFlag`                             | 调用 `/api/works` 元数据分页接口，`page=2`、`pageSize=50`、`subtitle=1`                    | 请求路径保留分页与字幕参数，并正确反序列化元数据分页结果                                     |
+| 已创建 | 已通过 | 阶段    | 样例名                                                                                     | 输入                                                                                       | 期望输出                                                                                     |
+| ------ | ------ | ------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 2  | `AsmrApiClient_ShouldMapHttpErrors`                                                        | 业务请求返回 500                                                                           | 抛出 `AsmrApiException`，错误码为 `api_request_failed`                                       |
+| [x]    | [x]    | 阶段 4  | `GetPopularAsync_ShouldUsePostAndMapWorks`                                                 | 调用热门接口                                                                               | 使用 `POST /api/recommender/popular` 且正确映射返回 `works`，包括 Release、HasSubtitle、Tags |
+| [x]    | [x]    | 阶段 2  | `AsmrApiClient_ShouldAttachBearerToken_OnAuthorizedCalls`                                  | 已登录态调用受保护接口                                                                     | 请求头包含 `Authorization: Bearer xxx`                                                       |
+| [x]    | [x]    | 阶段 4  | `AsmrApiClient_ShouldNormalizeWorkUrlInput_ToWorkEndpointPath`                             | 输入作品 URL 形式 id 调用 `GetWorkInfoAsync`                                               | 请求路径归一化为 `/api/work/{numericId}`（纯数字，无 `RJ` 前缀）并成功调用                   |
+| [x]    | [x]    | 阶段 4  | `AsmrApiClient_ShouldNormalizeNonCanonicalSourceId_ToNumericApiPath`                       | 输入 `RJ-xxxx`/纯数字/`RJxxxx` 形式 id 调用 `GetWorkInfoAsync`                             | 请求路径归一化为 `/api/work/{numericId}`（纯数字，无 `RJ` 前缀）                             |
+| [x]    | [x]    | 阶段 4  | `AsmrApiClient_SearchAsync_ShouldNotDoubleEncodeQuery`                                     | 输入已编码 query（含高级筛选 token）调用 `SearchAsync`                                     | 请求 URL 不出现 `%25` 二次编码序列                                                           |
+| [x]    | [x]    | 阶段 4  | `AsmrApiClient_ShouldDeserializeTranslationMetadata_OnWorkInfoResponse`                    | 含 `translation_info`、`language_editions`、`other_language_editions_in_db` 的作品详情响应 | 正确反序列化当前语言、关联翻译版本与原作标记，供入队优先级选择复用                           |
+| [x]    | [x]    | 阶段 4  | `AsmrApiClient_ShouldResolveNonNumericSourceId_ToNumericWorkEndpointPath`                  | 输入 `BJ02370869` 这类 `source_id` 调用 `GetWorkInfoAsync`                                 | 先通过搜索结果解析数值 `workId`，再请求 `/api/work/{numericId}`                              |
+| [x]    | [x]    | 阶段 4  | `AsmrApiClient_GetTracksAsync_ShouldResolveNonNumericSourceId_ToNumericTracksEndpointPath` | 输入 `BJ02370869` 这类 `source_id` 调用 `GetTracksAsync`                                   | 先通过搜索结果解析数值 `workId`，再请求 `/api/tracks/{numericId}`                            |
+| [x]    | [x]    | 阶段 5  | `GetMetadataWorksAsync_ShouldUseWorksEndpoint_AndSubtitleFlag`                             | 调用 `/api/works` 元数据分页接口，`page=2`、`pageSize=50`、`subtitle=1`                    | 请求路径保留分页与字幕参数，并正确反序列化元数据分页结果                                     |
+| [x]    | [x]    | 阶段 4+ | `DownloadFileAsync_ShouldWriteResponseBody_ToDestinationPath`                              | 传入绝对 `mediaDownloadUrl` 与嵌套目标路径                                                 | 以流式方式写入响应体、自动创建目标目录，并保留授权请求头                                     |
 
 #### 2.1.10 Infrastructure.Tests / AuthServiceTests.cs
 
@@ -1223,13 +1252,13 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 
 #### 2.1.11 Infrastructure.Tests / ConfigurationServiceTests.cs
 
-| 已创建 | 已通过 | 阶段    | 样例名                                                                        | 输入                                                   | 期望输出                                              |
-| ------ | ------ | ------- | ----------------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------- |
-| [x]    | [x]    | 阶段 5  | `ConfigurationService_ShouldReturnValidationErrors_WhenRequiredFieldsMissing` | 缺失账号/密码/同步目录，且 `SyncWantedSize` 非法的配置 | 返回可读校验错误集合，且包含同步容量上限相关提示      |
-| [x]    | [x]    | 阶段 4+ | `ConfigurationService_ShouldSaveAndLoadConfig_FromSplitSqliteSections`        | 临时目录、包含账号与下载参数的配置对象                 | 按 `user/downloader/limit` 三段写入 SQLite 并正确读取 |
-| [x]    | [x]    | 阶段 4+ | `ConfigurationService_ShouldLoadFromDefaultConfigJson_WhenSqliteMissing`      | 无 SQLite 配置，仅程序目录 `config.json`               | 可读取默认配置并返回                                  |
-| [x]    | [x]    | 阶段 4+ | `ConfigurationService_ShouldPreferSqliteOverDefaultConfigJson`                | 同时存在 SQLite 与 `config.json`                       | 优先读取 SQLite 实际配置                              |
-| [x]    | [x]    | 阶段 4+ | `ConfigurationService_ShouldMigrateLegacySingleRowAppConfig`                  | 旧 `Id=1` 单行 AppConfig                               | 自动迁移为分段结构并可正常读取，旧结构字段不再保留    |
+| 已创建 | 已通过 | 阶段    | 样例名                                                                        | 输入                                                                       | 期望输出                                                       |
+| ------ | ------ | ------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 5  | `ConfigurationService_ShouldReturnValidationErrors_WhenRequiredFieldsMissing` | 缺失账号/密码、`MetadataValidityDays` 非法，且 `SyncWantedSize` 非法的配置 | 返回可读校验错误集合，且包含元数据有效期与同步容量上限相关提示 |
+| [x]    | [x]    | 阶段 4+ | `ConfigurationService_ShouldSaveAndLoadConfig_FromSplitSqliteSections`        | 临时目录、包含账号与下载参数的配置对象                                     | 按 `user/downloader/limit` 三段写入 SQLite 并正确读取          |
+| [x]    | [x]    | 阶段 4+ | `ConfigurationService_ShouldLoadFromDefaultConfigJson_WhenSqliteMissing`      | 无 SQLite 配置，仅程序目录 `config.json`                                   | 可读取默认配置并返回                                           |
+| [x]    | [x]    | 阶段 4+ | `ConfigurationService_ShouldPreferSqliteOverDefaultConfigJson`                | 同时存在 SQLite 与 `config.json`                                           | 优先读取 SQLite 实际配置                                       |
+| [x]    | [x]    | 阶段 4+ | `ConfigurationService_ShouldMigrateLegacySingleRowAppConfig`                  | 旧 `Id=1` 单行 AppConfig                                                   | 自动迁移为分段结构并可正常读取，旧目录字段被清空且不再保留     |
 
 #### 2.1.12 Infrastructure.Tests / EndpointDiscoveryServiceTests.cs
 
@@ -1243,7 +1272,7 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 | 已创建 | 已通过 | 阶段    | 样例名                                                                      | 输入                        | 期望输出                                                                               |
 | ------ | ------ | ------- | --------------------------------------------------------------------------- | --------------------------- | -------------------------------------------------------------------------------------- |
 | [x]    | [x]    | 阶段 5  | `DatabaseInitializer_ShouldCreateNewSchema_AndEnsureSyncTables`             | 临时目录下初始化数据库      | 创建 `AppConfig/UiState/FavoriteWork/MetadataWork/WorkSyncInfo` 结构，并补齐同步表字段 |
-| [x]    | [x]    | 阶段 4+ | `DatabaseInitializer_ShouldMigrateLegacySingleRowAppConfig_ToSplitSections` | 预置旧单行 AppConfig 数据库 | 初始化后自动迁移到分段结构，且 `user/downloader/limit` 三段均存在                      |
+| [x]    | [x]    | 阶段 4+ | `DatabaseInitializer_ShouldMigrateLegacySingleRowAppConfig_ToSplitSections` | 预置旧单行 AppConfig 数据库 | 初始化后自动迁移到分段结构，且 `user/downloader/limit` 三段均存在，旧目录字段被清空    |
 
 #### 2.1.14 IntegrationTests / ApplicationBootstrapperTests.cs
 
@@ -1276,7 +1305,7 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 
 | 已创建 | 已通过 | 阶段   | 样例名                                                                                       | 输入                                | 期望输出                                                                                                       |
 | ------ | ------ | ------ | -------------------------------------------------------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldContainBeautifiedStyleResources_AndCoreControls`                     | 解析 `DownloadView.xaml` 的文本/XML | 关键样式资源、核心控件与“从文件导入”“从收藏夹导入”按钮存在，且 XAML 可被解析。                                 |
+| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldContainBeautifiedStyleResources_AndCoreControls`                     | 解析 `DownloadView.xaml` 的文本/XML | 关键样式资源、核心控件、“从文件导入”“从收藏夹导入”按钮与统一状态面板样式存在，且 XAML 可被解析。               |
 | [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldNotContainStagePrefixText`                                           | 解析 `DownloadView.xaml` 文本       | 页面不再包含“阶段 ”前缀文案。                                                                                  |
 | [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldUseHeaderBorders_AndLockStatusWidthWhileLeavingProgressResizable`    | 解析 `DownloadView.xaml` 文本/XML   | 列头显示边框；状态列宽保持 `50` 且不可拖拽改宽；进度列宽保持 `96` 且允许调整；数据过宽时支持横向滚动与列重排。 |
 | [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldContainQueueTranslationCheckbox`                                     | 解析 `DownloadView.xaml` 文本/XML   | 页面包含默认勾选的“加入翻译作品”复选框，且位于“只下载高清音频”右侧。                                           |
@@ -1291,23 +1320,23 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 
 #### 2.1.19 Wpf.Tests / SearchViewXamlTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                     | 输入                            | 期望输出                                                                                     |
-| ------ | ------ | ------ | -------------------------------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldContainUnifiedCardStyles_AndCoreControls`            | 解析 `SearchView.xaml` 文本/XML | 卡片化样式资源、核心控件与“导出到文件”“收藏作品”按钮存在，且 XAML 可被解析。                 |
-| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldUseAlignedComboBoxStyles`                            | 解析 `SearchView.xaml` 文本/XML | 下拉框与选项项样式包含对齐设置，且 XAML 可被解析。                                           |
-| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldNotContainStagePrefixText`                           | 解析 `SearchView.xaml` 文本     | 页面不再包含“阶段 ”前缀文案。                                                                |
-| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldUseHeaderBorders_AndLockSubtitleAndDateColumnWidths` | 解析 `SearchView.xaml` 文本/XML | 列头显示边框；字幕/日期列宽保持 `42/75` 且不可拖拽改宽；数据过宽时支持横向滚动与列重排。     |
-| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldUseSearchViewClassName`                              | 解析 `SearchView.xaml` 文本     | `x:Class` 为 `Asmroner.Wpf.Views.SearchView`。                                               |
-| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldWireSelectionChangedHandlersForQueryOptions`         | 解析 `SearchView.xaml` 文本     | 排序/方向/字幕/页大小下拉均绑定 `SelectionChanged`                                           |
-| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldContainResultsGridContextMenuItems`                  | 解析 `SearchView.xaml` 文本     | 结果表格包含右键菜单四项操作及对应事件绑定                                                   |
-| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldContainSeparateQueueTranslationCheckbox`             | 解析 `SearchView.xaml` 文本     | 搜索筛选用“包含翻译作品”与入队用“加入翻译作品”两个复选框并存，且后者位于前者右侧并默认勾选。 |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                     | 输入                            | 期望输出                                                                                       |
+| ------ | ------ | ------ | -------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldContainUnifiedCardStyles_AndCoreControls`            | 解析 `SearchView.xaml` 文本/XML | 卡片化样式资源、核心控件、“导出到文件”“收藏作品”按钮与统一状态面板样式存在，且 XAML 可被解析。 |
+| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldUseAlignedComboBoxStyles`                            | 解析 `SearchView.xaml` 文本/XML | 下拉框与选项项样式包含对齐设置，且 XAML 可被解析。                                             |
+| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldNotContainStagePrefixText`                           | 解析 `SearchView.xaml` 文本     | 页面不再包含“阶段 ”前缀文案。                                                                  |
+| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldUseHeaderBorders_AndLockSubtitleAndDateColumnWidths` | 解析 `SearchView.xaml` 文本/XML | 列头显示边框；字幕/日期列宽保持 `42/75` 且不可拖拽改宽；数据过宽时支持横向滚动与列重排。       |
+| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldUseSearchViewClassName`                              | 解析 `SearchView.xaml` 文本     | `x:Class` 为 `Asmroner.Wpf.Views.SearchView`。                                                 |
+| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldWireSelectionChangedHandlersForQueryOptions`         | 解析 `SearchView.xaml` 文本     | 排序/方向/字幕/页大小下拉均绑定 `SelectionChanged`                                             |
+| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldContainResultsGridContextMenuItems`                  | 解析 `SearchView.xaml` 文本     | 结果表格包含右键菜单四项操作及对应事件绑定                                                     |
+| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldContainSeparateQueueTranslationCheckbox`             | 解析 `SearchView.xaml` 文本     | 搜索筛选用“包含翻译作品”与入队用“加入翻译作品”两个复选框并存，且后者位于前者右侧并默认勾选。   |
 
 #### 2.1.20 Wpf.Tests / SettingsViewXamlTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                        | 输入                              | 期望输出                                       |
-| ------ | ------ | ------ | ------------------------------------------------------------- | --------------------------------- | ---------------------------------------------- |
-| [x]    | [x]    | 阶段 4 | `SettingsViewXaml_ShouldContainCardSections_AndActionButtons` | 解析 `SettingsView.xaml` 文本/XML | 卡片分区与核心动作按钮存在，且 XAML 可被解析。 |
-| [x]    | [x]    | 阶段 4 | `SettingsViewXaml_ShouldNotContainStagePrefixText`            | 解析 `SettingsView.xaml` 文本     | 页面不再包含“阶段 ”前缀文案。                  |
+| 已创建 | 已通过 | 阶段   | 样例名                                                        | 输入                              | 期望输出                                                                                 |
+| ------ | ------ | ------ | ------------------------------------------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 4 | `SettingsViewXaml_ShouldContainCardSections_AndActionButtons` | 解析 `SettingsView.xaml` 文本/XML | 卡片分区、下载目录/同步下载目录/元数据有效期输入框与核心动作按钮存在，且 XAML 可被解析。 |
+| [x]    | [x]    | 阶段 4 | `SettingsViewXaml_ShouldNotContainStagePrefixText`            | 解析 `SettingsView.xaml` 文本     | 页面不再包含“阶段 ”前缀文案。                                                            |
 
 #### 2.1.21 Core.Tests / DownloadFilterParserTests.cs
 
@@ -1661,30 +1690,34 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 
 #### 2.1.61 Application.Tests / MetadataSyncServiceTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                  | 输入                                                          | 期望输出                                                                          |
-| ------ | ------ | ------ | ----------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldInsertAllPages_WhenRemoteHasNewWorks`          | 网站元数据总量 `101`、本地为空，分页返回 `100 + 1` 条元数据   | 顺序请求总量页与 2 个同步分页，新增 101 条，本地总量追平到 101 条                 |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldSkip_WhenRemoteCountMatchesLocalCount`         | 网站总量与本地总量相同                                        | 仅查询网站总量，不执行分页同步，返回“无需同步”                                    |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldReport_WhenLocalCountExceedsRemoteCount`       | 本地元数据数量大于网站                                        | 不执行分页同步，返回“本地元数据数量高于网站，未执行同步”                          |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldResumeFromSavedProgress_WhenStateIsUnfinished` | 已保存 `STOPPED` 元数据进度，`NextPage=2`，本地已有第一页数据 | 只从第二页继续同步，结果标记 `ResumedFromProgress=true`，最终进度写成 `COMPLETED` |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldStopAfterCurrentPage_WhenStopRequested`        | 两页元数据同步，第一页写回后触发 stop request                 | 当前页完成后停止，结果标记 `WasStopped=true`，UiState `NextPage=2`                |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                    | 输入                                                          | 期望输出                                                                          |
+| ------ | ------ | ------ | ------------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldInsertAllPages_WhenRemoteHasNewWorks`            | 网站元数据总量 `101`、本地为空，分页返回 `100 + 1` 条元数据   | 顺序请求总量页与 2 个同步分页，新增 101 条，本地总量追平到 101 条                 |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldSkip_WhenRemoteCountMatchesLocalCount`           | 网站总量与本地总量相同，且不存在过期元数据                    | 仅查询网站总量，不执行分页同步，返回“无需同步”                                    |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldRefreshExpiredMetadata_WhenPreviousRunCompleted` | 上次进度为 `COMPLETED`，且本地存在超过元数据有效期的元数据    | 再次执行时触发过期刷新，并更新本地 `MetadataWork` 摘要                            |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldReport_WhenLocalCountExceedsRemoteCount`         | 本地元数据数量大于网站                                        | 不执行分页同步，返回“本地元数据数量高于网站，未执行同步”                          |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldResumeFromSavedProgress_WhenStateIsUnfinished`   | 已保存 `STOPPED` 元数据进度，`NextPage=2`，本地已有第一页数据 | 只从第二页继续同步，结果标记 `ResumedFromProgress=true`，最终进度写成 `COMPLETED` |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldStopAfterCurrentPage_WhenStopRequested`          | 两页元数据同步，第一页写回后触发 stop request                 | 当前页完成后停止，结果标记 `WasStopped=true`，UiState `NextPage=2`                |
 
 #### 2.1.62 Wpf.Tests / SyncViewXamlTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                     | 输入                          | 期望输出                                                                                                                                                   |
-| ------ | ------ | ------ | ---------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 5 | `SyncViewXaml_ShouldContainPrimaryActions_AndStatusFields` | 解析 `SyncView.xaml` 文本/XML | 页面包含两枚合并后的同步主按钮、“重试失败项”“导出失败记录”“导出成功记录”“刷新统计”按钮、下载摘要字段、统计卡片字段与文本框，且旧的独立停止按钮命名已移除。 |
+| 已创建 | 已通过 | 阶段   | 样例名                                                     | 输入                          | 期望输出                                                                                                                                                                     |
+| ------ | ------ | ------ | ---------------------------------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 5 | `SyncViewXaml_ShouldContainPrimaryActions_AndStatusFields` | 解析 `SyncView.xaml` 文本/XML | 页面包含两枚合并后的同步主按钮、“重试失败项”“导出失败记录”“导出成功记录”“刷新统计”按钮、下载摘要字段、统计卡片字段、统一状态面板样式与文本框，且旧的独立停止按钮命名已移除。 |
 
 #### 2.1.63 Application.Tests / SyncDownloadServiceTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                  | 输入                                                             | 期望输出                                                                                          |
-| ------ | ------ | ------ | ----------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldStopAfterReachingConfiguredSizeLimit`          | 3 条元数据作品 + `SyncWantedSize=120B` + 成功下载大小 `70/60/50` | 仅处理前 2 项，累计落盘 `130 B` 后停止，剩余待同步数量为 1                                        |
-| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldMarkFailedItems_AndContinueToNextCandidate`    | 2 条元数据作品，其中首项下载失败、次项成功                       | 将失败项写为 `FAILED`、成功项写为 `COMPLETED`，并继续处理后续候选作品                             |
-| [x]    | [x]    | 阶段 5 | `RetryFailedAsync_ShouldReDownloadFailedItems_AndIncrementRetryCount`   | 预置 1 条失败同步记录 + 重试后下载成功                           | 删除旧失败目录、重试成功后写回 `COMPLETED`，并将 `RetryCount` 加 1                                |
-| [x]    | [x]    | 阶段 5 | `RetryFailedAsync_ShouldKeepFailedStatus_WhenRetryFailsAgain`           | 预置 1 条失败同步记录 + 重试后再次失败                           | 删除旧失败目录、失败状态保持为 `FAILED`，并累计重试次数与失败原因                                 |
-| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldStopAfterCurrentWork_WhenStopRequested`        | 三条同步候选作品，首项下载完成前触发 stop request                | 当前作品完成后停止，结果标记 `WasStopped=true`，UiState 保留最近处理作品与未完成状态              |
-| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldResumeFromSavedProgress_WhenStateIsUnfinished` | 已保存 `STOPPED` 下载进度 + 首项 `COMPLETED` 同步记录            | 继续处理剩余候选，不重下已有完成项，结果标记 `ResumedFromProgress=true`，最终进度写成 `COMPLETED` |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                      | 输入                                                             | 期望输出                                                                                             |
+| ------ | ------ | ------ | --------------------------------------------------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldStopAfterReachingConfiguredSizeLimit`              | 3 条元数据作品 + `SyncWantedSize=120B` + 成功下载大小 `70/60/50` | 仅处理前 2 项，累计落盘 `130 B` 后停止，剩余待同步数量为 1                                           |
+| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldMarkFailedItems_AndContinueToNextCandidate`        | 2 条元数据作品，其中首项下载失败、次项成功                       | 将失败项写为 `FAILED`、成功项写为 `COMPLETED`，并继续处理后续候选作品                                |
+| [x]    | [x]    | 阶段 5 | `RetryFailedAsync_ShouldReDownloadFailedItems_AndIncrementRetryCount`       | 预置 1 条失败同步记录 + 重试后下载成功                           | 删除旧失败目录、重试成功后写回 `COMPLETED`，并将 `RetryCount` 加 1                                   |
+| [x]    | [x]    | 阶段 5 | `RetryFailedAsync_ShouldKeepFailedStatus_WhenRetryFailsAgain`               | 预置 1 条失败同步记录 + 重试后再次失败                           | 删除旧失败目录、失败状态保持为 `FAILED`，并累计重试次数与失败原因                                    |
+| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldStopAfterCurrentWork_WhenStopRequested`            | 三条同步候选作品，首项下载完成前触发 stop request                | 当前作品完成后停止，结果标记 `WasStopped=true`，UiState 保留最近处理作品与未完成状态                 |
+| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldResumeFromSavedProgress_WhenStateIsUnfinished`     | 已保存 `STOPPED` 下载进度 + 首项 `COMPLETED` 同步记录            | 继续处理剩余候选，不重下已有完成项，结果标记 `ResumedFromProgress=true`，最终进度写成 `COMPLETED`    |
+| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldRescanAllWorks_WhenPreviousRunCompleted`           | 上次进度为 `COMPLETED`，且本地全部作品已有 `COMPLETED` 同步记录  | 再次执行时从头校验全部作品，并按当前下载结果更新同步记录                                             |
+| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldPassMetadataWorkId_ToDownloadService`              | 元数据作品的 `sourceId` 与数值 `WorkId` 不一致                   | 同步下载调用普通下载入口时显式透传数值 `WorkId`，避免轨道解析漂移                                    |
+| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldUseUnifiedWorkInfoDto_WhenCreatingPendingSyncInfo` | SQLite `MetadataWork` 标题与统一 `WorkInfoDto` 标题不一致        | Sync 创建 `PENDING` 记录时使用统一 `WorkInfoDto` 的标题与字幕标记，不再直接复用存储实体作为 info DTO |
 
 #### 2.1.64 Infrastructure.Tests / MetadataSyncStoreTests.cs
 
@@ -1798,7 +1831,8 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 | 2026-04-02 | 已提交 | v0.4.10: add shared workinfo cache                                          | 1. Update runtime/docs version to v0.4.10.<br>2. Add shared WorkInfo cache with 1-hour per-entry TTL.<br>3. Warm Summary cache from Search/Popular result and upgrade to Full details on demand for downloads/tracks.<br>4. Route Search/Download/startup refresh through the shared cache contract.<br>5. Update regression tests and progress documentation.                                                                     | 60e2f70    |
 | 2026-04-02 | 已提交 | v0.4.11: add favorites flow and unify search/download actions               | 1. Update runtime/docs version to v0.4.11.<br>2. Add SQLite favorite storage, and Search favorite-save flow.<br>3. Add Download favorite-import flow and queue integration.<br>4. Merge Search export actions for the main button and context menu, and merge Download CSV/JSON import actions.<br>5. Merge retry behavior and adjust the Download action-button.<br>6. Update regression tests and progress documentation.        | 6566c05    |
 | 2026-04-03 | 已提交 | v0.5.0: land phase 5 metadata/download/retry/export/report flow             | 1. Update runtime/docs version to v0.5.0.<br>2. Start phase 5 with metadata sync API, SQLite store, and application service.<br>3. Add sync-download orchestration with capacity control, failure retry, export report, and status persistence.<br>4. Expand the Sync tab with metadata/download/retry/export actions plus statistics cards and local summary panels.<br>5. Update regression tests and progress documentation.    | 78fbe7d    |
-| 2026-04-03 | 待提交 | v0.5.1: persist sync progress and harden sync controls                      | 1. Update runtime/docs version to v0.5.1.<br>2. Persist metadata-sync and sync-download progress in SQLite and resume unfinished runs on restart.<br>3. Replace separate start/stop controls with merged sync action buttons.<br>4. Keep `Refresh` button available during running sync and refresh live report/progress snapshots.<br>5. Update regression tests and progress documentation.                                      | -          |
+| 2026-04-03 | 已提交 | v0.5.1: persist sync progress and harden sync controls                      | 1. Update runtime/docs version to v0.5.1.<br>2. Persist metadata-sync and sync-download progress in SQLite and resume unfinished runs on restart.<br>3. Replace separate start/stop controls with merged sync action buttons, and add a 1-second debounce window.<br>4. Keep Refresh button available during running sync and refresh live report/progress snapshots.<br>5. Update regression tests and progress documentation.    | f3a2b42    |
+| 2026-04-08 | 待提交 | v0.5.2: unify workinfo dto, refresh stale metadata, stream real downloads   | 1. Update runtime/docs version to v0.5.2.<br>2. Modify configuration.<br>3. Prefer local MetadataWork for Search/Download before refresh from API.<br>4. Refresh expired metadata and rescan completed sync downloads.<br>5. Replace placeholder download outputs with real download streaming.<br>6. Unify Search/Download/Sync work-info flows on shared Dto.<br>7. Update regression tests and progress documentation.          | -          |
 
 ---
 
@@ -1817,14 +1851,14 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 ### 4.1 启动、配置与连接
 
 - [x] 应用可正常启动，主窗口可显示 Search、Download、Sync、Settings 四个页签，且启动过程不因站点发现流程长时间阻塞。
-- [x] Settings 页面可正确加载现有配置；默认下载目录、格式优先级等字段显示完整。
+- [x] Settings 页面可正确加载现有配置；下载目录、同步下载目录、元数据有效期与格式优先级等字段显示完整。
 - [x] 程序目录 `config.json` 可作为默认配置来源；当 SQLite 中无配置记录时，应用可读取该默认配置并完成设置页加载。
-- [x] SQLite 中存在旧单行 `AppConfig`（`Id=1`）时，应用启动后会自动迁移到 `user/downloader/limit` 分段结构并可继续使用。
 - [x] 在 Settings 页面修改有效配置后，“保存并重新初始化”可成功完成，状态提示明确，应用进入可用状态。
+- [x] Settings 页面可分别编辑下载目录、同步下载目录与元数据有效期，并在“保存并重新初始化”后生效。
 - [x] 在 Settings 页面点击“保存并重新初始化”后，当前页应保持在 Settings，不应自动跳转到 Search。
 - [x] Settings 页面输入无效配置（含非法 `SyncWantedSize`）时，可给出可读错误提示，且应用不崩溃。
 - [x] “测试连接”可完成站点发现与登录校验；成功时回填当前 BaseUrl 并显示延迟与鉴权结果，失败时显示明确原因。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.5.1。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.5.2。
 
 ### 4.2 Search 功能
 
@@ -1837,6 +1871,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] “清空”可重置关键词、排序选项、分页状态和当前结果，同时保留高级筛选输入与反选状态。
 - [x] Search 页面会恢复上一次运行时的“包含翻译作品”“加入翻译作品”与高级筛选输入/反选状态，页面切换与重启后保持一致。
 - [x] 选中部分结果点击“加入下载队列”时，仅将选中项入队；未选中任何结果时，可按当前结果集批量入队。
+- [x] Search 页面未开启“加入翻译作品”时，入队会优先复用未过期 `MetadataWork`；当元数据缺失或超过元数据有效期时，会自动补拉 API 后继续入队。
 - [x] 已存在于下载列表中的作品不会重复入队，页面提示中会明确说明新增数量、跳过数量与翻译切换数量（如适用）。
 - [x] Search 页面开启“加入翻译作品”后，选中入队与当前结果批量入队都会按“简体中文 -> 繁体中文 -> 日本語”选择最终版本；关闭后保持当前结果的原始 `SourceId`。
 - [x] Search 页面开启“加入翻译作品”且实际切换语言版本时，选中入队与当前结果批量入队的状态提示会显示“其中 X 项已切换为翻译作品”。
@@ -1864,7 +1899,9 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] “取消选中任务”可取消 Pending、Queued、Running 任务，确认提示、取消结果与列表状态一致。
 - [x] Download 页面操作按钮顺序应为“立即下载选中任务 -> 执行下载队列 -> 刷新任务列表”。
 - [x] “重试失败任务”在存在选中项时仅重试选中的失败任务并忽略非失败项；无选中项时会批量重试全部失败任务，并能输出正确汇总结果。
-- [x] “打开下载目录”可打开当前生效的下载目录。
+- [x] “打开下载目录”可打开当前生效的普通下载目录。
+- [x] 普通下载目录缺失目标文件但同步下载目录已存在匹配文件时，执行下载会优先复用同步下载目录中的真实文件，不重复请求下载接口。
+- [x] 当普通下载目录和同步下载目录都没有匹配文件时，执行下载会直接请求 `mediaDownloadUrl` 实时落盘，不写 `source/title/url` 占位文本。
 - [x] “清空任务列表”可停止运行中任务、清空下载队列并删除任务列表项，且清空后重启不会回流旧未完成队列。
 - [x] Download 页面会恢复上一次运行时的“只下载高清音频”“加入翻译作品”“文件筛选”与未完成队列（`Pending/Queued/Failed` 恢复为 `Pending`），并在后台补拉缺失作品标题后刷新列表显示。
 - [x] Search 页面加入下载队列后，若未切换至 Download 页面即退出并重启，未完成队列仍可恢复。
@@ -1879,6 +1916,8 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 ### 4.4 Search/Download 联动与回归
 
 - [x] Search 页面加入下载队列后，Download 页面可看到对应待执行任务，标题信息尽量不丢失。
+- [x] Search、Download、Sync 三个页面的状态信息面板样式保持一致，长文本可换行显示且不遮挡正文内容。
+- [x] Search、Download、Sync 三页的作品信息解析统一走共享 `WorkInfoDto` 后，Search 入队、Download 标题刷新与 Sync 创建待处理记录时的标题、`SourceId` 与字幕标记保持一致，不出现 DTO 分歧。
 - [x] 已取消任务再次从 Search 侧或 Download 侧触发下载时，可复用原任务行并回流为待执行/执行中状态，不新增重复行。
 - [x] Search 与 Download 页面之间来回切换后，队列数量、任务状态和标题缓存保持一致，不出现旧状态残留。
 - [x] Search 页面主按钮或右键菜单“导出到文件” -> Download “从文件导入” -> 执行下载的链路可端到端跑通（标签列 + 打开文件夹）。
@@ -1890,25 +1929,26 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 清空任务列表后再从 Search 页面重新入队时，状态提示与实际新增数量一致，不会出现“失败 1 项”但实际 0 项入队的误报。
 - [x] 连续执行“搜索 -> 入队 -> 立即下载/执行队列 -> 刷新列表 -> 重试/取消”后，应用无崩溃、无明显 UI 状态错乱。
 
-### 4.5 Sync 功能（阶段 5 增强）
+### 4.5 Sync 功能
 
 - [x] Sync 页面可显示本地元数据总量、字幕数量与最近更新时间。
 - [x] Sync 页面可显示同步下载完成/失败/待处理数量、队列中数量与当前已落盘大小摘要。
 - [x] 元数据同步主按钮在空闲态显示“开始同步元数据”，点击后会切换为“停止同步元数据”。
 - [x] 点击元数据同步主按钮开始同步后，可成功拉取网站元数据并写入 SQLite `MetadataWork` 表。
-- [x] 当网站总量与本地一致时，Sync 页面会提示“无需同步”，且不会重复写入数据。
+- [ ] 当网站总量与本地一致且不存在过期元数据时，Sync 页面会提示“无需同步”，且不会重复写入数据。
+- [ ] 当上次元数据同步状态为已完成且存在超过“元数据有效期”的本地记录时，再次点击“开始同步元数据”会执行过期刷新，并在摘要中显示过期刷新结果。
 - [x] 当 SQLite `UiState` 中存在未完成元数据同步进度时，再次点击元数据同步主按钮会从记录页码继续执行，而不是从第一页重新开始。
 - [x] 点击元数据同步主按钮发出 stop request 后，按钮会切换为“正在停止元数据...”，并在当前页完成后恢复为空闲态。
 - [x] 元数据同步开始后的 1 秒内连续双击主按钮时，第二次点击会被防抖忽略，按钮保持“停止同步元数据”，不会误切到“正在停止元数据...”。
 - [x] 同步完成后，页面摘要会显示网站总量、本地总量、新增数量与分页处理结果。
 - [x] 下载同步主按钮在空闲态显示“开始同步下载”，点击后会切换为“停止同步下载”。
-- [x] 点击下载同步主按钮开始同步后，可按 `SyncWantedSize` 逐项处理待同步作品，并将 `WorkSyncInfo` 写为 `COMPLETED/FAILED`。
+- [x] 点击下载同步主按钮开始同步后，可按 `SyncWantedSize` 逐项处理待同步作品、下载真实媒体文件，并将 `WorkSyncInfo` 写为 `COMPLETED/FAILED`。
 - [x] 当累计落盘大小达到 `SyncWantedSize` 后，Sync 页面会提示已达到容量上限，且停止后续候选作品处理。
 - [x] 同步下载完成后，页面摘要会显示成功数、失败数、同步前后已落盘大小与剩余待同步数量。
 - [x] 当 SQLite `UiState` 中存在未完成同步下载进度时，再次点击下载同步主按钮会继续后续候选作品，且不会重下已有 `COMPLETED/FAILED` 记录。
 - [x] 点击下载同步主按钮发出 stop request 后，按钮会切换为“正在停止下载...”，并在当前作品完成后恢复为空闲态。
 - [x] 同步下载开始后的 1 秒内连续双击主按钮时，第二次点击会被防抖忽略，按钮保持“停止同步下载”，不会误切到“正在停止下载...”。
-- [x] 当同步下载进度已完成时，再次点击下载同步主按钮会重置 UiState 进度，但仍跳过已有 `WorkSyncInfo` 记录，不会重新下载已完成作品。
+- [ ] 当同步下载进度已完成时，再次点击下载同步主按钮会重置 UiState 进度，并从头校验已有 `WorkSyncInfo` 记录；仅对目录缺失或内容差异的作品补齐，不重复写入已匹配作品。
 - [x] 点击“重试失败项”后，Sync 页面会逐项清理旧失败目录并重试全部 `FAILED` 记录。
 - [x] 失败重试完成后，页面摘要会显示本次重试数量、恢复成功数量、剩余失败数量与当前已完成总数。
 - [x] 点击“导出失败记录”后，可通过保存对话框将全部 `FAILED` 同步记录导出为 CSV 或 JSON 文件。

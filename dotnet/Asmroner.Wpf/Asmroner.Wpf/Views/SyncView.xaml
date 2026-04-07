@@ -173,16 +173,19 @@
             </Border>
         </Grid>
 
-        <StackPanel Grid.Row="4"
-                    Margin="0,0,0,12">
-            <TextBlock x:Name="LastSyncTextBlock"
-                       Margin="0,0,0,6"
-                       Text="最近更新：元数据 暂无；同步记录 暂无"/>
-            <TextBlock x:Name="StatusTextBlock"
-                       Foreground="#1F2937"
-                       Text="点击同步、重试、导出或刷新统计后，这里会显示执行状态。"
-                       TextWrapping="Wrap"/>
-        </StackPanel>
+        <Border Grid.Row="4"
+                Margin="0,0,0,12"
+                Style="{StaticResource StatusInfoPanelStyle}">
+            <StackPanel>
+                <TextBlock x:Name="LastSyncTextBlock"
+                           Margin="0,0,0,6"
+                           Style="{StaticResource StatusInfoMutedTextStyle}"
+                           Text="最近更新：元数据 暂无；同步记录 暂无"/>
+                <TextBlock x:Name="StatusTextBlock"
+                           Style="{StaticResource StatusInfoTextStyle}"
+                           Text="点击同步、重试、导出或刷新统计后，这里会显示执行状态。"/>
+            </StackPanel>
+        </Border>
 
         <TextBox x:Name="DetailsTextBox"
                  Grid.Row="5"

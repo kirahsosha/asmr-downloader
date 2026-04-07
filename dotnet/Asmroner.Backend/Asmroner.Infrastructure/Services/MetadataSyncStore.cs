@@ -187,6 +187,110 @@ public sealed class MetadataSyncStore : IMetadataSyncStore
         return normalizedWorks.Count(work => !existingIds.Contains(work.Id));
     }
 
+    public async Task<IReadOnlyDictionary<string, MetadataWorkItem>> GetMetadataWorksBySourceIdsAsync(IReadOnlyCollection<string> sourceIds, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(sourceIds);
+
+        var normalizedSourceIds = sourceIds
+            .Select(SourceIdNormalizer.Normalize)
+            .Where(static sourceId => !string.IsNullOrWhiteSpace(sourceId))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (normalizedSourceIds.Length == 0)
+        {
+            return new Dictionary<string, MetadataWorkItem>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        _appPathService.EnsureMetadataDirectory();
+
+        await using var connection = CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+        await EnsureTablesAsync(connection, cancellationToken);
+
+        await using var command = connection.CreateCommand();
+        var parameterNames = new List<string>(normalizedSourceIds.Length);
+        for (var index = 0; index < normalizedSourceIds.Length; index++)
+        {
+            var parameterName = $"@sourceId{index}";
+            parameterNames.Add(parameterName);
+            command.Parameters.AddWithValue(parameterName, normalizedSourceIds[index]);
+        }
+
+        command.CommandText = $"""
+        SELECT Id, Title, CircleId, CircleName, Nsfw, Release, DownloadCount, Price, ReviewCount,
+               RateCount, RateAverage, HasSubtitle, CreateDate, Vas, Tags, Duration, SourceType,
+               {AsmronerConstants.Storage.Sync.MetadataWork.SourceIdColumn},
+               {AsmronerConstants.Storage.Sync.MetadataWork.UpdatedAtColumn}
+        FROM {AsmronerConstants.Storage.Sync.MetadataWork.TableName}
+        WHERE {AsmronerConstants.Storage.Sync.MetadataWork.SourceIdColumn} IN ({string.Join(", ", parameterNames)});
+        """;
+
+        var items = new Dictionary<string, MetadataWorkItem>(StringComparer.OrdinalIgnoreCase);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var item = MapMetadataWork(reader);
+            items[item.SourceId] = item;
+        }
+
+        return items;
+    }
+
+    public async Task<IReadOnlyList<int>> GetExpiredMetadataWorkIdsAsync(DateTime updatedBefore, CancellationToken cancellationToken = default)
+    {
+        _appPathService.EnsureMetadataDirectory();
+
+        await using var connection = CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+        await EnsureTablesAsync(connection, cancellationToken);
+
+        var items = new List<int>();
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"""
+        SELECT Id
+        FROM {AsmronerConstants.Storage.Sync.MetadataWork.TableName}
+        WHERE {AsmronerConstants.Storage.Sync.MetadataWork.UpdatedAtColumn} < @updatedBefore
+        ORDER BY Id;
+        """;
+        command.Parameters.AddWithValue("@updatedBefore", updatedBefore.ToString("O", CultureInfo.InvariantCulture));
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            items.Add(reader.GetInt32(0));
+        }
+
+        return items;
+    }
+
+    public async Task<IReadOnlyList<MetadataWorkItem>> GetAllMetadataWorksAsync(CancellationToken cancellationToken = default)
+    {
+        _appPathService.EnsureMetadataDirectory();
+
+        await using var connection = CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+        await EnsureTablesAsync(connection, cancellationToken);
+
+        var items = new List<MetadataWorkItem>();
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"""
+        SELECT Id, Title, CircleId, CircleName, Nsfw, Release, DownloadCount, Price, ReviewCount,
+               RateCount, RateAverage, HasSubtitle, CreateDate, Vas, Tags, Duration, SourceType,
+               {AsmronerConstants.Storage.Sync.MetadataWork.SourceIdColumn},
+               {AsmronerConstants.Storage.Sync.MetadataWork.UpdatedAtColumn}
+        FROM {AsmronerConstants.Storage.Sync.MetadataWork.TableName}
+        ORDER BY Id;
+        """;
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            items.Add(MapMetadataWork(reader));
+        }
+
+        return items;
+    }
+
     public async Task<SyncDownloadSnapshot> GetDownloadSnapshotAsync(CancellationToken cancellationToken = default)
     {
         _appPathService.EnsureMetadataDirectory();
@@ -247,6 +351,33 @@ public sealed class MetadataSyncStore : IMetadataSyncStore
                 RemainingMetadataCount = Convert.ToInt32(remaining ?? 0, CultureInfo.InvariantCulture),
             };
         }
+    }
+
+    public async Task<IReadOnlyDictionary<int, WorkSyncInfoItem>> GetWorkSyncInfoMapAsync(CancellationToken cancellationToken = default)
+    {
+        _appPathService.EnsureMetadataDirectory();
+
+        await using var connection = CreateConnection();
+        await connection.OpenAsync(cancellationToken);
+        await EnsureTablesAsync(connection, cancellationToken);
+
+        var items = new Dictionary<int, WorkSyncInfoItem>();
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"""
+        SELECT Id, {AsmronerConstants.Storage.Sync.WorkSyncInfo.MetadataWorkIdColumn}, SourceId, HasSubtitle, DirSize,
+               {AsmronerConstants.Storage.Sync.WorkSyncInfo.StatusColumn}, FilePath, FailReason, RetryCount,
+               {AsmronerConstants.Storage.Sync.WorkSyncInfo.UpdatedAtColumn}, FailedAt
+        FROM {AsmronerConstants.Storage.Sync.WorkSyncInfo.TableName};
+        """;
+
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            var item = MapWorkSyncInfo(reader);
+            items[item.MetadataWorkId] = item;
+        }
+
+        return items;
     }
 
     public async Task<int> CleanupPendingSyncDownloadsAsync(CancellationToken cancellationToken = default)
@@ -568,6 +699,32 @@ public sealed class MetadataSyncStore : IMetadataSyncStore
             RetryCount = reader.GetInt32(8),
             UpdatedAt = ParseTimestamp(reader.GetString(9)) ?? DateTime.UtcNow,
             FailedAt = reader.IsDBNull(10) ? null : ParseTimestamp(reader.GetString(10)),
+        };
+    }
+
+    private static MetadataWorkItem MapMetadataWork(SqliteDataReader reader)
+    {
+        return new MetadataWorkItem
+        {
+            Id = reader.GetInt32(0),
+            Title = reader.GetString(1),
+            CircleId = reader.GetInt32(2),
+            CircleName = reader.GetString(3),
+            Nsfw = reader.GetInt64(4) != 0,
+            Release = reader.GetString(5),
+            DownloadCount = reader.GetInt32(6),
+            Price = reader.GetInt32(7),
+            ReviewCount = reader.GetInt32(8),
+            RateCount = reader.GetInt32(9),
+            RateAverage = reader.GetDouble(10),
+            HasSubtitle = reader.GetInt64(11) != 0,
+            CreateDate = reader.GetString(12),
+            Vas = reader.GetString(13),
+            Tags = reader.GetString(14),
+            Duration = reader.GetInt32(15),
+            SourceType = reader.GetString(16),
+            SourceId = reader.GetString(17),
+            UpdatedAt = ParseTimestamp(reader.GetString(18)) ?? DateTime.UtcNow,
         };
     }
 }

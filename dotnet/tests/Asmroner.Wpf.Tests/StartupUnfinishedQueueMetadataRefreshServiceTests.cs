@@ -258,7 +258,7 @@ public class StartupUnfinishedQueueMetadataRefreshServiceTests
         public Task<IReadOnlyList<DownloadTaskItem>> RunQueuedAsync(string? fileFilter = null, bool hdAudioOnly = false, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<DownloadTaskItem>>(Array.Empty<DownloadTaskItem>());
 
-        public Task<DownloadTaskItem?> StartAsync(string sourceId, string? fileFilter = null, Guid? preferredTaskId = null, bool hdAudioOnly = false, CancellationToken cancellationToken = default)
+        public Task<DownloadTaskItem?> StartAsync(string sourceId, string? fileFilter = null, Guid? preferredTaskId = null, bool hdAudioOnly = false, DownloadStartOptions? options = null, CancellationToken cancellationToken = default)
             => Task.FromResult<DownloadTaskItem?>(null);
 
         public IReadOnlyList<DownloadTaskItem> GetTasks()
@@ -267,7 +267,7 @@ public class StartupUnfinishedQueueMetadataRefreshServiceTests
         public Task<bool> CancelAsync(Guid taskId, CancellationToken cancellationToken = default)
             => Task.FromResult(false);
 
-        public Task<DownloadTaskItem?> RetryFailedAsync(Guid taskId, string? fileFilter = null, bool hdAudioOnly = false, CancellationToken cancellationToken = default)
+        public Task<DownloadTaskItem?> RetryFailedAsync(Guid taskId, string? fileFilter = null, bool hdAudioOnly = false, DownloadStartOptions? options = null, CancellationToken cancellationToken = default)
             => Task.FromResult<DownloadTaskItem?>(null);
 
         public Task ClearAllTasksAsync(CancellationToken cancellationToken = default)
@@ -334,6 +334,9 @@ public class StartupUnfinishedQueueMetadataRefreshServiceTests
         public Task<IReadOnlyList<TrackDto>> GetTracksAsync(string id, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<TrackDto>>(Array.Empty<TrackDto>());
 
+        public Task DownloadFileAsync(string url, string destinationPath, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
         public Task<SearchResultDto> SearchAsync(string query, CancellationToken cancellationToken = default)
             => Task.FromResult(new SearchResultDto());
 
@@ -373,6 +376,9 @@ public class StartupUnfinishedQueueMetadataRefreshServiceTests
 
         public Task<IReadOnlyList<TrackDto>> GetTracksAsync(string id, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlyList<TrackDto>>(Array.Empty<TrackDto>());
+
+        public Task DownloadFileAsync(string url, string destinationPath, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
 
         public Task<SearchResultDto> SearchAsync(string query, CancellationToken cancellationToken = default)
             => Task.FromResult(new SearchResultDto());

@@ -20,6 +20,8 @@ public class SearchViewXamlTests
         Assert.Contains("Content=\"导出到文件\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"FavoriteButton\"", content, StringComparison.Ordinal);
         Assert.Contains("Content=\"收藏作品\"", content, StringComparison.Ordinal);
+        Assert.Contains("Style=\"{StaticResource StatusInfoPanelStyle}\"", content, StringComparison.Ordinal);
+        Assert.Contains("Style=\"{StaticResource StatusInfoTextStyle}\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
         Assert.NotNull(doc.Root);

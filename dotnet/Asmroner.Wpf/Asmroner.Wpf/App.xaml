@@ -3,6 +3,44 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Asmroner.Wpf">
     <Application.Resources>
+        <SolidColorBrush x:Key="StatusInfoPanelBackgroundBrush"
+                         Color="#FFF0F6FC"/>
+        <SolidColorBrush x:Key="StatusInfoPanelBorderBrush"
+                         Color="#FFD5E3F2"/>
+        <SolidColorBrush x:Key="StatusInfoTextBrush"
+                         Color="#FF355A7A"/>
+        <SolidColorBrush x:Key="StatusInfoMutedTextBrush"
+                         Color="#FF5A7086"/>
 
+        <Style x:Key="StatusInfoPanelStyle"
+               TargetType="Border">
+            <Setter Property="Background"
+                    Value="{StaticResource StatusInfoPanelBackgroundBrush}"/>
+            <Setter Property="BorderBrush"
+                    Value="{StaticResource StatusInfoPanelBorderBrush}"/>
+            <Setter Property="BorderThickness"
+                    Value="1"/>
+            <Setter Property="CornerRadius"
+                    Value="8"/>
+            <Setter Property="Padding"
+                    Value="10,8"/>
+            <Setter Property="Margin"
+                    Value="0,10,0,0"/>
+        </Style>
+
+        <Style x:Key="StatusInfoTextStyle"
+               TargetType="TextBlock">
+            <Setter Property="Foreground"
+                    Value="{StaticResource StatusInfoTextBrush}"/>
+            <Setter Property="TextWrapping"
+                    Value="Wrap"/>
+        </Style>
+
+        <Style x:Key="StatusInfoMutedTextStyle"
+               TargetType="TextBlock"
+               BasedOn="{StaticResource StatusInfoTextStyle}">
+            <Setter Property="Foreground"
+                    Value="{StaticResource StatusInfoMutedTextBrush}"/>
+        </Style>
     </Application.Resources>
 </Application>

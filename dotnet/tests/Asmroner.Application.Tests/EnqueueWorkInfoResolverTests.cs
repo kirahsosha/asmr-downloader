@@ -1,6 +1,7 @@
 using Asmroner.Application.Services;
 using Asmroner.Core.Api;
 using Asmroner.Core.Interfaces;
+using Asmroner.Core.Sync;
 
 namespace Asmroner.Application.Tests;
 
@@ -31,11 +32,11 @@ public class EnqueueWorkInfoResolverTests
                 ],
             },
         ]);
-        var sut = new EnqueueWorkInfoResolver(apiClient);
+        var sut = new EnqueueWorkInfoResolver(apiClient, new NoopMetadataSyncStore());
 
         var result = await sut.ResolvePreferTranslatedAsync([
             new EnqueueWorkInfoRequest { SourceId = "RJ2001" },
-        ]);
+        ], TestContext.Current.CancellationToken);
 
         var resolved = Assert.Single(result.WorkInfos);
         Assert.Equal("RJ2002", resolved.Key);
@@ -79,12 +80,12 @@ public class EnqueueWorkInfoResolverTests
                 },
             },
         ]);
-        var sut = new EnqueueWorkInfoResolver(apiClient);
+        var sut = new EnqueueWorkInfoResolver(apiClient, new NoopMetadataSyncStore());
 
         var result = await sut.ResolvePreferTranslatedAsync([
             new EnqueueWorkInfoRequest { SourceId = "RJ2101" },
             new EnqueueWorkInfoRequest { SourceId = "RJ2102" },
-        ]);
+        ], TestContext.Current.CancellationToken);
 
         var resolved = Assert.Single(result.WorkInfos);
         Assert.Equal("RJ2102", resolved.Key);
@@ -110,12 +111,12 @@ public class EnqueueWorkInfoResolverTests
                     },
                 },
             ]);
-        var sut = new EnqueueWorkInfoResolver(apiClient);
+        var sut = new EnqueueWorkInfoResolver(apiClient, new NoopMetadataSyncStore());
 
         var result = await sut.ResolvePreferTranslatedAsync([
             new EnqueueWorkInfoRequest { SourceId = "RJ2201" },
             new EnqueueWorkInfoRequest { SourceId = "RJ2202" },
-        ]);
+        ], TestContext.Current.CancellationToken);
 
         var resolved = Assert.Single(result.WorkInfos);
         Assert.Equal("RJ2201", resolved.Key);
@@ -139,16 +140,86 @@ public class EnqueueWorkInfoResolverTests
                 },
             },
         ]);
-        var sut = new EnqueueWorkInfoResolver(apiClient);
+        var sut = new EnqueueWorkInfoResolver(apiClient, new NoopMetadataSyncStore());
 
         var result = await sut.ResolvePreferTranslatedAsync([
             new EnqueueWorkInfoRequest { SourceId = "BJ02370869", WorkId = 100000062 },
-        ]);
+        ], TestContext.Current.CancellationToken);
 
         var resolved = Assert.Single(result.WorkInfos);
         Assert.Equal("BJ02370869", resolved.Key);
         Assert.Equal(100000062, resolved.Value.Id);
         Assert.Empty(result.FailedSourceIds);
         Assert.Equal(0, result.SwitchedSourceCount);
+    }
+
+    private sealed class NoopMetadataSyncStore : IMetadataSyncStore
+    {
+        public Task<MetadataSyncSnapshot> GetMetadataSnapshotAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new MetadataSyncSnapshot());
+        }
+
+        public Task<int> UpsertMetadataWorksAsync(IReadOnlyCollection<MetadataWorkItem> works, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(0);
+        }
+
+        public Task<IReadOnlyDictionary<string, MetadataWorkItem>> GetMetadataWorksBySourceIdsAsync(IReadOnlyCollection<string> sourceIds, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyDictionary<string, MetadataWorkItem>>(
+                new Dictionary<string, MetadataWorkItem>(StringComparer.OrdinalIgnoreCase));
+        }
+
+        public Task<IReadOnlyList<int>> GetExpiredMetadataWorkIdsAsync(DateTime updatedBefore, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<int>>(Array.Empty<int>());
+        }
+
+        public Task<IReadOnlyList<MetadataWorkItem>> GetAllMetadataWorksAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<MetadataWorkItem>>(Array.Empty<MetadataWorkItem>());
+        }
+
+        public Task<SyncDownloadSnapshot> GetDownloadSnapshotAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new SyncDownloadSnapshot());
+        }
+
+        public Task<IReadOnlyDictionary<int, WorkSyncInfoItem>> GetWorkSyncInfoMapAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyDictionary<int, WorkSyncInfoItem>>(
+                new Dictionary<int, WorkSyncInfoItem>());
+        }
+
+        public Task<int> CleanupPendingSyncDownloadsAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(0);
+        }
+
+        public Task<IReadOnlyList<MetadataWorkItem>> GetSyncDownloadCandidatesAsync(int count, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<MetadataWorkItem>>(Array.Empty<MetadataWorkItem>());
+        }
+
+        public Task<IReadOnlyList<WorkSyncInfoItem>> GetFailedSyncDownloadsAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<WorkSyncInfoItem>>(Array.Empty<WorkSyncInfoItem>());
+        }
+
+        public Task<IReadOnlyList<WorkSyncInfoItem>> GetSyncDownloadsByStatusAsync(string status, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<WorkSyncInfoItem>>(Array.Empty<WorkSyncInfoItem>());
+        }
+
+        public Task<WorkSyncInfoItem> CreatePendingWorkSyncInfoAsync(MetadataWorkItem work, string filePath, CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Task UpdateWorkSyncInfoAsync(WorkSyncInfoItem item, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
     }
 }

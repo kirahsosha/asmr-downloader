@@ -28,6 +28,7 @@ public partial class SearchView : UserControl
     private readonly ISearchStateStore _searchStateStore;
     private readonly IDownloadService _downloadService;
     private readonly IEnqueueWorkInfoResolver _enqueueWorkInfoResolver;
+    private readonly IMetadataWorkInfoResolver _metadataWorkInfoResolver;
     private readonly IFavoriteStore _favoriteStore;
     private readonly IUiStateStore _uiStateStore;
     private readonly IConfigurationService _configurationService;
@@ -54,6 +55,7 @@ public partial class SearchView : UserControl
             null!,
             null!,
             null!,
+            null!,
             null!)
     {
     }
@@ -65,6 +67,7 @@ public partial class SearchView : UserControl
         ISearchStateStore searchStateStore,
         IDownloadService downloadService,
         IEnqueueWorkInfoResolver enqueueWorkInfoResolver,
+        IMetadataWorkInfoResolver metadataWorkInfoResolver,
         IFavoriteStore favoriteStore,
         IUiStateStore uiStateStore,
         IConfigurationService configurationService,
@@ -76,6 +79,7 @@ public partial class SearchView : UserControl
         _searchStateStore = searchStateStore;
         _downloadService = downloadService;
         _enqueueWorkInfoResolver = enqueueWorkInfoResolver;
+        _metadataWorkInfoResolver = metadataWorkInfoResolver;
         _favoriteStore = favoriteStore;
         _uiStateStore = uiStateStore;
         _configurationService = configurationService;
@@ -357,8 +361,23 @@ public partial class SearchView : UserControl
         }
         else
         {
-            candidateSourceIds = targetItems.Select(static item => item.SourceId).ToArray();
-            workInfos = BuildPrefetchedWorkInfoMap(candidateSourceIds);
+            StatusTextBlock.Text = "正在读取作品元数据...";
+            var resolution = await _metadataWorkInfoResolver.ResolveAsync(targetItems.Select(static item => new WorkInfoResolutionRequest
+            {
+                SourceId = item.SourceId,
+                WorkId = item.WorkId,
+            }).ToArray());
+            candidateSourceIds = resolution.WorkInfos.Keys.ToArray();
+            workInfos = resolution.WorkInfos;
+            failedCount = resolution.FailedSourceIds.Count;
+
+            if (candidateSourceIds.Count == 0)
+            {
+                StatusTextBlock.Text = failedCount > 0
+                    ? $"未能解析可入队的作品信息，失败 {failedCount} 项。"
+                    : "当前没有可入队的搜索结果。";
+                return;
+            }
         }
 
         var queuePlan = SearchQueueCountPolicy.Build(

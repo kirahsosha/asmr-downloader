@@ -49,6 +49,8 @@ public sealed class MetadataSyncService
         var resumedFromProgress = ShouldResume(progress);
         var config = await _configurationService.LoadAsync(cancellationToken) ?? new AppConfig();
         var before = await _metadataSyncStore.GetMetadataSnapshotAsync(cancellationToken);
+        var expiredMetadataCount = await CountExpiredMetadataAsync(progress, resumedFromProgress, config, cancellationToken);
+        var shouldRefreshExpiredMetadata = expiredMetadataCount > 0;
 
         var remoteFirstPage = await GetMetadataWorksAsync(page: 1, pageSize: 1, subtitleOnly: false, config, cancellationToken);
         var remoteSubtitlePage = await GetMetadataWorksAsync(page: 1, pageSize: 1, subtitleOnly: true, config, cancellationToken);
@@ -69,7 +71,7 @@ public sealed class MetadataSyncService
             ? progress.StartedAt ?? DateTime.UtcNow
             : DateTime.UtcNow;
 
-        if (!resumedFromProgress && remoteTotalCount == before.LocalTotalCount)
+        if (!resumedFromProgress && !shouldRefreshExpiredMetadata && remoteTotalCount == before.LocalTotalCount)
         {
             await _uiStateStore.SaveMetadataSyncProgressAsync(
                 BuildProgressState(
@@ -93,7 +95,7 @@ public sealed class MetadataSyncService
                 resumedFromProgress: false);
         }
 
-        if (!resumedFromProgress && remoteTotalCount < before.LocalTotalCount)
+        if (!resumedFromProgress && !shouldRefreshExpiredMetadata && remoteTotalCount < before.LocalTotalCount)
         {
             await _uiStateStore.SaveMetadataSyncProgressAsync(
                 BuildProgressState(
@@ -192,7 +194,9 @@ public sealed class MetadataSyncService
                         ProcessedPageCount = processedPageCountOverall,
                         TotalPageCount = totalPages,
                         NextPage = page + 1,
-                        Message = $"元数据同步已按请求停止：已处理 {processedPageCountOverall}/{totalPages} 页，本地现有 {afterStopped.LocalTotalCount} 条。",
+                        Message = shouldRefreshExpiredMetadata
+                            ? $"元数据过期刷新已按请求停止：已处理 {processedPageCountOverall}/{totalPages} 页，本地现有 {afterStopped.LocalTotalCount} 条。"
+                            : $"元数据同步已按请求停止：已处理 {processedPageCountOverall}/{totalPages} 页，本地现有 {afterStopped.LocalTotalCount} 条。",
                         IsUpToDate = afterStopped.LocalTotalCount == remoteTotalCount,
                         WasStopped = true,
                         ResumedFromProgress = resumedFromProgress,
@@ -229,13 +233,39 @@ public sealed class MetadataSyncService
             ProcessedPageCount = processedPageCountOverall,
             TotalPageCount = totalPages,
             NextPage = 1,
-            Message = isUpToDate
-                ? $"元数据同步完成：新增 {insertedCount} 条，本地现有 {after.LocalTotalCount} 条。"
-                : $"元数据同步完成，但本地数量仍为 {after.LocalTotalCount}，未完全追平网站的 {remoteTotalCount} 条。",
+            Message = shouldRefreshExpiredMetadata
+                ? BuildExpiredRefreshCompletionMessage(expiredMetadataCount, after.LocalTotalCount, remoteTotalCount, isUpToDate)
+                : isUpToDate
+                    ? $"元数据同步完成：新增 {insertedCount} 条，本地现有 {after.LocalTotalCount} 条。"
+                    : $"元数据同步完成，但本地数量仍为 {after.LocalTotalCount}，未完全追平网站的 {remoteTotalCount} 条。",
             IsUpToDate = isUpToDate,
             WasStopped = false,
             ResumedFromProgress = resumedFromProgress,
         };
+    }
+
+    private async Task<int> CountExpiredMetadataAsync(
+        MetadataSyncProgressState progress,
+        bool resumedFromProgress,
+        AppConfig config,
+        CancellationToken cancellationToken)
+    {
+        if (resumedFromProgress || !string.Equals(progress.Status, SyncProgressStatuses.Completed, StringComparison.Ordinal))
+        {
+            return 0;
+        }
+
+        var validDays = Math.Max(1, config.Downloader.MetadataValidityDays);
+        var updatedBefore = DateTime.UtcNow.AddDays(-validDays);
+        var expiredIds = await _metadataSyncStore.GetExpiredMetadataWorkIdsAsync(updatedBefore, cancellationToken);
+        return expiredIds.Count;
+    }
+
+    private static string BuildExpiredRefreshCompletionMessage(int expiredMetadataCount, int localTotalCount, int remoteTotalCount, bool isUpToDate)
+    {
+        return isUpToDate
+            ? $"元数据过期刷新完成：已检查 {expiredMetadataCount} 条过期记录，本地现有 {localTotalCount} 条。"
+            : $"元数据过期刷新完成，但本地数量仍为 {localTotalCount}，未完全追平网站的 {remoteTotalCount} 条。";
     }
 
     private async Task<Core.Api.MetadataSyncPageDto> GetMetadataWorksAsync(
