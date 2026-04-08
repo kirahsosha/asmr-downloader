@@ -16,6 +16,8 @@ public sealed class MetadataSyncRunResult
 
     public int InsertedCount { get; init; }
 
+    public int ProcessedWorkCount { get; init; }
+
     public int ProcessedPageCount { get; init; }
 
     public int TotalPageCount { get; init; }

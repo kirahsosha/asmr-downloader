@@ -185,6 +185,9 @@ public partial class SearchView : UserControl
         LangExcludeCheckBox.Unchecked += OnSearchUiStateChanged;
     }
 
+    /// <summary>
+    /// 处理搜索界面筛选控件变更并自动保存界面状态。
+    /// </summary>
     private void OnSearchUiStateChanged(object? sender, EventArgs e)
     {
         if (_isApplyingSearchUiState)
@@ -234,6 +237,9 @@ public partial class SearchView : UserControl
         };
     }
 
+    /// <summary>
+    /// 处理“高级筛选”区域展开。
+    /// </summary>
     private void OnAdvancedFilterExpanded(object sender, System.Windows.RoutedEventArgs e)
     {
         try
@@ -272,6 +278,9 @@ public partial class SearchView : UserControl
         }
     }
 
+    /// <summary>
+    /// 处理“查询作品”按钮点击。
+    /// </summary>
     private async void OnSearchClicked(object sender, System.Windows.RoutedEventArgs e)
     {
         _isPopularMode = false;
@@ -312,11 +321,17 @@ public partial class SearchView : UserControl
         }
     }
 
+    /// <summary>
+    /// 处理“导出到文件”按钮点击。
+    /// </summary>
     private async void OnExportClicked(object sender, System.Windows.RoutedEventArgs e)
     {
         await ExportAsync(SearchExportScope.All);
     }
 
+    /// <summary>
+    /// 处理“加入下载队列”按钮点击。
+    /// </summary>
     private async void OnQueueClicked(object sender, System.Windows.RoutedEventArgs e)
     {
         var selectedItems = ResultsGrid.SelectedItems
@@ -416,6 +431,9 @@ public partial class SearchView : UserControl
         StatusTextBlock.Text = DownloadOperationStatusTexts.AppendTranslationSwitchClause(queueStatusText, switchedCount) + "。";
     }
 
+    /// <summary>
+    /// 处理“收藏作品”按钮点击。
+    /// </summary>
     private async void OnFavoriteClicked(object sender, RoutedEventArgs e)
     {
         var selectedItems = ResultsGrid.SelectedItems
@@ -529,21 +547,33 @@ public partial class SearchView : UserControl
         }
     }
 
+    /// <summary>
+    /// 处理结果列表右键菜单“加入下载队列”点击。
+    /// </summary>
     private void OnContextMenuQueueClicked(object sender, RoutedEventArgs e)
     {
         OnQueueClicked(sender, e);
     }
 
+    /// <summary>
+    /// 处理结果列表右键菜单“导出全部任务到文件”点击。
+    /// </summary>
     private void OnContextMenuExportAllClicked(object sender, RoutedEventArgs e)
     {
         OnExportClicked(sender, e);
     }
 
+    /// <summary>
+    /// 处理结果列表右键菜单“导出选中任务到文件”点击。
+    /// </summary>
     private async void OnContextMenuExportSelectedClicked(object sender, RoutedEventArgs e)
     {
         await ExportAsync(SearchExportScope.Selected);
     }
 
+    /// <summary>
+    /// 处理结果列表右键菜单“在浏览器打开作品页”点击。
+    /// </summary>
     private async void OnContextMenuOpenWorkPageClicked(object sender, RoutedEventArgs e)
     {
         var target = ResolveContextMenuTargetItem();
@@ -594,6 +624,9 @@ public partial class SearchView : UserControl
         return ResultsGrid.SelectedItems.OfType<SearchWorkItem>().FirstOrDefault();
     }
 
+    /// <summary>
+    /// 处理结果列表右键按下并同步上下文菜单目标项。
+    /// </summary>
     private void OnResultsGridPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
     {
         var row = FindParent<DataGridRow>(e.OriginalSource as DependencyObject);
@@ -644,6 +677,9 @@ public partial class SearchView : UserControl
         }
     }
 
+    /// <summary>
+    /// 处理“查询热门作品”按钮点击。
+    /// </summary>
     private async void OnQueryHotClicked(object sender, System.Windows.RoutedEventArgs e)
     {
         ToggleActionButtons(false);
@@ -682,6 +718,9 @@ public partial class SearchView : UserControl
         }
     }
 
+    /// <summary>
+    /// 处理“清空”按钮点击。
+    /// </summary>
     private void OnClearClicked(object sender, System.Windows.RoutedEventArgs e)
     {
         QueryTextBox.Text = string.Empty;
@@ -710,6 +749,9 @@ public partial class SearchView : UserControl
         StatusTextBlock.Text = "已清空关键词、排序、分页与当前结果。";
     }
 
+    /// <summary>
+    /// 处理“上一页”按钮点击。
+    /// </summary>
     private async void OnPrevPageClicked(object sender, System.Windows.RoutedEventArgs e)
     {
         if (_currentPage <= 1)
@@ -729,6 +771,9 @@ public partial class SearchView : UserControl
         await ExecuteSearchAsync(ShouldAllowOptionOnlyQuery());
     }
 
+    /// <summary>
+    /// 处理“下一页”按钮点击。
+    /// </summary>
     private async void OnNextPageClicked(object sender, System.Windows.RoutedEventArgs e)
     {
         var totalPages = GetTotalPages();
@@ -749,6 +794,9 @@ public partial class SearchView : UserControl
         await ExecuteSearchAsync(ShouldAllowOptionOnlyQuery());
     }
 
+    /// <summary>
+    /// 处理“跳转页码”按钮点击。
+    /// </summary>
     private async void OnGoPageClicked(object sender, System.Windows.RoutedEventArgs e)
     {
         if (!int.TryParse(CurrentPageTextBox.Text.Trim(), out var page) || page <= 0)
@@ -769,16 +817,25 @@ public partial class SearchView : UserControl
         await ExecuteSearchAsync(ShouldAllowOptionOnlyQuery());
     }
 
+    /// <summary>
+    /// 处理搜索排序方向下拉框变更。
+    /// </summary>
     private async void OnOrderChanged(object sender, SelectionChangedEventArgs e)
     {
         await OnSearchOptionChangedAsync();
     }
 
+    /// <summary>
+    /// 处理搜索排序字段下拉框变更。
+    /// </summary>
     private async void OnSortChanged(object sender, SelectionChangedEventArgs e)
     {
         await OnSearchOptionChangedAsync();
     }
 
+    /// <summary>
+    /// 处理字幕筛选下拉框变更。
+    /// </summary>
     private async void OnSubtitleChanged(object sender, SelectionChangedEventArgs e)
     {
         await OnSearchOptionChangedAsync();
@@ -803,6 +860,9 @@ public partial class SearchView : UserControl
         await ExecuteSearchAsync(allowOptionOnlyQuery: true);
     }
 
+    /// <summary>
+    /// 处理页大小下拉框变更。
+    /// </summary>
     private async void OnPageSizeChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_suppressSearchOptionSelectionChanged)

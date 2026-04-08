@@ -149,6 +149,9 @@ public partial class DownloadView : UserControl
         }
     }
 
+    /// <summary>
+    /// 处理 Download 界面控件变更并自动保存界面状态。
+    /// </summary>
     private void OnDownloadUiStateChanged(object? sender, EventArgs e)
     {
         if (_isApplyingDownloadUiState)
@@ -178,6 +181,9 @@ public partial class DownloadView : UserControl
         }
     }
 
+    /// <summary>
+    /// 处理“加入单个下载”按钮点击。
+    /// </summary>
     private async void OnAddSingleClicked(object sender, RoutedEventArgs e)
     {
         var sourceId = DownloadInputNormalizer.NormalizeSingleInputDisplay(SingleSourceIdTextBox.Text);
@@ -250,6 +256,9 @@ public partial class DownloadView : UserControl
             logMessage: "Failed to enqueue single download with work info.");
     }
 
+    /// <summary>
+    /// 处理“加入批量下载”按钮点击。
+    /// </summary>
     private async void OnAddBatchClicked(object sender, RoutedEventArgs e)
     {
         var sourceIds = DownloadInputNormalizer.ExtractNormalizedSourceIds(BatchSourceIdsTextBox.Text);
@@ -319,6 +328,9 @@ public partial class DownloadView : UserControl
             logMessage: "Failed to enqueue batch download with work info.");
     }
 
+    /// <summary>
+    /// 处理“执行下载队列”按钮点击。
+    /// </summary>
     private async void OnRunQueueClicked(object sender, System.Windows.RoutedEventArgs e)
     {
         await ExecuteGuardedAsync(
@@ -338,12 +350,18 @@ public partial class DownloadView : UserControl
             logMessage: "Failed to run queued downloads.");
     }
 
+    /// <summary>
+    /// 处理“刷新任务列表”按钮点击。
+    /// </summary>
     private void OnRefreshClicked(object sender, System.Windows.RoutedEventArgs e)
     {
         RefreshView();
         StatusTextBlock.Text = "任务列表已刷新。";
     }
 
+    /// <summary>
+    /// 处理“清空任务列表”按钮点击。
+    /// </summary>
     private async void OnClearTaskListClicked(object sender, RoutedEventArgs e)
     {
         if (!ConfirmWithQuestion("将停止正在下载的任务并清空任务列表，是否继续？", "确认清空任务列表"))
@@ -370,6 +388,9 @@ public partial class DownloadView : UserControl
             logMessage: "Failed to clear all download tasks.");
     }
 
+    /// <summary>
+    /// 处理“取消选中任务”按钮点击。
+    /// </summary>
     private async void OnCancelClicked(object sender, System.Windows.RoutedEventArgs e)
     {
         var precheck = DownloadOperationPrecheckPolicy.CheckCancel(GetSelectedTasks());
@@ -417,6 +438,9 @@ public partial class DownloadView : UserControl
             logMessage: "Failed to cancel selected download tasks.");
     }
 
+    /// <summary>
+    /// 处理“重试失败任务”按钮点击。
+    /// </summary>
     private async void OnRetryClicked(object sender, System.Windows.RoutedEventArgs e)
     {
         var precheck = DownloadOperationPrecheckPolicy.CheckRetry(GetSelectedTasks(), _downloadService.GetTasks());
@@ -457,11 +481,17 @@ public partial class DownloadView : UserControl
                 : "Failed to retry selected failed download tasks.");
     }
 
+    /// <summary>
+    /// 处理下载任务列表选中项变更。
+    /// </summary>
     private void OnTaskSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         UpdateSelectionActions();
     }
 
+    /// <summary>
+    /// 处理“立即下载选中任务”按钮点击。
+    /// </summary>
     private async void OnStartSelectedClicked(object sender, RoutedEventArgs e)
     {
         var precheck = DownloadOperationPrecheckPolicy.CheckStartImmediate(GetSelectedTasks());
@@ -501,16 +531,25 @@ public partial class DownloadView : UserControl
             logMessage: "Failed to start selected download tasks immediately.");
     }
 
+    /// <summary>
+    /// 处理单个 RJID 输入框文本变更。
+    /// </summary>
     private void OnSingleSourceIdTextChanged(object sender, TextChangedEventArgs e)
     {
         // 单项输入改为“提交时规范化”，避免实时改写打断输入。
     }
 
+    /// <summary>
+    /// 处理批量 RJID 输入框文本变更。
+    /// </summary>
     private void OnBatchSourceIdsTextChanged(object sender, TextChangedEventArgs e)
     {
         // 批量输入框不做实时改写，避免影响空格/逗号/分号输入与多次粘贴体验。
     }
 
+    /// <summary>
+    /// 处理“从文件导入”按钮点击。
+    /// </summary>
     private async void OnImportFileClicked(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
@@ -607,6 +646,9 @@ public partial class DownloadView : UserControl
             logMessage: $"Failed to import {formatLabel} file.");
     }
 
+    /// <summary>
+    /// 处理“从收藏夹导入”按钮点击。
+    /// </summary>
     private async void OnImportFavoritesClicked(object sender, RoutedEventArgs e)
     {
         IReadOnlyList<string> folderTitles;
@@ -700,6 +742,9 @@ public partial class DownloadView : UserControl
         logMessage: "Failed to import favorite folder items into download queue.");
     }
 
+    /// <summary>
+    /// 处理“打开下载目录”按钮点击。
+    /// </summary>
     private async void OnOpenDownloadDirectoryClicked(object sender, RoutedEventArgs e)
     {
         try

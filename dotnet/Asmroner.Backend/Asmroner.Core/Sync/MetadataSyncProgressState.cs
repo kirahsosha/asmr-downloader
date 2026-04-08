@@ -16,7 +16,13 @@ public sealed class MetadataSyncProgressState
 
     public int RemoteSubtitleCount { get; set; }
 
+    public int LocalTotalCount { get; set; }
+
+    public int LocalSubtitleCount { get; set; }
+
     public int InsertedCount { get; set; }
+
+    public int ProcessedWorkCount { get; set; }
 
     public DateTime? StartedAt { get; set; }
 

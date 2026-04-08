@@ -1,5 +1,6 @@
 using System.Windows.Controls;
 using System.Windows;
+using Asmroner.Core.Api;
 using Asmroner.Core.Configuration;
 using Asmroner.Core.Initialization;
 using Asmroner.Core.Interfaces;
@@ -38,6 +39,9 @@ public partial class SettingsView : UserControl
 
     public event EventHandler<BootstrapResult>? InitializationCompleted;
 
+    /// <summary>
+    /// 处理 Settings 页面加载并填充当前配置。
+    /// </summary>
     private async void OnLoaded(object sender, System.Windows.RoutedEventArgs e)
     {
         VersionTextBlock.Text = AppVersionInfo.BuildSettingsVersionText();
@@ -58,81 +62,104 @@ public partial class SettingsView : UserControl
         FillForm(config);
     }
 
+    /// <summary>
+    /// 处理“保存并重新初始化”按钮点击。
+    /// </summary>
     private async void OnSaveAndInitializeClicked(object sender, System.Windows.RoutedEventArgs e)
     {
-        SaveButton.IsEnabled = false;
-        TestConnectionButton.IsEnabled = false;
-        StatusTextBlock.Text = "正在保存配置并执行初始化...";
+        await ExecuteConfigActionAsync(
+            runningStatus: "正在保存配置并执行初始化...",
+            failureStatusPrefix: "保存失败",
+            errorLogMessage: "Saving configuration failed.",
+            async config =>
+            {
+                await _configurationService.SaveAsync(config);
+                var bootstrapResult = await _bootstrapper.InitializeAsync();
+
+                StatusTextBlock.Text = bootstrapResult.IsSuccess
+                    ? "初始化成功，已可进入主页面。"
+                    : bootstrapResult.ErrorMessage ?? "初始化失败，请检查配置。";
+
+                InitializationCompleted?.Invoke(this, bootstrapResult);
+            });
+    }
+
+    /// <summary>
+    /// 处理“测试连接”按钮点击。
+    /// </summary>
+    private async void OnTestConnectionClicked(object sender, RoutedEventArgs e)
+    {
+        await ExecuteConfigActionAsync(
+            runningStatus: "正在测试 API 连通性与登录状态...",
+            failureStatusPrefix: "测试失败",
+            errorLogMessage: "Connectivity probe failed.",
+            async config =>
+            {
+                await _configurationService.SaveAsync(config);
+                var result = await _connectivityProbeService.ProbeAsync();
+                ApplyConnectivityProbeResult(result);
+            });
+    }
+
+    private async Task ExecuteConfigActionAsync(
+        string runningStatus,
+        string failureStatusPrefix,
+        string errorLogMessage,
+        Func<AppConfig, Task> action)
+    {
+        SetPrimaryActionButtonsEnabled(false);
+        StatusTextBlock.Text = runningStatus;
 
         try
         {
-            var config = BuildConfigFromForm();
-            var validationErrors = _configurationService.Validate(config);
-            if (validationErrors.Count > 0)
+            var config = TryBuildValidatedConfig();
+            if (config is null)
             {
-                StatusTextBlock.Text = string.Join("; ", validationErrors);
                 return;
             }
 
-            await _configurationService.SaveAsync(config);
-            var bootstrapResult = await _bootstrapper.InitializeAsync();
-
-            StatusTextBlock.Text = bootstrapResult.IsSuccess
-                ? "初始化成功，已可进入主页面。"
-                : bootstrapResult.ErrorMessage ?? "初始化失败，请检查配置。";
-
-            InitializationCompleted?.Invoke(this, bootstrapResult);
+            await action(config);
         }
         catch (Exception ex)
         {
-            _logger.Error(ex, "Saving configuration failed.");
-            StatusTextBlock.Text = $"保存失败: {ex.Message}";
+            _logger.Error(ex, errorLogMessage);
+            StatusTextBlock.Text = $"{failureStatusPrefix}: {ex.Message}";
         }
         finally
         {
-            SaveButton.IsEnabled = true;
-            TestConnectionButton.IsEnabled = true;
+            SetPrimaryActionButtonsEnabled(true);
         }
     }
 
-    private async void OnTestConnectionClicked(object sender, RoutedEventArgs e)
+    private AppConfig? TryBuildValidatedConfig()
     {
-        SaveButton.IsEnabled = false;
-        TestConnectionButton.IsEnabled = false;
-        StatusTextBlock.Text = "正在测试 API 连通性与登录状态...";
-
-        try
+        var config = BuildConfigFromForm();
+        var validationErrors = _configurationService.Validate(config);
+        if (validationErrors.Count == 0)
         {
-            var config = BuildConfigFromForm();
-            var validationErrors = _configurationService.Validate(config);
-            if (validationErrors.Count > 0)
-            {
-                StatusTextBlock.Text = string.Join("; ", validationErrors);
-                return;
-            }
-
-            await _configurationService.SaveAsync(config);
-            var result = await _connectivityProbeService.ProbeAsync();
-
-            if (result.IsReachable)
-            {
-                ApiUrlTextBox.Text = result.BaseUrl;
-            }
-
-            StatusTextBlock.Text = result.IsReachable
-                ? $"连接成功: {result.BaseUrl} | 延迟 {result.LatencyMs} ms | 鉴权 {(result.IsAuthenticated ? "成功" : "失败")}"
-                : $"连接失败: {result.Message}";
+            return config;
         }
-        catch (Exception ex)
+
+        StatusTextBlock.Text = string.Join("; ", validationErrors);
+        return null;
+    }
+
+    private void ApplyConnectivityProbeResult(ConnectivityProbeResult result)
+    {
+        if (result.IsReachable)
         {
-            _logger.Error(ex, "Connectivity probe failed.");
-            StatusTextBlock.Text = $"测试失败: {ex.Message}";
+            ApiUrlTextBox.Text = result.BaseUrl;
         }
-        finally
-        {
-            SaveButton.IsEnabled = true;
-            TestConnectionButton.IsEnabled = true;
-        }
+
+        StatusTextBlock.Text = result.IsReachable
+            ? $"连接成功: {result.BaseUrl} | 延迟 {result.LatencyMs} ms | 鉴权 {(result.IsAuthenticated ? "成功" : "失败")}"
+            : $"连接失败: {result.Message}";
+    }
+
+    private void SetPrimaryActionButtonsEnabled(bool isEnabled)
+    {
+        SaveButton.IsEnabled = isEnabled;
+        TestConnectionButton.IsEnabled = isEnabled;
     }
 
     private AppConfig BuildConfigFromForm()

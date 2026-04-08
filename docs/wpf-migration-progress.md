@@ -1,6 +1,6 @@
 # asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.5.2
+当前跟踪版本：v0.5.3
 
 AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 
@@ -79,7 +79,7 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 - [x] 元数据同步、页级进度持久化与断点继续可用。
 - [x] 同步下载、容量控制、作品级进度持久化与断点继续可用。
 - [x] 失败重试、导出、温和停止与合并按钮交互可用。
-- [x] 报表、统计展示、运行中刷新与按钮状态控制正确。
+- [x] 报表、统计展示、手动刷新与按钮状态控制正确。
 - [x] 阶段 5 DoD 已满足并记录证据。
 
 ### 阶段 6：资源库与播放能力迁移
@@ -127,6 +127,8 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 | 2026-04-03 | 阶段 5 | Sync 页面合并后的元数据同步主按钮在开始后快速双击时，会把第二次点击误判为 stop request，导致界面提前进入“正在停止”态而后台仍继续同步；同步下载主按钮存在同类顺序型双击风险。                                                       | Sync 页面开始/停止按钮的可控性与一致性       | AI + 用户 | 已解决   | 2026-04-03   | 2026-04-03   |
 | 2026-04-08 | 阶段 5 | Sync 页面复用普通下载链路时，落地文件仍被写成 `source/title/url` 占位文本，导致同步目录中的下载数据错误。                                                                                                                          | Sync 下载结果正确性与重扫校验                | AI + 用户 | 已解决   | 2026-04-08   | 2026-04-08   |
 | 2026-04-08 | 阶段 4 | 当普通下载目录和同步下载目录都没有匹配文件时，`DownloadService` 没有直接请求 `mediaDownloadUrl`，而是写入占位文本，无法实时下载真实文件。                                                                                          | 普通下载链路与双目录补齐行为                 | AI + 用户 | 已解决   | 2026-04-08   | 2026-04-08   |
+| 2026-04-08 | 阶段 2 | 发布页入口脚本路径/引号形态比固定 `/assets/index.hash.js` 更宽，原有解析与 `GetStringWithTimeoutAsync` 组合无法稳定拿到正确脚本文本。                                                                                              | 启动 / 测试连接的站点发现稳定性              | AI + 用户 | 已解决   | 2026-04-08   | 2026-04-08   |
+| 2026-04-08 | 阶段 5 | 元数据同步原先只稳定写回分页与累计新增，本地总量/字幕量未同步到持久化进度，导致点击“刷新统计”后数量仍不正确。                                                                                                                      | Sync 页面手动刷新统计与完成态一致性          | AI + 用户 | 已解决   | 2026-04-08   | 2026-04-08   |
 
 ## 1.5 变更与验证记录
 
@@ -1119,6 +1121,30 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 4. DoD 判定：是。Search/Download/Sync 三页的作品 info 解析边界已统一到共享 `WorkInfoDto`，并保留 `SearchWorkItem`、`DownloadTaskItem`、`MetadataWorkItem`、`WorkSyncInfoItem` 作为页面/任务/存储模型，不再把 Sync 元数据存储实体直接当作跨页作品 info DTO 使用。
 5. 下次计划：由用户执行章节 4.4/4.5 的受影响手工回归，重点验证 Search 入队、Download 标题刷新与 Sync 创建待处理记录时的标题、`SourceId` 与字幕标记在共享 `WorkInfoDto` 之后仍保持一致；章节 2.1 基线更新为 2026-04-08 的 `313/313` 并补充 2.1.63 新样例，章节 3.1 继续保持单一 `v0.5.2` 待提交记录，章节 4.4 新增 DTO 一致性专项回归项并保持未勾选。
 
+### 1.5.96 2026-04-08，v0.5.3：增强站点发现、同步实时统计与 Settings 连接逻辑
+
+1. 变更摘要：运行时版本升级到 `v0.5.3`；`EndpointDiscoveryService` 对发布页 HTML/入口脚本抓取改为非致命容错，放宽入口脚本标签匹配并补充浏览器 `User-Agent`；`MetadataSyncService` 在 UiState 中持续写入当前本地总量/字幕量，`SyncView` 在元数据同步运行中按秒刷新顶部摘要与状态文本；`SettingsView` 提取保存/测试连接共用配置动作流程，保持“先保存再测试”语义不变；同时为四个 `View.xaml.cs` 的直接控件事件处理方法补齐 `///` 注释。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/EndpointDiscoveryService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/MetadataSyncService.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Sync/MetadataSyncProgressState.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/EndpointDiscoveryServiceTests.cs`、`dotnet/tests/Asmroner.Application.Tests/MetadataSyncServiceTests.cs`、`README.md`。
+3. 验证结果：`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --nologo` 通过（77/77）；`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --nologo` 通过（66/66）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --nologo` 通过（158/158）；`rtk dotnet test dotnet/Asmroner.sln --nologo` 通过（315/315）。
+4. DoD 判定：是。用户本轮要求的 `v0.5.3` 版本升级、两项 bug 修复、“测试连接”逻辑优化、四个 `View.xaml.cs` 事件注释、单测与文档同步均已落地；受影响的手工功能项已在章节 4 中重置，待用户执行回归。
+5. 下次计划：由用户执行章节 4.1/4.5 的受影响手工回归，重点验证测试连接在发布源 HTML/脚本抓取失败时仍可回退到可用 BaseUrl、Settings 页面版本文案显示 `v0.5.3`，以及 Sync 页面运行中本地元数据数量实时增长且完成后摘要一致；章节 2.1 基线更新为 2026-04-08 的 `315/315`，并更新 `EndpointDiscoveryServiceTests` 与 `MetadataSyncServiceTests` 记录；章节 3.1 新增单一 `v0.5.3` 待提交记录，章节 4.1/4.5 受影响项已重置为未勾选。
+
+### 1.5.97 2026-04-08，v0.5.3：收敛 Sync 手动刷新口径并补强入口脚本解析
+
+1. 变更摘要：在保留 `MetadataSyncService` 本地总量/字幕量持久化修复的前提下，移除 `SyncView` 元数据同步运行中的 `DispatcherTimer` 自动刷新，改回仅通过“刷新统计”读取最新持久化进度；`EndpointDiscoveryService` 改为解析更宽松的入口 script `src` 形态，兼容相对路径、查询串与单引号 `link` 配置；同步补强 `UiStateStore` 元数据进度 round-trip 断言。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/EndpointDiscoveryService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/EndpointDiscoveryServiceTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/UiStateStoreTests.cs`、`docs/wpf-migration-progress.md`。
+3. 验证结果：`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --nologo` 通过（77/77）；`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --nologo` 通过（67/67）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --nologo` 通过（158/158）；`rtk dotnet test dotnet/Asmroner.sln --nologo` 通过（316/316）。
+4. DoD 判定：是。Endpoint 发布源入口脚本抓取已按更宽松的真实页面形态解析；Sync 页不再在运行中自动轮询统计，但“刷新统计”和完成态摘要均可读取到正确的本地总量/字幕量；受影响手工项已在章节 4 重置为未勾选。
+5. 下次计划：由用户执行章节 4.1/4.5 的受影响手工回归，重点验证测试连接对相对路径/查询串入口脚本的解析，以及 Sync 页面在同步运行中只有点击“刷新统计”后才更新顶部摘要与状态文本；章节 2.1 基线更新为 2026-04-08 的 `316/316`，并补充 `EndpointDiscoveryServiceTests` 新样例与 `UiStateStoreTests` 的进度字段说明。
+
+### 1.5.98 2026-04-08，v0.5.3：修正 Endpoint 探测端点并补齐元数据同步处理口径
+
+1. 变更摘要：`EndpointDiscoveryService` 的候选延迟探测不再对 `GET /api/recommender/popular` 做健康检查，而改为使用支持 `GET` 的 works 查询端点，避免 Go 版本 API 因 404 被误判为不可用；发布源 HTML/脚本抓取仍保持对超时与 `HttpRequestException` 的非致命回退。`MetadataSyncService` 在保留“新增数”语义的前提下，新增“累计处理条数”并持续写入 `UiState`，`SyncView` 的“刷新统计”和完成态详情同步显示累计处理、累计新增与当前本地总量/字幕量，降低“分页推进但像没写入”的误判风险；同时补齐基础设施与应用层回归样例。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/EndpointDiscoveryService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/MetadataSyncService.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Sync/MetadataSyncRunResult.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Sync/MetadataSyncProgressState.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/EndpointDiscoveryServiceTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/MetadataSyncStoreTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/UiStateStoreTests.cs`、`dotnet/tests/Asmroner.Application.Tests/MetadataSyncServiceTests.cs`、`docs/wpf-migration-progress.md`。
+3. 验证结果：`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --nologo` 通过（70/70）；`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --nologo` 通过（78/78）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --nologo` 通过（158/158）；`rtk dotnet test dotnet/Asmroner.sln --nologo` 通过（320/320）。
+4. DoD 判定：是。启动/“测试连接”链路不再因错误的 GET 探测端点把健康候选误判为 404；MetadataSync 的完成态、停止态和“刷新统计”已统一显示累计处理、累计新增与当前本地总量，相关测试与文档同步完成；章节 4 的受影响手工项继续保留未勾选，待用户执行回归。
+5. 下次计划：由用户执行章节 4.1/4.5 的受影响手工回归，重点验证“测试连接”在候选 API 对 `GET /api/recommender/popular` 返回 404 时仍可通过 works 探测选中可用 BaseUrl，以及 Sync 页面在前几页仅更新已有记录时，点击“刷新统计”后能同时看到累计处理、累计新增与当前本地总量；章节 2.1 基线更新为 2026-04-08 的 `320/320`，章节 3.1 继续维持单一 `v0.5.3` 待提交记录。
+
 ---
 
 ## 1.6 维护规则
@@ -1139,7 +1165,7 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-08 的解决方案级回归（313/313）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-08 的解决方案级回归（320/320）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
@@ -1262,10 +1288,15 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 
 #### 2.1.12 Infrastructure.Tests / EndpointDiscoveryServiceTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                             | 输入                                  | 期望输出                         |
-| ------ | ------ | ------ | ---------------------------------------------------------------------------------- | ------------------------------------- | -------------------------------- |
-| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldPickFastestReachableCandidate`                     | 候选域名包含 slow/fast，fast 返回 200 | 选中 `https://fast.example.com`  |
-| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldFallbackToConfiguredBaseUrl_WhenAllCandidatesFail` | 所有候选地址不可达                    | 回退到配置基础地址或返回明确失败 |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                                                      | 输入                                                                | 期望输出                                             |
+| ------ | ------ | ------ | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------- |
+| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldPickFastestReachableCandidate`                                              | 候选域名包含 slow/fast，fast 返回 200                               | 选中 `https://fast.example.com`                      |
+| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldProbeCandidates_UsingGetSafeWorksEndpoint`                                  | 健康候选对 `GET /api/recommender/popular` 不可用，但 works 查询可达 | 候选探测改走 GET-safe works 端点并正确选中健康候选   |
+| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldFallbackToConfiguredBaseUrl_WhenAllCandidatesFail`                          | 所有候选地址不可达                                                  | 回退到配置基础地址或返回明确失败                     |
+| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldFallbackToConfiguredCandidate_WhenPublishAssetRequestFails`                 | 发布页可访问，但入口脚本请求 404/失败，配置地址可达                 | 忽略入口脚本失败并回退到配置候选地址                 |
+| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldParseScriptTag_WhenAttributesUseDifferentOrder`                             | 发布页脚本标签属性顺序变化                                          | 仍可解析入口脚本并动态发现 API 候选地址              |
+| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldParseRelativeEntryScript_WithQuerySuffix_AndSingleQuotedLink`               | 发布页入口脚本使用相对路径、查询串与单引号 link 配置                | 仍可解析入口脚本并动态发现 API 候选地址              |
+| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldIgnorePublishSourceTimeoutAndHttpFailures_AndFallbackToConfiguredCandidate` | 发布源先后出现超时与 `HttpRequestException`，配置候选可达           | 发布源抓取失败不打断整条探测链路，最终回退到配置候选 |
 
 #### 2.1.13 Infrastructure.Tests / DatabaseInitializerTests.cs
 
@@ -1561,16 +1592,16 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 
 #### 2.1.46 Infrastructure.Tests / UiStateStoreTests.cs
 
-| 已创建 | 已通过 | 阶段    | 样例名                                                                    | 输入                                                     | 期望输出                                                                        |
-| ------ | ------ | ------- | ------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 4+ | `SaveSearchUiStateAsync_ShouldRoundTrip`                                  | 保存 includeTranslation、queueTranslation 与高级筛选状态 | 重新加载后字段一致                                                              |
-| [x]    | [x]    | 阶段 4+ | `SaveDownloadUiStateAsync_ShouldRoundTrip`                                | 保存 fileFilter、hdAudioOnly、queueTranslation 状态      | 重新加载后字段一致                                                              |
-| [x]    | [x]    | 阶段 4+ | `LoadDownloadUiStateAsync_ShouldReturnDefaults_WhenNoUiStatePersisted`    | 无 UI 状态记录                                           | 返回默认状态：`fileFilter=空`、`hdAudioOnly=true`、`queueTranslationWorks=true` |
-| [x]    | [x]    | 阶段 4+ | `SaveUnfinishedQueueAsync_ShouldNormalizeDeduplicate_AndClear`            | 混合 URL/RJID/重复/空白的未完成队列并执行清空操作        | 存储结果规范化去重，清空后读取为空                                              |
-| [x]    | [x]    | 阶段 5  | `SaveMetadataSyncProgressAsync_ShouldRoundTrip_AndPreserveStopRequest`    | 元数据同步进度写回 + 运行中发起停止请求                  | 进度字段 round-trip 正确，且运行中 stop request 不会被后续保存覆盖              |
-| [x]    | [x]    | 阶段 5  | `LoadMetadataSyncProgressAsync_ShouldReturnDefaults_WhenNoStatePersisted` | 无元数据同步进度记录                                     | 返回默认状态：`IDLE`、`NextPage=1`、`ProcessedPageCount=0`                      |
-| [x]    | [x]    | 阶段 5  | `SaveSyncDownloadProgressAsync_ShouldRoundTrip_AndPreserveStopRequest`    | 同步下载进度写回 + 运行中发起停止请求                    | 进度字段 round-trip 正确，且运行中 stop request 不会被后续保存覆盖              |
-| [x]    | [x]    | 阶段 5  | `LoadSyncDownloadProgressAsync_ShouldReturnDefaults_WhenNoStatePersisted` | 无同步下载进度记录                                       | 返回默认状态：`IDLE`、空 `LastProcessedSourceId` 与 0 计数                      |
+| 已创建 | 已通过 | 阶段    | 样例名                                                                    | 输入                                                     | 期望输出                                                                                               |
+| ------ | ------ | ------- | ------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| [x]    | [x]    | 阶段 4+ | `SaveSearchUiStateAsync_ShouldRoundTrip`                                  | 保存 includeTranslation、queueTranslation 与高级筛选状态 | 重新加载后字段一致                                                                                     |
+| [x]    | [x]    | 阶段 4+ | `SaveDownloadUiStateAsync_ShouldRoundTrip`                                | 保存 fileFilter、hdAudioOnly、queueTranslation 状态      | 重新加载后字段一致                                                                                     |
+| [x]    | [x]    | 阶段 4+ | `LoadDownloadUiStateAsync_ShouldReturnDefaults_WhenNoUiStatePersisted`    | 无 UI 状态记录                                           | 返回默认状态：`fileFilter=空`、`hdAudioOnly=true`、`queueTranslationWorks=true`                        |
+| [x]    | [x]    | 阶段 4+ | `SaveUnfinishedQueueAsync_ShouldNormalizeDeduplicate_AndClear`            | 混合 URL/RJID/重复/空白的未完成队列并执行清空操作        | 存储结果规范化去重，清空后读取为空                                                                     |
+| [x]    | [x]    | 阶段 5  | `SaveMetadataSyncProgressAsync_ShouldRoundTrip_AndPreserveStopRequest`    | 元数据同步进度写回 + 运行中发起停止请求                  | 进度字段 round-trip 正确，含本地总量/字幕量/累计处理条数字段，且运行中 stop request 不会被后续保存覆盖 |
+| [x]    | [x]    | 阶段 5  | `LoadMetadataSyncProgressAsync_ShouldReturnDefaults_WhenNoStatePersisted` | 无元数据同步进度记录                                     | 返回默认状态：`IDLE`、`NextPage=1`、`ProcessedPageCount=0`、`ProcessedWorkCount=0`                     |
+| [x]    | [x]    | 阶段 5  | `SaveSyncDownloadProgressAsync_ShouldRoundTrip_AndPreserveStopRequest`    | 同步下载进度写回 + 运行中发起停止请求                    | 进度字段 round-trip 正确，且运行中 stop request 不会被后续保存覆盖                                     |
+| [x]    | [x]    | 阶段 5  | `LoadSyncDownloadProgressAsync_ShouldReturnDefaults_WhenNoStatePersisted` | 无同步下载进度记录                                       | 返回默认状态：`IDLE`、空 `LastProcessedSourceId` 与 0 计数                                             |
 
 #### 2.1.47 Wpf.Tests / DownloadUnfinishedQueueSnapshotPolicyTests.cs
 
@@ -1690,14 +1721,15 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 
 #### 2.1.61 Application.Tests / MetadataSyncServiceTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                    | 输入                                                          | 期望输出                                                                          |
-| ------ | ------ | ------ | ------------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldInsertAllPages_WhenRemoteHasNewWorks`            | 网站元数据总量 `101`、本地为空，分页返回 `100 + 1` 条元数据   | 顺序请求总量页与 2 个同步分页，新增 101 条，本地总量追平到 101 条                 |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldSkip_WhenRemoteCountMatchesLocalCount`           | 网站总量与本地总量相同，且不存在过期元数据                    | 仅查询网站总量，不执行分页同步，返回“无需同步”                                    |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldRefreshExpiredMetadata_WhenPreviousRunCompleted` | 上次进度为 `COMPLETED`，且本地存在超过元数据有效期的元数据    | 再次执行时触发过期刷新，并更新本地 `MetadataWork` 摘要                            |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldReport_WhenLocalCountExceedsRemoteCount`         | 本地元数据数量大于网站                                        | 不执行分页同步，返回“本地元数据数量高于网站，未执行同步”                          |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldResumeFromSavedProgress_WhenStateIsUnfinished`   | 已保存 `STOPPED` 元数据进度，`NextPage=2`，本地已有第一页数据 | 只从第二页继续同步，结果标记 `ResumedFromProgress=true`，最终进度写成 `COMPLETED` |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldStopAfterCurrentPage_WhenStopRequested`          | 两页元数据同步，第一页写回后触发 stop request                 | 当前页完成后停止，结果标记 `WasStopped=true`，UiState `NextPage=2`                |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                            | 输入                                                          | 期望输出                                                                                                                            |
+| ------ | ------ | ------ | --------------------------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldInsertAllPages_WhenRemoteHasNewWorks`                    | 网站元数据总量 `101`、本地为空，分页返回 `100 + 1` 条元数据   | 顺序请求总量页与 2 个同步分页，新增 101 条，本地总量追平到 101 条，并把完成态进度写为本地总量 `101` / 字幕 `1`                      |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldTrackProcessedWorks_WhenExistingPagesContainOnlyUpdates` | 第 1 页 100 条均为本地已存在记录，第 2 页新增 1 条元数据      | 本次累计处理 `101` 条、累计新增 `1` 条；已有页更新会写入 SQLite，完成态进度保留累计处理条数                                         |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldSkip_WhenRemoteCountMatchesLocalCount`                   | 网站总量与本地总量相同，且不存在过期元数据                    | 仅查询网站总量，不执行分页同步，返回“无需同步”                                                                                      |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldRefreshExpiredMetadata_WhenPreviousRunCompleted`         | 上次进度为 `COMPLETED`，且本地存在超过元数据有效期的元数据    | 再次执行时触发过期刷新，并更新本地 `MetadataWork` 摘要                                                                              |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldReport_WhenLocalCountExceedsRemoteCount`                 | 本地元数据数量大于网站                                        | 不执行分页同步，返回“本地元数据数量高于网站，未执行同步”                                                                            |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldResumeFromSavedProgress_WhenStateIsUnfinished`           | 已保存 `STOPPED` 元数据进度，`NextPage=2`，本地已有第一页数据 | 只从第二页继续同步，结果标记 `ResumedFromProgress=true`，最终进度写成 `COMPLETED`，并保留本地总量 `101` / 字幕 `1` / 累计处理 `101` |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldStopAfterCurrentPage_WhenStopRequested`                  | 两页元数据同步，第一页写回后触发 stop request                 | 当前页完成后停止，结果标记 `WasStopped=true`，UiState `NextPage=2`，并保留当前本地总量 `100` / 字幕 `1` / 累计处理 `100`            |
 
 #### 2.1.62 Wpf.Tests / SyncViewXamlTests.cs
 
@@ -1721,11 +1753,12 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 
 #### 2.1.64 Infrastructure.Tests / MetadataSyncStoreTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                    | 输入                                                       | 期望输出                                                                     |
-| ------ | ------ | ------ | ------------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 5 | `MetadataSyncStore_ShouldTrackSyncDownloadSnapshot_AndCleanupPendingRows` | SQLite 中预置 2 条元数据并写入一条 Completed、一条 Pending | 快照正确统计完成/待处理数量与已落盘大小，且清理 Pending 后目录与记录一并移除 |
-| [x]    | [x]    | 阶段 5 | `MetadataSyncStore_ShouldReturnFailedSyncDownloads_ForRetry`              | SQLite 中预置失败/成功两类同步记录                         | 仅返回 `FAILED` 记录，并保留重试次数、失败原因与时间信息                     |
-| [x]    | [x]    | 阶段 5 | `MetadataSyncStore_ShouldReturnSyncDownloadsByStatus_ForExport`           | SQLite 中预置 Completed/Failed 两类同步记录                | 可按状态分别返回导出候选记录，并保留目录大小、失败原因与字幕标记             |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                            | 输入                                                       | 期望输出                                                                     |
+| ------ | ------ | ------ | --------------------------------------------------------------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 5 | `MetadataSyncStore_ShouldTrackSyncDownloadSnapshot_AndCleanupPendingRows`         | SQLite 中预置 2 条元数据并写入一条 Completed、一条 Pending | 快照正确统计完成/待处理数量与已落盘大小，且清理 Pending 后目录与记录一并移除 |
+| [x]    | [x]    | 阶段 5 | `MetadataSyncStore_ShouldReturnFailedSyncDownloads_ForRetry`                      | SQLite 中预置失败/成功两类同步记录                         | 仅返回 `FAILED` 记录，并保留重试次数、失败原因与时间信息                     |
+| [x]    | [x]    | 阶段 5 | `MetadataSyncStore_ShouldReturnSyncDownloadsByStatus_ForExport`                   | SQLite 中预置 Completed/Failed 两类同步记录                | 可按状态分别返回导出候选记录，并保留目录大小、失败原因与字幕标记             |
+| [x]    | [x]    | 阶段 5 | `UpsertMetadataWorksAsync_ShouldUpdateExistingRows_WithoutCountingThemAsInserted` | SQLite 中已存在同 Id 记录，再次 upsert 更新标题与字幕标记  | 已有记录被正确更新，快照同步反映新字段值，且返回的“新增数”为 `0`             |
 
 #### 2.1.65 Application.Tests / SyncExportServiceTests.cs
 
@@ -1832,10 +1865,11 @@ AI约束策略：章节1.5.1到1.5.85的文本不加入分析上下文
 | 2026-04-02 | 已提交 | v0.4.11: add favorites flow and unify search/download actions               | 1. Update runtime/docs version to v0.4.11.<br>2. Add SQLite favorite storage, and Search favorite-save flow.<br>3. Add Download favorite-import flow and queue integration.<br>4. Merge Search export actions for the main button and context menu, and merge Download CSV/JSON import actions.<br>5. Merge retry behavior and adjust the Download action-button.<br>6. Update regression tests and progress documentation.        | 6566c05    |
 | 2026-04-03 | 已提交 | v0.5.0: land phase 5 metadata/download/retry/export/report flow             | 1. Update runtime/docs version to v0.5.0.<br>2. Start phase 5 with metadata sync API, SQLite store, and application service.<br>3. Add sync-download orchestration with capacity control, failure retry, export report, and status persistence.<br>4. Expand the Sync tab with metadata/download/retry/export actions plus statistics cards and local summary panels.<br>5. Update regression tests and progress documentation.    | 78fbe7d    |
 | 2026-04-03 | 已提交 | v0.5.1: persist sync progress and harden sync controls                      | 1. Update runtime/docs version to v0.5.1.<br>2. Persist metadata-sync and sync-download progress in SQLite and resume unfinished runs on restart.<br>3. Replace separate start/stop controls with merged sync action buttons, and add a 1-second debounce window.<br>4. Keep Refresh button available during running sync and refresh live report/progress snapshots.<br>5. Update regression tests and progress documentation.    | f3a2b42    |
-| 2026-04-08 | 待提交 | v0.5.2: unify workinfo dto, refresh stale metadata, stream real downloads   | 1. Update runtime/docs version to v0.5.2.<br>2. Modify configuration.<br>3. Prefer local MetadataWork for Search/Download before refresh from API.<br>4. Refresh expired metadata and rescan completed sync downloads.<br>5. Replace placeholder download outputs with real download streaming.<br>6. Unify Search/Download/Sync work-info flows on shared Dto.<br>7. Update regression tests and progress documentation.          | -          |
+| 2026-04-08 | 已提交 | v0.5.2: unify workinfo dto, refresh stale metadata, stream real downloads   | 1. Update runtime/docs version to v0.5.2.<br>2. Modify configuration.<br>3. Prefer local MetadataWork for Search/Download before refresh from API.<br>4. Refresh expired metadata and rescan completed sync downloads.<br>5. Replace placeholder download outputs with real download streaming.<br>6. Unify Search/Download/Sync work-info flows on shared Dto.<br>7. Update regression tests and progress documentation.          | e0ff664    |
+| 2026-04-08 | 待提交 | v0.5.3: fix endpoint probe path and clarify sync progress counts            | 1. Update runtime/docs version to v0.5.3.<br>2. Fix HTML/script fetch failures, flexible script markup, replace the candidate latency probe with a GET-safe endpoint.<br>3. Persist metadata-sync local counts plus cumulative processed-work counts.<br>4. Refactor Settings save/test-connection flow.<br>5. Add XML docs to direct control handlers in View files.<br>6. Update regression tests and progress documentation.    | -          |
 
 ---
-
+ 
 ## 4. 功能测试验证清单
 
 本章用于指导测试人员对当前已交付的 WPF 客户端执行功能测试与回归测试。当前范围覆盖阶段 1 到阶段 4，以及阶段 5 已落地的元数据同步、同步下载、失败重试、状态导出、统计报表、同步进度持久化、断点继续与温和停止入口。
@@ -1857,8 +1891,11 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] Settings 页面可分别编辑下载目录、同步下载目录与元数据有效期，并在“保存并重新初始化”后生效。
 - [x] 在 Settings 页面点击“保存并重新初始化”后，当前页应保持在 Settings，不应自动跳转到 Search。
 - [x] Settings 页面输入无效配置（含非法 `SyncWantedSize`）时，可给出可读错误提示，且应用不崩溃。
-- [x] “测试连接”可完成站点发现与登录校验；成功时回填当前 BaseUrl 并显示延迟与鉴权结果，失败时显示明确原因。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.5.2。
+- [ ] “测试连接”可完成站点发现与登录校验；成功时回填当前 BaseUrl 并显示延迟与鉴权结果，失败时显示明确原因。
+- [ ] 当发布源 HTML 或入口脚本抓取失败时，“测试连接”仍会回退到可用 BaseUrl，不因 `GetStringWithTimeoutAsync` 的非 2xx / 超时失败而中断整条探测链路。
+- [ ] 当候选 API 对 `GET /api/recommender/popular` 返回 404，但 works 查询端点可达时，“测试连接”仍会选中该可用 BaseUrl，不会因错误探测端点误判不可用。
+- [ ] 当发布页入口脚本使用相对路径、查询串或单引号 `link` 配置时，“测试连接”仍可正确解析入口脚本并发现可用 BaseUrl。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.5.3。
 
 ### 4.2 Search 功能
 
@@ -1940,7 +1977,8 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 当 SQLite `UiState` 中存在未完成元数据同步进度时，再次点击元数据同步主按钮会从记录页码继续执行，而不是从第一页重新开始。
 - [x] 点击元数据同步主按钮发出 stop request 后，按钮会切换为“正在停止元数据...”，并在当前页完成后恢复为空闲态。
 - [x] 元数据同步开始后的 1 秒内连续双击主按钮时，第二次点击会被防抖忽略，按钮保持“停止同步元数据”，不会误切到“正在停止元数据...”。
-- [x] 同步完成后，页面摘要会显示网站总量、本地总量、新增数量与分页处理结果。
+- [x] 元数据同步进行中时，点击“刷新统计”后，顶部“本地元数据”摘要、状态文本与详情区会显示当前已持久化的本地总量、字幕量、累计处理条数与累计新增数。
+- [ ] 同步完成后，页面摘要与详情区会显示网站总量、本地总量、累计处理条数、累计新增数量与分页处理结果。
 - [x] 下载同步主按钮在空闲态显示“开始同步下载”，点击后会切换为“停止同步下载”。
 - [x] 点击下载同步主按钮开始同步后，可按 `SyncWantedSize` 逐项处理待同步作品、下载真实媒体文件，并将 `WorkSyncInfo` 写为 `COMPLETED/FAILED`。
 - [x] 当累计落盘大小达到 `SyncWantedSize` 后，Sync 页面会提示已达到容量上限，且停止后续候选作品处理。

@@ -198,6 +198,57 @@ public class MetadataSyncStoreTests
         }
     }
 
+    [Fact]
+    public async Task UpsertMetadataWorksAsync_ShouldUpdateExistingRows_WithoutCountingThemAsInserted()
+    {
+        var tempRoot = CreateTempRoot();
+        try
+        {
+            var pathService = new AppPathService(tempRoot);
+            var sut = new MetadataSyncStore(pathService);
+            var originalUpdatedAt = DateTime.UtcNow.AddDays(-2);
+
+            await sut.UpsertMetadataWorksAsync(
+            [
+                new MetadataWorkItem
+                {
+                    Id = 31,
+                    SourceId = "RJ031",
+                    Title = "Old Title",
+                    HasSubtitle = false,
+                    UpdatedAt = originalUpdatedAt,
+                },
+            ]);
+
+            var insertedCount = await sut.UpsertMetadataWorksAsync(
+            [
+                new MetadataWorkItem
+                {
+                    Id = 31,
+                    SourceId = "RJ031",
+                    Title = "Updated Title",
+                    HasSubtitle = true,
+                    UpdatedAt = DateTime.UtcNow,
+                },
+            ]);
+
+            var snapshot = await sut.GetMetadataSnapshotAsync();
+            var items = await sut.GetMetadataWorksBySourceIdsAsync(["RJ031"]);
+            var item = Assert.Single(items).Value;
+
+            Assert.Equal(0, insertedCount);
+            Assert.Equal(1, snapshot.LocalTotalCount);
+            Assert.Equal(1, snapshot.LocalSubtitleCount);
+            Assert.Equal("Updated Title", item.Title);
+            Assert.True(item.HasSubtitle);
+            Assert.True(item.UpdatedAt > originalUpdatedAt);
+        }
+        finally
+        {
+            CleanupTempRoot(tempRoot);
+        }
+    }
+
     private static string CreateTempRoot()
     {
         var path = Path.Combine(Path.GetTempPath(), "asmroner-metadata-sync-store-tests", Guid.NewGuid().ToString("N"));

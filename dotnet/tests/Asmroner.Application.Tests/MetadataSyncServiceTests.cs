@@ -34,15 +34,69 @@ public class MetadataSyncServiceTests
 
         var result = await sut.SyncMetadataAsync();
         var snapshot = await sut.GetMetadataSnapshotAsync();
+        var progress = await uiStateStore.LoadMetadataSyncProgressAsync();
 
         Assert.Equal(101, result.RemoteTotalCount);
         Assert.Equal(1, result.RemoteSubtitleCount);
         Assert.Equal(101, result.InsertedCount);
+        Assert.Equal(101, result.ProcessedWorkCount);
         Assert.Equal(101, result.LocalTotalCountAfter);
         Assert.True(result.IsUpToDate);
         Assert.Equal(101, snapshot.LocalTotalCount);
         Assert.Equal(1, snapshot.LocalSubtitleCount);
+        Assert.Equal(101, progress.LocalTotalCount);
+        Assert.Equal(1, progress.LocalSubtitleCount);
+        Assert.Equal(101, progress.ProcessedWorkCount);
         Assert.Equal([(1, 1, false), (1, 1, true), (1, 100, false), (2, 100, false)], apiClient.Calls);
+    }
+
+    [Fact]
+    public async Task SyncMetadataAsync_ShouldTrackProcessedWorks_WhenExistingPagesContainOnlyUpdates()
+    {
+        var uiStateStore = new InMemoryUiStateStore();
+        var apiClient = new RecordingMetadataApiClient
+        {
+            RemoteTotalCount = 101,
+            RemoteSubtitleCount = 1,
+            Pages =
+            {
+                [1] = BuildPage(startId: 101, count: 100, subtitleIndex: 0),
+                [2] =
+                [
+                    CreateWork(201, "RJ201", "Title 201"),
+                ],
+            },
+        };
+        var existingWorks = Enumerable.Range(101, 100)
+            .Select(id => new MetadataWorkItem
+            {
+                Id = id,
+                SourceId = $"RJ{id}",
+                Title = $"Stale Title {id}",
+                HasSubtitle = false,
+                UpdatedAt = DateTime.UtcNow.AddDays(-7),
+            })
+            .ToArray();
+        var store = new InMemoryMetadataSyncStore(existingWorks);
+        var sut = new MetadataSyncService(
+            apiClient,
+            new TestConfigurationService(Path.GetTempPath()),
+            store,
+            new NoopRateLimiterService(),
+            uiStateStore);
+
+        var result = await sut.SyncMetadataAsync();
+        var progress = await uiStateStore.LoadMetadataSyncProgressAsync();
+        var refreshed = await store.GetMetadataWorksBySourceIdsAsync(["RJ101", "RJ201"]);
+
+        Assert.Equal(1, result.InsertedCount);
+        Assert.Equal(101, result.ProcessedWorkCount);
+        Assert.Equal(101, result.LocalTotalCountAfter);
+        Assert.Equal(1, progress.InsertedCount);
+        Assert.Equal(101, progress.ProcessedWorkCount);
+        Assert.Equal("Title 101", refreshed["RJ101"].Title);
+        Assert.True(refreshed["RJ101"].HasSubtitle);
+        Assert.Equal("Title 201", refreshed["RJ201"].Title);
     }
 
     [Fact]
@@ -82,6 +136,7 @@ public class MetadataSyncServiceTests
         var result = await sut.SyncMetadataAsync();
 
         Assert.Equal(0, result.InsertedCount);
+        Assert.Equal(0, result.ProcessedWorkCount);
         Assert.Equal(0, result.ProcessedPageCount);
         Assert.True(result.IsUpToDate);
         Assert.Contains("无需同步", result.Message, StringComparison.Ordinal);
@@ -138,6 +193,7 @@ public class MetadataSyncServiceTests
         var refreshed = await store.GetMetadataWorksBySourceIdsAsync(new[] { "RJ401" });
 
         Assert.Equal(0, result.InsertedCount);
+        Assert.Equal(1, result.ProcessedWorkCount);
         Assert.Contains("过期刷新完成", result.Message, StringComparison.Ordinal);
         Assert.Equal([(1, 1, false), (1, 1, true), (1, 100, false)], apiClient.Calls);
         Assert.Equal("Updated Title 401", refreshed["RJ401"].Title);
@@ -179,6 +235,7 @@ public class MetadataSyncServiceTests
         var result = await sut.SyncMetadataAsync();
 
         Assert.Equal(0, result.InsertedCount);
+        Assert.Equal(0, result.ProcessedWorkCount);
         Assert.False(result.IsUpToDate);
         Assert.Contains("本地元数据数量高于网站", result.Message, StringComparison.Ordinal);
         Assert.Equal([(1, 1, false), (1, 1, true)], apiClient.Calls);
@@ -197,6 +254,7 @@ public class MetadataSyncServiceTests
             RemoteTotalCount = 101,
             RemoteSubtitleCount = 1,
             InsertedCount = 100,
+            ProcessedWorkCount = 100,
             StartedAt = DateTime.UtcNow.AddMinutes(-10),
             UpdatedAt = DateTime.UtcNow.AddMinutes(-1),
         });
@@ -238,10 +296,14 @@ public class MetadataSyncServiceTests
         Assert.True(result.ResumedFromProgress);
         Assert.False(result.WasStopped);
         Assert.Equal(1, result.InsertedCount);
+        Assert.Equal(1, result.ProcessedWorkCount);
         Assert.Equal(2, result.ProcessedPageCount);
         Assert.Equal(1, result.NextPage);
         Assert.Equal(SyncProgressStatuses.Completed, progress.Status);
         Assert.Equal(101, progress.InsertedCount);
+        Assert.Equal(101, progress.LocalTotalCount);
+        Assert.Equal(1, progress.LocalSubtitleCount);
+        Assert.Equal(101, progress.ProcessedWorkCount);
         Assert.Equal([(1, 1, false), (1, 1, true), (2, 100, false)], apiClient.Calls);
     }
 
@@ -277,10 +339,14 @@ public class MetadataSyncServiceTests
         Assert.True(result.WasStopped);
         Assert.False(result.IsUpToDate);
         Assert.Equal(100, result.InsertedCount);
+        Assert.Equal(100, result.ProcessedWorkCount);
         Assert.Equal(1, result.ProcessedPageCount);
         Assert.Equal(2, result.NextPage);
         Assert.Equal(SyncProgressStatuses.Stopped, progress.Status);
         Assert.Equal(2, progress.NextPage);
+        Assert.Equal(100, progress.LocalTotalCount);
+        Assert.Equal(1, progress.LocalSubtitleCount);
+        Assert.Equal(100, progress.ProcessedWorkCount);
         Assert.Equal([(1, 1, false), (1, 1, true), (1, 100, false)], apiClient.Calls);
     }
 

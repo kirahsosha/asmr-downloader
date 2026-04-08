@@ -42,11 +42,17 @@ public partial class SyncView : UserControl
         Loaded += OnLoaded;
     }
 
+    /// <summary>
+    /// 处理 Sync 页面加载并刷新同步摘要。
+    /// </summary>
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
         await RefreshSnapshotAsync(updateStatusText: false);
     }
 
+    /// <summary>
+    /// 处理“刷新统计”按钮点击。
+    /// </summary>
     private async void OnRefreshStatusClicked(object sender, RoutedEventArgs e)
     {
         if (Interlocked.Exchange(ref _refreshActionInFlight, 1) == 1)
@@ -70,6 +76,9 @@ public partial class SyncView : UserControl
         }
     }
 
+    /// <summary>
+    /// 处理“开始同步元数据 / 停止同步元数据”按钮点击。
+    /// </summary>
     private async void OnSyncMetadataClicked(object sender, RoutedEventArgs e)
     {
         if (Interlocked.Exchange(ref _metadataActionInFlight, 1) == 1)
@@ -135,6 +144,9 @@ public partial class SyncView : UserControl
         }
     }
 
+    /// <summary>
+    /// 处理“开始同步下载 / 停止同步下载”按钮点击。
+    /// </summary>
     private async void OnSyncDownloadClicked(object sender, RoutedEventArgs e)
     {
         if (Interlocked.Exchange(ref _downloadActionInFlight, 1) == 1)
@@ -200,6 +212,9 @@ public partial class SyncView : UserControl
         }
     }
 
+    /// <summary>
+    /// 处理“重试失败任务”按钮点击。
+    /// </summary>
     private async void OnRetryFailedClicked(object sender, RoutedEventArgs e)
     {
         await RunExclusiveOperationAsync(async () =>
@@ -220,11 +235,17 @@ public partial class SyncView : UserControl
         });
     }
 
+    /// <summary>
+    /// 处理“导出失败记录”按钮点击。
+    /// </summary>
     private async void OnExportFailedClicked(object sender, RoutedEventArgs e)
     {
         await RunExclusiveOperationAsync(async () => await ExportAsync(SyncExportStatus.Failed));
     }
 
+    /// <summary>
+    /// 处理“导出已完成记录”按钮点击。
+    /// </summary>
     private async void OnExportCompletedClicked(object sender, RoutedEventArgs e)
     {
         await RunExclusiveOperationAsync(async () => await ExportAsync(SyncExportStatus.Completed));
@@ -274,6 +295,7 @@ public partial class SyncView : UserControl
             $"同步前本地字幕量：{result.LocalSubtitleCountBefore.ToString(CultureInfo.InvariantCulture)}",
             $"同步后本地总量：{result.LocalTotalCountAfter.ToString(CultureInfo.InvariantCulture)}",
             $"同步后本地字幕量：{result.LocalSubtitleCountAfter.ToString(CultureInfo.InvariantCulture)}",
+            $"本次处理：{result.ProcessedWorkCount.ToString(CultureInfo.InvariantCulture)}",
             $"本次新增：{result.InsertedCount.ToString(CultureInfo.InvariantCulture)}",
             $"处理分页：{result.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{result.TotalPageCount.ToString(CultureInfo.InvariantCulture)}",
             $"下次页码：{result.NextPage.ToString(CultureInfo.InvariantCulture)}",
@@ -498,18 +520,18 @@ public partial class SyncView : UserControl
         if (string.Equals(metadataProgress.Status, SyncProgressStatuses.Running, StringComparison.Ordinal))
         {
             messages.Add(metadataProgress.StopRequested
-                ? $"元数据同步正在停止：已处理 {metadataProgress.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{metadataProgress.TotalPageCount.ToString(CultureInfo.InvariantCulture)} 页，等待当前页完成。"
-                : $"元数据同步进行中：已处理 {metadataProgress.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{metadataProgress.TotalPageCount.ToString(CultureInfo.InvariantCulture)} 页，下次页码 {metadataProgress.NextPage.ToString(CultureInfo.InvariantCulture)}。"
+                ? $"元数据同步正在停止：已处理 {metadataProgress.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{metadataProgress.TotalPageCount.ToString(CultureInfo.InvariantCulture)} 页，累计处理 {metadataProgress.ProcessedWorkCount.ToString(CultureInfo.InvariantCulture)} 条，本地现有 {metadataProgress.LocalTotalCount.ToString(CultureInfo.InvariantCulture)} 条，等待当前页完成。"
+                : $"元数据同步进行中：已处理 {metadataProgress.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{metadataProgress.TotalPageCount.ToString(CultureInfo.InvariantCulture)} 页，累计处理 {metadataProgress.ProcessedWorkCount.ToString(CultureInfo.InvariantCulture)} 条，本地现有 {metadataProgress.LocalTotalCount.ToString(CultureInfo.InvariantCulture)} 条，下次页码 {metadataProgress.NextPage.ToString(CultureInfo.InvariantCulture)}。"
             );
         }
         else if (string.Equals(metadataProgress.Status, SyncProgressStatuses.Stopped, StringComparison.Ordinal))
         {
-            messages.Add($"检测到未完成元数据同步进度，下次将从第 {metadataProgress.NextPage.ToString(CultureInfo.InvariantCulture)} 页继续。");
+            messages.Add($"检测到未完成元数据同步进度，累计处理 {metadataProgress.ProcessedWorkCount.ToString(CultureInfo.InvariantCulture)} 条，本地现有 {metadataProgress.LocalTotalCount.ToString(CultureInfo.InvariantCulture)} 条，下次将从第 {metadataProgress.NextPage.ToString(CultureInfo.InvariantCulture)} 页继续。");
         }
         else if (string.Equals(metadataProgress.Status, SyncProgressStatuses.Completed, StringComparison.Ordinal)
             && metadataProgress.TotalPageCount > 0)
         {
-            messages.Add($"元数据同步已完成：共处理 {metadataProgress.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{metadataProgress.TotalPageCount.ToString(CultureInfo.InvariantCulture)} 页。");
+            messages.Add($"元数据同步已完成：共处理 {metadataProgress.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{metadataProgress.TotalPageCount.ToString(CultureInfo.InvariantCulture)} 页，累计处理 {metadataProgress.ProcessedWorkCount.ToString(CultureInfo.InvariantCulture)} 条，本地现有 {metadataProgress.LocalTotalCount.ToString(CultureInfo.InvariantCulture)} 条。");
         }
 
         if (string.Equals(downloadProgress.Status, SyncProgressStatuses.Running, StringComparison.Ordinal))
@@ -547,6 +569,9 @@ public partial class SyncView : UserControl
             $"元数据停止请求：{(metadataProgress.StopRequested ? "是" : "否")}",
             $"元数据下次页码：{metadataProgress.NextPage.ToString(CultureInfo.InvariantCulture)}",
             $"元数据已处理分页：{metadataProgress.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{metadataProgress.TotalPageCount.ToString(CultureInfo.InvariantCulture)}",
+            $"元数据当前本地总量：{metadataProgress.LocalTotalCount.ToString(CultureInfo.InvariantCulture)}",
+            $"元数据当前本地字幕量：{metadataProgress.LocalSubtitleCount.ToString(CultureInfo.InvariantCulture)}",
+            $"元数据累计处理：{metadataProgress.ProcessedWorkCount.ToString(CultureInfo.InvariantCulture)}",
             $"元数据累计新增：{metadataProgress.InsertedCount.ToString(CultureInfo.InvariantCulture)}",
             $"元数据最近更新时间：{FormatTimestamp(metadataProgress.UpdatedAt)}",
             string.Empty,

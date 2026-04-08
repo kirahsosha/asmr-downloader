@@ -67,6 +67,10 @@ public sealed class MetadataSyncService
         var cumulativeInsertedCount = resumedFromProgress
             ? Math.Max(0, progress.InsertedCount)
             : 0;
+        var cumulativeProcessedWorkCount = resumedFromProgress
+            ? Math.Max(0, progress.ProcessedWorkCount > 0 ? progress.ProcessedWorkCount : progress.InsertedCount)
+            : 0;
+        var currentSnapshot = before;
         var startedAt = resumedFromProgress
             ? progress.StartedAt ?? DateTime.UtcNow
             : DateTime.UtcNow;
@@ -81,7 +85,10 @@ public sealed class MetadataSyncService
                     totalPageCount: totalPages,
                     remoteTotalCount,
                     remoteSubtitleCount,
+                    localTotalCount: before.LocalTotalCount,
+                    localSubtitleCount: before.LocalSubtitleCount,
                     insertedCount: 0,
+                    processedWorkCount: 0,
                     startedAt,
                     updatedAt: DateTime.UtcNow),
                 cancellationToken);
@@ -105,7 +112,10 @@ public sealed class MetadataSyncService
                     totalPageCount: totalPages,
                     remoteTotalCount,
                     remoteSubtitleCount,
+                    localTotalCount: before.LocalTotalCount,
+                    localSubtitleCount: before.LocalSubtitleCount,
                     insertedCount: 0,
+                    processedWorkCount: 0,
                     startedAt,
                     updatedAt: DateTime.UtcNow),
                 cancellationToken);
@@ -127,12 +137,16 @@ public sealed class MetadataSyncService
                 totalPageCount: totalPages,
                 remoteTotalCount,
                 remoteSubtitleCount,
+                localTotalCount: before.LocalTotalCount,
+                localSubtitleCount: before.LocalSubtitleCount,
                 insertedCount: cumulativeInsertedCount,
+                processedWorkCount: cumulativeProcessedWorkCount,
                 startedAt,
                 updatedAt: DateTime.UtcNow),
             cancellationToken);
 
         var insertedCount = 0;
+        var processedWorkCount = 0;
 
         for (var page = startPage; page <= totalPages; page++)
         {
@@ -144,11 +158,15 @@ public sealed class MetadataSyncService
                 .Select(work => work.ToMetadataWorkItem(updatedAt))
                 .Where(static work => work.Id > 0 && !string.IsNullOrWhiteSpace(work.SourceId))
                 .ToArray();
+            var processedThisPage = works.Length;
 
             var insertedThisPage = await _metadataSyncStore.UpsertMetadataWorksAsync(works, cancellationToken);
             insertedCount += insertedThisPage;
             cumulativeInsertedCount += insertedThisPage;
+            processedWorkCount += processedThisPage;
+            cumulativeProcessedWorkCount += processedThisPage;
             processedPageCountOverall = page;
+            currentSnapshot = await _metadataSyncStore.GetMetadataSnapshotAsync(cancellationToken);
 
             if (page < totalPages)
             {
@@ -160,7 +178,10 @@ public sealed class MetadataSyncService
                         totalPageCount: totalPages,
                         remoteTotalCount,
                         remoteSubtitleCount,
+                        localTotalCount: currentSnapshot.LocalTotalCount,
+                        localSubtitleCount: currentSnapshot.LocalSubtitleCount,
                         insertedCount: cumulativeInsertedCount,
+                        processedWorkCount: cumulativeProcessedWorkCount,
                         startedAt,
                         updatedAt: DateTime.UtcNow),
                     cancellationToken);
@@ -176,28 +197,31 @@ public sealed class MetadataSyncService
                             totalPageCount: totalPages,
                             remoteTotalCount,
                             remoteSubtitleCount,
+                            localTotalCount: currentSnapshot.LocalTotalCount,
+                            localSubtitleCount: currentSnapshot.LocalSubtitleCount,
                             insertedCount: cumulativeInsertedCount,
+                            processedWorkCount: cumulativeProcessedWorkCount,
                             startedAt,
                             updatedAt: DateTime.UtcNow),
                         cancellationToken);
 
-                    var afterStopped = await _metadataSyncStore.GetMetadataSnapshotAsync(cancellationToken);
                     return new MetadataSyncRunResult
                     {
                         RemoteTotalCount = remoteTotalCount,
                         RemoteSubtitleCount = remoteSubtitleCount,
                         LocalTotalCountBefore = before.LocalTotalCount,
                         LocalSubtitleCountBefore = before.LocalSubtitleCount,
-                        LocalTotalCountAfter = afterStopped.LocalTotalCount,
-                        LocalSubtitleCountAfter = afterStopped.LocalSubtitleCount,
+                        LocalTotalCountAfter = currentSnapshot.LocalTotalCount,
+                        LocalSubtitleCountAfter = currentSnapshot.LocalSubtitleCount,
                         InsertedCount = insertedCount,
+                        ProcessedWorkCount = processedWorkCount,
                         ProcessedPageCount = processedPageCountOverall,
                         TotalPageCount = totalPages,
                         NextPage = page + 1,
                         Message = shouldRefreshExpiredMetadata
-                            ? $"元数据过期刷新已按请求停止：已处理 {processedPageCountOverall}/{totalPages} 页，本地现有 {afterStopped.LocalTotalCount} 条。"
-                            : $"元数据同步已按请求停止：已处理 {processedPageCountOverall}/{totalPages} 页，本地现有 {afterStopped.LocalTotalCount} 条。",
-                        IsUpToDate = afterStopped.LocalTotalCount == remoteTotalCount,
+                            ? $"元数据过期刷新已按请求停止：已处理 {processedPageCountOverall}/{totalPages} 页，共处理 {processedWorkCount} 条，本地现有 {currentSnapshot.LocalTotalCount} 条。"
+                            : $"元数据同步已按请求停止：已处理 {processedPageCountOverall}/{totalPages} 页，共处理 {processedWorkCount} 条，本地现有 {currentSnapshot.LocalTotalCount} 条。",
+                        IsUpToDate = currentSnapshot.LocalTotalCount == remoteTotalCount,
                         WasStopped = true,
                         ResumedFromProgress = resumedFromProgress,
                     };
@@ -205,7 +229,7 @@ public sealed class MetadataSyncService
             }
         }
 
-        var after = await _metadataSyncStore.GetMetadataSnapshotAsync(cancellationToken);
+        var after = currentSnapshot;
         var isUpToDate = after.LocalTotalCount == remoteTotalCount;
 
         await _uiStateStore.SaveMetadataSyncProgressAsync(
@@ -216,7 +240,10 @@ public sealed class MetadataSyncService
                 totalPageCount: totalPages,
                 remoteTotalCount,
                 remoteSubtitleCount,
+                localTotalCount: after.LocalTotalCount,
+                localSubtitleCount: after.LocalSubtitleCount,
                 insertedCount: cumulativeInsertedCount,
+                processedWorkCount: cumulativeProcessedWorkCount,
                 startedAt,
                 updatedAt: DateTime.UtcNow),
             cancellationToken);
@@ -230,14 +257,15 @@ public sealed class MetadataSyncService
             LocalTotalCountAfter = after.LocalTotalCount,
             LocalSubtitleCountAfter = after.LocalSubtitleCount,
             InsertedCount = insertedCount,
+            ProcessedWorkCount = processedWorkCount,
             ProcessedPageCount = processedPageCountOverall,
             TotalPageCount = totalPages,
             NextPage = 1,
             Message = shouldRefreshExpiredMetadata
-                ? BuildExpiredRefreshCompletionMessage(expiredMetadataCount, after.LocalTotalCount, remoteTotalCount, isUpToDate)
+                ? BuildExpiredRefreshCompletionMessage(processedWorkCount, insertedCount, expiredMetadataCount, after.LocalTotalCount, remoteTotalCount, isUpToDate)
                 : isUpToDate
-                    ? $"元数据同步完成：新增 {insertedCount} 条，本地现有 {after.LocalTotalCount} 条。"
-                    : $"元数据同步完成，但本地数量仍为 {after.LocalTotalCount}，未完全追平网站的 {remoteTotalCount} 条。",
+                    ? $"元数据同步完成：本次处理 {processedWorkCount} 条，新增 {insertedCount} 条，本地现有 {after.LocalTotalCount} 条。"
+                    : $"元数据同步完成：本次处理 {processedWorkCount} 条，新增 {insertedCount} 条，但本地数量仍为 {after.LocalTotalCount}，未完全追平网站的 {remoteTotalCount} 条。",
             IsUpToDate = isUpToDate,
             WasStopped = false,
             ResumedFromProgress = resumedFromProgress,
@@ -261,11 +289,11 @@ public sealed class MetadataSyncService
         return expiredIds.Count;
     }
 
-    private static string BuildExpiredRefreshCompletionMessage(int expiredMetadataCount, int localTotalCount, int remoteTotalCount, bool isUpToDate)
+    private static string BuildExpiredRefreshCompletionMessage(int processedWorkCount, int insertedCount, int expiredMetadataCount, int localTotalCount, int remoteTotalCount, bool isUpToDate)
     {
         return isUpToDate
-            ? $"元数据过期刷新完成：已检查 {expiredMetadataCount} 条过期记录，本地现有 {localTotalCount} 条。"
-            : $"元数据过期刷新完成，但本地数量仍为 {localTotalCount}，未完全追平网站的 {remoteTotalCount} 条。";
+            ? $"元数据过期刷新完成：本次处理 {processedWorkCount} 条（目标过期记录 {expiredMetadataCount} 条），新增 {insertedCount} 条，本地现有 {localTotalCount} 条。"
+            : $"元数据过期刷新完成：本次处理 {processedWorkCount} 条，新增 {insertedCount} 条，但本地数量仍为 {localTotalCount}，未完全追平网站的 {remoteTotalCount} 条。";
     }
 
     private async Task<Core.Api.MetadataSyncPageDto> GetMetadataWorksAsync(
@@ -301,6 +329,7 @@ public sealed class MetadataSyncService
             LocalTotalCountAfter = snapshot.LocalTotalCount,
             LocalSubtitleCountAfter = snapshot.LocalSubtitleCount,
             InsertedCount = 0,
+            ProcessedWorkCount = 0,
             ProcessedPageCount = 0,
             TotalPageCount = 0,
             NextPage = 1,
@@ -330,7 +359,10 @@ public sealed class MetadataSyncService
         int totalPageCount,
         int remoteTotalCount,
         int remoteSubtitleCount,
+        int localTotalCount,
+        int localSubtitleCount,
         int insertedCount,
+        int processedWorkCount,
         DateTime startedAt,
         DateTime updatedAt)
     {
@@ -342,7 +374,10 @@ public sealed class MetadataSyncService
             TotalPageCount = totalPageCount,
             RemoteTotalCount = remoteTotalCount,
             RemoteSubtitleCount = remoteSubtitleCount,
+            LocalTotalCount = localTotalCount,
+            LocalSubtitleCount = localSubtitleCount,
             InsertedCount = insertedCount,
+            ProcessedWorkCount = processedWorkCount,
             StartedAt = startedAt,
             UpdatedAt = updatedAt,
         };

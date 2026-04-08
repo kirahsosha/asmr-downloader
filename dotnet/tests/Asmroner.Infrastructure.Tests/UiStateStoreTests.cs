@@ -139,7 +139,10 @@ public class UiStateStoreTests
                 TotalPageCount = 10,
                 RemoteTotalCount = 500,
                 RemoteSubtitleCount = 30,
+                LocalTotalCount = 200,
+                LocalSubtitleCount = 20,
                 InsertedCount = 200,
+                ProcessedWorkCount = 200,
                 StartedAt = DateTime.UtcNow.AddMinutes(-5),
                 UpdatedAt = DateTime.UtcNow.AddMinutes(-1),
             });
@@ -153,7 +156,10 @@ public class UiStateStoreTests
                 TotalPageCount = 10,
                 RemoteTotalCount = 500,
                 RemoteSubtitleCount = 30,
+                LocalTotalCount = 280,
+                LocalSubtitleCount = 28,
                 InsertedCount = 280,
+                ProcessedWorkCount = 300,
                 UpdatedAt = DateTime.UtcNow,
             });
 
@@ -166,7 +172,10 @@ public class UiStateStoreTests
             Assert.Equal(10, actual.TotalPageCount);
             Assert.Equal(500, actual.RemoteTotalCount);
             Assert.Equal(30, actual.RemoteSubtitleCount);
+            Assert.Equal(280, actual.LocalTotalCount);
+            Assert.Equal(28, actual.LocalSubtitleCount);
             Assert.Equal(280, actual.InsertedCount);
+            Assert.Equal(300, actual.ProcessedWorkCount);
 
             await store.SaveMetadataSyncProgressAsync(new MetadataSyncProgressState
             {
@@ -176,7 +185,10 @@ public class UiStateStoreTests
                 TotalPageCount = 10,
                 RemoteTotalCount = 500,
                 RemoteSubtitleCount = 30,
+                LocalTotalCount = 500,
+                LocalSubtitleCount = 30,
                 InsertedCount = 500,
+                ProcessedWorkCount = 500,
                 UpdatedAt = DateTime.UtcNow,
             });
 
@@ -184,6 +196,9 @@ public class UiStateStoreTests
             Assert.Equal(SyncProgressStatuses.Completed, completed.Status);
             Assert.False(completed.StopRequested);
             Assert.Equal(1, completed.NextPage);
+            Assert.Equal(500, completed.LocalTotalCount);
+            Assert.Equal(30, completed.LocalSubtitleCount);
+            Assert.Equal(500, completed.ProcessedWorkCount);
         }
         finally
         {
@@ -206,6 +221,7 @@ public class UiStateStoreTests
             Assert.False(actual.StopRequested);
             Assert.Equal(1, actual.NextPage);
             Assert.Equal(0, actual.ProcessedPageCount);
+            Assert.Equal(0, actual.ProcessedWorkCount);
         }
         finally
         {
