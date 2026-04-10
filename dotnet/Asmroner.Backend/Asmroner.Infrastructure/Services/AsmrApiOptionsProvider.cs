@@ -24,16 +24,18 @@ public sealed class AsmrApiOptionsProvider : IAsmrApiOptionsProvider
             ?? NormalizeBaseUrl(defaults.ApiUrl)
             ?? throw new InvalidOperationException("无可用的 API 基础地址配置。");
 
+        var defaultCandidates = ParseUrlList(defaults.ApiCandidateUrls);
         var candidates = ParseUrlList(config.Downloader.ApiCandidateUrls);
         if (candidates.Count == 0)
         {
-            candidates = ParseUrlList(defaults.ApiCandidateUrls);
+            candidates = new List<string>(defaultCandidates);
+        }
+        else if (ShouldAppendBuiltInCandidates(candidates, configuredBaseUrl, defaultCandidates))
+        {
+            candidates = new List<string>(defaultCandidates);
         }
 
-        if (!candidates.Contains(configuredBaseUrl, StringComparer.OrdinalIgnoreCase))
-        {
-            candidates.Insert(0, configuredBaseUrl);
-        }
+        candidates = EnsureBaseUrlFirst(candidates, configuredBaseUrl);
 
         var publishSourceUrls = ParseUrlList(config.Downloader.PublishSourceUrls);
         if (publishSourceUrls.Count == 0)
@@ -49,6 +51,33 @@ public sealed class AsmrApiOptionsProvider : IAsmrApiOptionsProvider
             CandidateBaseUrls = candidates,
             PublishSourceUrls = publishSourceUrls,
         };
+    }
+
+    private static List<string> EnsureBaseUrlFirst(List<string> candidates, string configuredBaseUrl)
+    {
+        if (!candidates.Contains(configuredBaseUrl, StringComparer.OrdinalIgnoreCase))
+        {
+            candidates.Insert(0, configuredBaseUrl);
+            return candidates;
+        }
+
+        if (string.Equals(candidates[0], configuredBaseUrl, StringComparison.OrdinalIgnoreCase))
+        {
+            return candidates;
+        }
+
+        candidates.RemoveAll(candidate => string.Equals(candidate, configuredBaseUrl, StringComparison.OrdinalIgnoreCase));
+        candidates.Insert(0, configuredBaseUrl);
+        return candidates;
+    }
+
+    private static bool ShouldAppendBuiltInCandidates(
+        IReadOnlyList<string> candidates,
+        string configuredBaseUrl,
+        IReadOnlyList<string> defaultCandidates)
+    {
+        return defaultCandidates.Contains(configuredBaseUrl, StringComparer.OrdinalIgnoreCase)
+            && candidates.All(candidate => defaultCandidates.Contains(candidate, StringComparer.OrdinalIgnoreCase));
     }
 
     private static string? NormalizeBaseUrl(string? baseUrl)

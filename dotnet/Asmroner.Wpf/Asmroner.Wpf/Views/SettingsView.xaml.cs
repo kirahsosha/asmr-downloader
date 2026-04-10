@@ -97,6 +97,7 @@ public partial class SettingsView : UserControl
             {
                 await _configurationService.SaveAsync(config);
                 var result = await _connectivityProbeService.ProbeAsync();
+                await RefreshDiscoveryStateAsync();
                 ApplyConnectivityProbeResult(result);
             });
     }
@@ -266,6 +267,19 @@ public partial class SettingsView : UserControl
         DownloadQpsTextBox.Text = config.Limit.DownloadQps.ToString();
         DownloadJitterMinTextBox.Text = config.Limit.DownloadJitterMin.ToString();
         DownloadJitterMaxTextBox.Text = config.Limit.DownloadJitterMax.ToString();
+    }
+
+    private async Task RefreshDiscoveryStateAsync()
+    {
+        var config = await _configurationService.LoadAsync();
+        if (config is null)
+        {
+            return;
+        }
+
+        _apiCandidateUrls = config.Downloader.ApiCandidateUrls;
+        _publishSourceUrls = config.Downloader.PublishSourceUrls;
+        _workPageUrlTemplate = config.Downloader.WorkPageUrlTemplate;
     }
 
     private static string BuildPreferFormatsForDisplay(DownloaderOptions downloader)

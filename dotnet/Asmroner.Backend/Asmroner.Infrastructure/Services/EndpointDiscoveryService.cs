@@ -8,10 +8,11 @@ namespace Asmroner.Infrastructure.Services;
 public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
 {
     private const string PublishSourceUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
-    private const string ProbeRequestPath = AsmrApiPaths.Works;
+    private const string ProbeRequestPath = AsmrApiPaths.Health;
 
     private static readonly Regex ScriptTagRegex = new("<script\\b[^>]*\\bsrc=[\"'](?<path>[^\"']+)[\"'][^>]*>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex LinkRegex = new("link\\s*:\\s*[\"'](?<url>[^\"']+)[\"']", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex PublishedHostRegex = new("(?<![A-Za-z0-9.-])(?<host>(?:api\\.)?asmr(?:-[A-Za-z0-9]+)*\\.(?:com|one))(?![A-Za-z0-9.-])", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IAsmrApiOptionsProvider _optionsProvider;
@@ -25,8 +26,8 @@ public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
     public async Task<EndpointDiscoveryResult> DiscoverAsync(CancellationToken cancellationToken = default)
     {
         var options = await _optionsProvider.GetOptionsAsync(cancellationToken);
-        var candidates = new List<string>(options.CandidateBaseUrls);
-        candidates.AddRange(await GetPublishedCandidatesAsync(options, cancellationToken));
+        var candidates = new List<string>(await GetPublishedCandidatesAsync(options, cancellationToken));
+        candidates.AddRange(options.CandidateBaseUrls);
 
         var uniqueCandidates = candidates
             .Where(static item => !string.IsNullOrWhiteSpace(item))
@@ -73,6 +74,12 @@ public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
                 continue;
             }
 
+            var publishedCandidates = ExtractPublishedCandidates(html);
+            if (publishedCandidates.Count > 0)
+            {
+                return publishedCandidates;
+            }
+
             foreach (var scriptUrl in ExtractEntryScriptUrls(publishUrl, html))
             {
                 var scriptText = await GetStringWithTimeoutAsync(probeClient, scriptUrl, options.Timeout, cancellationToken);
@@ -81,13 +88,13 @@ public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
                     continue;
                 }
 
-                var publishedCandidates = ExtractPublishedCandidates(scriptText);
-                if (publishedCandidates.Count == 0)
+                var scriptCandidates = ExtractPublishedCandidates(scriptText);
+                if (scriptCandidates.Count == 0)
                 {
                     continue;
                 }
 
-                return publishedCandidates;
+                return scriptCandidates;
             }
         }
 
@@ -189,12 +196,35 @@ public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
 
     private static IReadOnlyList<string> ExtractPublishedCandidates(string scriptText)
     {
-        return LinkRegex.Matches(scriptText)
-            .Select(static match => match.Groups["url"].Value)
-            .Where(static item => item.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-            .Select(ToApiBaseUrl)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+        var candidates = new List<string>();
+
+        foreach (var url in LinkRegex.Matches(scriptText)
+                     .Select(static match => match.Groups["url"].Value.Trim())
+                     .Where(static item => item.StartsWith("https://", StringComparison.OrdinalIgnoreCase)))
+        {
+            AddCandidate(candidates, ToApiBaseUrl(url));
+        }
+
+        foreach (var host in PublishedHostRegex.Matches(scriptText)
+                     .Select(static match => match.Groups["host"].Value.Trim().TrimEnd('/')))
+        {
+            AddCandidate(candidates, ToApiBaseUrl($"https://{host}"));
+        }
+
+        return candidates;
+    }
+
+    private static void AddCandidate(List<string> candidates, string candidate)
+    {
+        if (string.IsNullOrWhiteSpace(candidate))
+        {
+            return;
+        }
+
+        if (!candidates.Contains(candidate, StringComparer.OrdinalIgnoreCase))
+        {
+            candidates.Add(candidate);
+        }
     }
 
     private static string TrimPathSuffix(string path)

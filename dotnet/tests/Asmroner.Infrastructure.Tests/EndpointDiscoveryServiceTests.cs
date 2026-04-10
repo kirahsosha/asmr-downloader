@@ -36,7 +36,7 @@ public class EndpointDiscoveryServiceTests
     }
 
     [Fact]
-    public async Task EndpointDiscoveryService_ShouldProbeCandidates_UsingGetSafeWorksEndpoint()
+    public async Task EndpointDiscoveryService_ShouldProbeCandidates_UsingHealthEndpoint()
     {
         var requestedPaths = new List<string>();
         var factory = new RecordingHttpClientFactory();
@@ -46,7 +46,7 @@ public class EndpointDiscoveryServiceTests
             requestedPaths.Add(uri.PathAndQuery);
 
             if (uri.Host.Equals("healthy.example.com", StringComparison.OrdinalIgnoreCase)
-                && uri.PathAndQuery == AsmrApiPaths.Works)
+                && uri.PathAndQuery == AsmrApiPaths.Health)
             {
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
             }
@@ -69,7 +69,9 @@ public class EndpointDiscoveryServiceTests
         var result = await sut.DiscoverAsync();
 
         Assert.Equal("https://healthy.example.com", result.BaseUrl);
+        Assert.Contains(AsmrApiPaths.Health, requestedPaths);
         Assert.DoesNotContain(AsmrApiPaths.Popular, requestedPaths);
+        Assert.DoesNotContain(AsmrApiPaths.Works, requestedPaths);
     }
 
     [Fact]
@@ -124,7 +126,7 @@ public class EndpointDiscoveryServiceTests
             }
 
             if (uri.Host.Equals("api.mirror.example.com", StringComparison.OrdinalIgnoreCase)
-                && uri.PathAndQuery == AsmrApiPaths.Works)
+                && uri.PathAndQuery == AsmrApiPaths.Health)
             {
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
             }
@@ -153,6 +155,61 @@ public class EndpointDiscoveryServiceTests
     }
 
     [Fact]
+    public async Task EndpointDiscoveryService_ShouldExtractPublishedCandidatesFromHtmlText_AndSkipEntryScriptFetch()
+    {
+        var requestedPaths = new List<string>();
+        var factory = new RecordingHttpClientFactory();
+        factory.Register("AsmrProbe", new RecordingHttpMessageHandler(request =>
+        {
+            var uri = request.RequestUri!;
+            requestedPaths.Add(uri.AbsolutePath);
+
+            if (uri.Host.Equals("publish.example.com", StringComparison.OrdinalIgnoreCase)
+                && uri.AbsolutePath == "/")
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("ASMR Online 最新域名asmr-300.com 随缘墙224 ms\nasmr-200.com 随缘墙205 ms\nasmr-100.com 国内墙连接失败\nasmr.one 国内墙连接失败"),
+                });
+            }
+
+            if (uri.Host.Equals("api.asmr-200.com", StringComparison.OrdinalIgnoreCase)
+                && uri.PathAndQuery == AsmrApiPaths.Health)
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+            }
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+        }));
+
+        var sut = new EndpointDiscoveryService(
+            factory,
+            new StubInfrastructureOptionsProvider(new AsmrApiOptions
+            {
+                BaseUrl = "https://configured.example.com",
+                CandidateBaseUrls = Array.Empty<string>(),
+                PublishSourceUrls = new[]
+                {
+                    "https://publish.example.com",
+                },
+            }));
+
+        var result = await sut.DiscoverAsync();
+
+        Assert.Equal("https://api.asmr-200.com", result.BaseUrl);
+        Assert.Equal(
+            new[]
+            {
+                "https://api.asmr-300.com",
+                "https://api.asmr-200.com",
+                "https://api.asmr-100.com",
+                "https://api.asmr.one",
+            },
+            result.Candidates);
+        Assert.DoesNotContain("/assets/index.abc123.js", requestedPaths);
+    }
+
+    [Fact]
     public async Task EndpointDiscoveryService_ShouldFallbackToConfiguredCandidate_WhenPublishAssetRequestFails()
     {
         var factory = new RecordingHttpClientFactory();
@@ -176,7 +233,7 @@ public class EndpointDiscoveryServiceTests
             }
 
             if (uri.Host.Equals("configured.example.com", StringComparison.OrdinalIgnoreCase)
-                && uri.PathAndQuery == AsmrApiPaths.Works)
+                && uri.PathAndQuery == AsmrApiPaths.Health)
             {
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
             }
@@ -231,7 +288,7 @@ public class EndpointDiscoveryServiceTests
             }
 
             if (uri.Host.Equals("api.mirror.example.com", StringComparison.OrdinalIgnoreCase)
-                && uri.PathAndQuery == AsmrApiPaths.Works)
+                && uri.PathAndQuery == AsmrApiPaths.Health)
             {
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
             }
@@ -283,7 +340,7 @@ public class EndpointDiscoveryServiceTests
             }
 
             if (uri.Host.Equals("api.mirror.example.com", StringComparison.OrdinalIgnoreCase)
-                && uri.PathAndQuery == AsmrApiPaths.Works)
+                && uri.PathAndQuery == AsmrApiPaths.Health)
             {
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
             }
@@ -338,7 +395,7 @@ public class EndpointDiscoveryServiceTests
             }
 
             if (uri.Host.Equals("configured.example.com", StringComparison.OrdinalIgnoreCase)
-                && uri.PathAndQuery == AsmrApiPaths.Works)
+                && uri.PathAndQuery == AsmrApiPaths.Health)
             {
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
             }

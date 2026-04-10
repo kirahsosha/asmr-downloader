@@ -58,6 +58,8 @@ public class AsmrApiOptionsProviderTests
             new[]
             {
                 "https://api.asmr-300.com",
+                "https://api.asmr-200.com",
+                "https://api.asmr-100.com",
                 "https://api.asmr.one",
             },
             options.CandidateBaseUrls);
@@ -68,6 +70,31 @@ public class AsmrApiOptionsProviderTests
                 "https://as.131433.xyz",
             },
             options.PublishSourceUrls);
+    }
+
+    [Fact]
+    public async Task AsmrApiOptionsProvider_ShouldExpandLegacyBuiltInCandidateSubset()
+    {
+        var sut = new AsmrApiOptionsProvider(new StubInfrastructureConfigurationService(new AppConfig
+        {
+            Downloader = new DownloaderOptions
+            {
+                ApiUrl = "https://api.asmr-300.com",
+                ApiCandidateUrls = "https://api.asmr-300.com;https://api.asmr.one",
+            },
+        }));
+
+        var options = await sut.GetOptionsAsync();
+
+        Assert.Equal(
+            new[]
+            {
+                "https://api.asmr-300.com",
+                "https://api.asmr-200.com",
+                "https://api.asmr-100.com",
+                "https://api.asmr.one",
+            },
+            options.CandidateBaseUrls);
     }
 
     [Fact]

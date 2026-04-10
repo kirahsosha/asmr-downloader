@@ -9,25 +9,37 @@ namespace Asmroner.Infrastructure.Tests;
 public class ApiEndpointUrlServiceTests
 {
     [Fact]
-    public async Task DiscoverAndPersistAsync_ShouldUpdateApiUrl_WhenConfigExists()
+    public async Task DiscoverAndPersistAsync_ShouldUpdateApiUrl_AndCandidateUrls_WhenConfigExists()
     {
         var configService = new RecordingConfigurationService(new AppConfig
         {
             Downloader = new DownloaderOptions
             {
-                ApiUrl = "https://old.example.com",
+                ApiUrl = "https://api.asmr-300.com",
+                ApiCandidateUrls = "https://api.asmr-300.com;https://api.asmr.one",
             },
         });
 
         var sut = new ApiEndpointUrlService(
             configService,
-            new StubInfrastructureEndpointDiscoveryService("https://new.example.com"));
+            new StubInfrastructureEndpointDiscoveryService(
+                "https://api.asmr-200.com",
+                new[]
+                {
+                    "https://api.asmr-300.com",
+                    "https://api.asmr-200.com",
+                    "https://api.asmr-100.com",
+                    "https://api.asmr.one",
+                }));
 
         var result = await sut.DiscoverAndPersistAsync();
 
-        Assert.Equal("https://new.example.com", result.BaseUrl);
+        Assert.Equal("https://api.asmr-200.com", result.BaseUrl);
         Assert.NotNull(configService.CurrentConfig);
-        Assert.Equal("https://new.example.com", configService.CurrentConfig!.Downloader.ApiUrl);
+        Assert.Equal("https://api.asmr-200.com", configService.CurrentConfig!.Downloader.ApiUrl);
+        Assert.Equal(
+            "https://api.asmr-200.com;https://api.asmr-300.com;https://api.asmr-100.com;https://api.asmr.one",
+            configService.CurrentConfig.Downloader.ApiCandidateUrls);
         Assert.Equal(1, configService.SaveCallCount);
     }
 
@@ -61,6 +73,68 @@ public class ApiEndpointUrlServiceTests
         var baseUrl = await sut.GetCurrentBaseUrlAsync();
 
         Assert.Equal("https://api.asmr-300.com", baseUrl);
+    }
+
+    [Fact]
+    public async Task DiscoverAndPersistAsync_ShouldKeepCustomCandidateList_WhenDiscoveryAddsPublicCandidates()
+    {
+        var configService = new RecordingConfigurationService(new AppConfig
+        {
+            Downloader = new DownloaderOptions
+            {
+                ApiUrl = "https://custom-a.example.com",
+                ApiCandidateUrls = "https://custom-a.example.com;https://custom-b.example.com",
+            },
+        });
+
+        var sut = new ApiEndpointUrlService(
+            configService,
+            new StubInfrastructureEndpointDiscoveryService(
+                "https://custom-b.example.com",
+                new[]
+                {
+                    "https://api.asmr-300.com",
+                    "https://api.asmr-200.com",
+                    "https://custom-b.example.com",
+                    "https://custom-a.example.com",
+                }));
+
+        var result = await sut.DiscoverAndPersistAsync();
+
+        Assert.Equal("https://custom-b.example.com", result.BaseUrl);
+        Assert.NotNull(configService.CurrentConfig);
+        Assert.Equal(
+            "https://custom-b.example.com;https://custom-a.example.com",
+            configService.CurrentConfig!.Downloader.ApiCandidateUrls);
+        Assert.Equal(1, configService.SaveCallCount);
+    }
+
+    [Fact]
+    public async Task DiscoverAndPersistAsync_ShouldSkipSave_WhenBaseUrlAndCandidatesAreUnchanged()
+    {
+        var configService = new RecordingConfigurationService(new AppConfig
+        {
+            Downloader = new DownloaderOptions
+            {
+                ApiUrl = "https://api.asmr-300.com",
+                ApiCandidateUrls = "https://api.asmr-300.com;https://api.asmr-200.com",
+            },
+        });
+
+        var sut = new ApiEndpointUrlService(
+            configService,
+            new StubInfrastructureEndpointDiscoveryService(
+                "https://api.asmr-300.com",
+                new[]
+                {
+                    "https://api.asmr-300.com",
+                    "https://api.asmr-200.com",
+                }));
+
+        var result = await sut.DiscoverAndPersistAsync();
+
+        Assert.Equal("https://api.asmr-300.com", result.BaseUrl);
+        Assert.Equal(0, configService.SaveCallCount);
     }
 
     private sealed class RecordingConfigurationService : IConfigurationService

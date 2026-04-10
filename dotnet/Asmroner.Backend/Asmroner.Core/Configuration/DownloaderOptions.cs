@@ -10,7 +10,7 @@ public sealed class DownloaderOptions
     /// <summary>
     /// 候选 API 基础地址列表（分号/逗号分隔）。
     /// </summary>
-    public string ApiCandidateUrls { get; set; } = "https://api.asmr-300.com;https://api.asmr.one";
+    public string ApiCandidateUrls { get; set; } = "https://api.asmr-300.com;https://api.asmr-200.com;https://api.asmr-100.com;https://api.asmr.one";
 
     /// <summary>
     /// 发布源地址列表（分号/逗号分隔），用于动态发现候选 API 地址。

@@ -5,7 +5,7 @@
     },
     "downloader": {
         "apiUrl": "https://api.asmr-300.com",
-        "apiCandidateUrls": "https://api.asmr-300.com;https://api.asmr.one",
+        "apiCandidateUrls": "https://api.asmr-300.com;https://api.asmr-200.com;https://api.asmr-100.com;https://api.asmr.one",
         "publishSourceUrls": "https://as.mr;https://as.131433.xyz",
         "workPageUrlTemplate": "https://www.asmr.one/work/{RJID}",
         "proxyUrl": "",

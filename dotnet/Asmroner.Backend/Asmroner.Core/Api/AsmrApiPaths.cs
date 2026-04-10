@@ -3,6 +3,7 @@ namespace Asmroner.Core.Api;
 public static class AsmrApiPaths
 {
     public const string AuthLogin = "/api/auth/me";
+    public const string Health = "/api/health?cache=false";
     public const string Work = "/api/work/";
     public const string Tracks = "/api/tracks/";
     public const string Search = "/api/search/";

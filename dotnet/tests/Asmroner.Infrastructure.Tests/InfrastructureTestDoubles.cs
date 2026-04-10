@@ -62,18 +62,22 @@ internal sealed class StubInfrastructureConfigurationService : IConfigurationSer
 internal sealed class StubInfrastructureEndpointDiscoveryService : IEndpointDiscoveryService
 {
     private readonly string _baseUrl;
+    private readonly IReadOnlyList<string> _candidates;
+    private readonly long _latencyMs;
 
-    public StubInfrastructureEndpointDiscoveryService(string baseUrl)
+    public StubInfrastructureEndpointDiscoveryService(string baseUrl, IReadOnlyList<string>? candidates = null, long latencyMs = 1)
     {
         _baseUrl = baseUrl;
+        _candidates = candidates ?? new[] { baseUrl };
+        _latencyMs = latencyMs;
     }
 
     public Task<EndpointDiscoveryResult> DiscoverAsync(CancellationToken cancellationToken = default)
         => Task.FromResult(new EndpointDiscoveryResult
         {
             BaseUrl = _baseUrl,
-            LatencyMs = 1,
-            Candidates = new[] { _baseUrl },
+            LatencyMs = _latencyMs,
+            Candidates = _candidates,
         });
 }
 
