@@ -1,8 +1,8 @@
 # asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.5.4
+当前跟踪版本：v0.5.5
 
-AI约束策略：章节1.5.1到1.5.98的文本不加入分析上下文
+AI约束策略：章节1.5.1到1.5.99的文本不加入分析上下文
 
 ## 1. 项目进度跟踪清单
 
@@ -1154,6 +1154,14 @@ AI约束策略：章节1.5.1到1.5.98的文本不加入分析上下文
 4. DoD 判定：是。用户本轮要求的 `v0.5.4` 版本升级、health API 探测、`apiCandidateUrls` 新增 `api.asmr-200.com` / `api.asmr-100.com`、发布页正文最新域名抓取、SQLite 候选列表写回、单测补齐与 progress 文档同步均已落地。
 5. 下次计划：由用户执行章节 4.1 的受影响手工回归，重点验证启动/“测试连接”改走 `GET /api/health?cache=false`、发布页正文中的最新域名会写回 SQLite `ApiCandidateUrls` 且后续“保存并重新初始化”不会覆盖回旧值，以及 Settings 页面版本文案显示 `v0.5.4`；章节 1.2/1.3 状态维持不变，章节 1.4 新增一条已解决站点发现/SQLite 持久化问题，章节 2.1 基线更新为 2026-04-10 的 `324/324` 并补充 `EndpointDiscoveryServiceTests`、`AsmrApiOptionsProviderTests`、`ApiEndpointUrlServiceTests` 与 `AppVersionInfoTests` 的口径，章节 3.1 合并为单一 `v0.5.4` 待提交记录，章节 4.1 受影响项已重置为未勾选。
 
+### 1.5.100 2026-04-11，v0.5.5：版本升级与匿名探测客户端收敛
+
+1. 变更摘要：运行时版本升级到 `v0.5.5`；保留 `AsmrProbe` 作为匿名站点探测客户端，并新增 `EndpointDiscoveryHttpTransport` 统一收敛客户端名称、HTTP/1.1 传输约束与默认 User-Agent；`EndpointDiscoveryService` 在单次发现流程内复用同一个 probe client，并统一发布页抓取与 health 探测请求头策略；同时清理 `AuthServiceTests` 中与登录链路无关的冗余 `AsmrProbe` 注册。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/EndpointDiscoveryHttpTransport.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/EndpointDiscoveryService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/App.xaml.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/EndpointDiscoveryServiceTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/AuthServiceTests.cs`、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`。
+3. 验证结果：`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --nologo` 通过（75/75）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --nologo` 通过（158/158）；`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --nologo` 通过（78/78）；`rtk dotnet test dotnet/Asmroner.sln --nologo --no-restore` 通过（325/325）。
+4. DoD 判定：是。用户本轮要求的 `v0.5.5` 版本升级、`AsmrProbe` 可用性确认与逻辑收敛、单元测试同步、progress 文档同步均已落地。
+5. 下次计划：由用户执行章节 4.1 的受影响手工回归，重点验证应用启动不阻塞、“测试连接”继续可用且发布页/health 探测链路正常，以及 Settings 页面版本文案显示 `v0.5.5`；章节 2.1 基线更新为 2026-04-11 的 `325/325`，章节 3.1 新增单一 `v0.5.5` 待提交记录，章节 4.1 受影响项已重置为未勾选。
+
 ---
 
 ## 1.6 维护规则
@@ -1174,7 +1182,7 @@ AI约束策略：章节1.5.1到1.5.98的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-10 的解决方案级回归（324/324）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-11 的解决方案级回归（325/325）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
@@ -1297,16 +1305,17 @@ AI约束策略：章节1.5.1到1.5.98的文本不加入分析上下文
 
 #### 2.1.12 Infrastructure.Tests / EndpointDiscoveryServiceTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                                                      | 输入                                                              | 期望输出                                             |
-| ------ | ------ | ------ | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------- |
-| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldPickFastestReachableCandidate`                                              | 候选域名包含 slow/fast，fast 返回 200                             | 选中 `https://fast.example.com`                      |
-| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldProbeCandidates_UsingHealthEndpoint`                                        | 健康候选对旧探测端点不可用，但 `GET /api/health?cache=false` 可达 | 候选探测改走 health 端点并正确选中健康候选           |
-| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldExtractPublishedCandidatesFromHtmlText_AndSkipEntryScriptFetch`             | 发布页正文直接包含 `asmr-300/200/100/one` 最新域名                | 按页面文本顺序解析最新候选域名，且无需再请求入口脚本 |
-| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldFallbackToConfiguredBaseUrl_WhenAllCandidatesFail`                          | 所有候选地址不可达                                                | 回退到配置基础地址或返回明确失败                     |
-| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldFallbackToConfiguredCandidate_WhenPublishAssetRequestFails`                 | 发布页可访问，但入口脚本请求 404/失败，配置地址可达               | 忽略入口脚本失败并回退到配置候选地址                 |
-| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldParseScriptTag_WhenAttributesUseDifferentOrder`                             | 发布页脚本标签属性顺序变化                                        | 仍可解析入口脚本并动态发现 API 候选地址              |
-| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldParseRelativeEntryScript_WithQuerySuffix_AndSingleQuotedLink`               | 发布页入口脚本使用相对路径、查询串与单引号 link 配置              | 仍可解析入口脚本并动态发现 API 候选地址              |
-| [x]    | [x]    | 阶段 2 | `EndpointDiscoveryService_ShouldIgnorePublishSourceTimeoutAndHttpFailures_AndFallbackToConfiguredCandidate` | 发布源先后出现超时与 `HttpRequestException`，配置候选可达         | 发布源抓取失败不打断整条探测链路，最终回退到配置候选 |
+| 已创建 | 已通过 | 阶段    | 样例名                                                                                                      | 输入                                                              | 期望输出                                                  |
+| ------ | ------ | ------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------- |
+| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldPickFastestReachableCandidate`                                              | 候选域名包含 slow/fast，fast 返回 200                             | 选中 `https://fast.example.com`                           |
+| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldProbeCandidates_UsingHealthEndpoint`                                        | 健康候选对旧探测端点不可用，但 `GET /api/health?cache=false` 可达 | 候选探测改走 health 端点并正确选中健康候选                |
+| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldExtractPublishedCandidatesFromHtmlText_AndSkipEntryScriptFetch`             | 发布页正文直接包含 `asmr-300/200/100/one` 最新域名                | 按页面文本顺序解析最新候选域名，且无需再请求入口脚本      |
+| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldFallbackToConfiguredBaseUrl_WhenAllCandidatesFail`                          | 所有候选地址不可达                                                | 回退到配置基础地址或返回明确失败                          |
+| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldFallbackToConfiguredCandidate_WhenPublishAssetRequestFails`                 | 发布页可访问，但入口脚本请求 404/失败，配置地址可达               | 忽略入口脚本失败并回退到配置候选地址                      |
+| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldParseScriptTag_WhenAttributesUseDifferentOrder`                             | 发布页脚本标签属性顺序变化                                        | 仍可解析入口脚本并动态发现 API 候选地址                   |
+| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldParseRelativeEntryScript_WithQuerySuffix_AndSingleQuotedLink`               | 发布页入口脚本使用相对路径、查询串与单引号 link 配置              | 仍可解析入口脚本并动态发现 API 候选地址                   |
+| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldIgnorePublishSourceTimeoutAndHttpFailures_AndFallbackToConfiguredCandidate` | 发布源先后出现超时与 `HttpRequestException`，配置候选可达         | 发布源抓取失败不打断整条探测链路，最终回退到配置候选      |
+| [x]    | [x]    | 阶段 2+ | `EndpointDiscoveryService_ShouldSendProbeUserAgent_OnPublishAndHealthRequests`                              | 发布页正文候选抓取与 health 探测请求                              | 发布页抓取与 health 探测均携带统一的匿名 probe User-Agent |
 
 #### 2.1.13 Infrastructure.Tests / DatabaseInitializerTests.cs
 
@@ -1653,7 +1662,7 @@ AI约束策略：章节1.5.1到1.5.98的文本不加入分析上下文
 
 | 已创建 | 已通过 | 阶段    | 样例名                                                                            | 输入                     | 期望输出                                    |
 | ------ | ------ | ------- | --------------------------------------------------------------------------------- | ------------------------ | ------------------------------------------- |
-| [x]    | [x]    | 阶段 5  | `GetDisplayVersion_ShouldReturnThreePartAssemblyVersion`                          | 当前程序集版本 `0.5.4.0` | 返回三段式版本文本 `0.5.4`                  |
+| [x]    | [x]    | 阶段 5  | `GetDisplayVersion_ShouldReturnThreePartAssemblyVersion`                          | 当前程序集版本 `0.5.5.0` | 返回三段式版本文本 `0.5.5`                  |
 | [x]    | [x]    | 阶段 1+ | `BuildSettingsVersionText_AndStartupMessage_ShouldUseDisplayVersionWithoutSuffix` | 动态版本文案构建         | Settings 文案与启动日志共用相同三段式版本号 |
 
 #### 2.1.52 Wpf.Tests / StartupUnfinishedQueueMetadataRefreshServiceTests.cs
@@ -1880,7 +1889,8 @@ AI约束策略：章节1.5.1到1.5.98的文本不加入分析上下文
 | 2026-04-03 | 已提交 | v0.5.1: persist sync progress and harden sync controls                      | 1. Update runtime/docs version to v0.5.1.<br>2. Persist metadata-sync and sync-download progress in SQLite and resume unfinished runs on restart.<br>3. Replace separate start/stop controls with merged sync action buttons, and add a 1-second debounce window.<br>4. Keep Refresh button available during running sync and refresh live report/progress snapshots.<br>5. Update regression tests and progress documentation.    | f3a2b42    |
 | 2026-04-08 | 已提交 | v0.5.2: unify workinfo dto, refresh stale metadata, stream real downloads   | 1. Update runtime/docs version to v0.5.2.<br>2. Modify configuration.<br>3. Prefer local MetadataWork for Search/Download before refresh from API.<br>4. Refresh expired metadata and rescan completed sync downloads.<br>5. Replace placeholder download outputs with real download streaming.<br>6. Unify Search/Download/Sync work-info flows on shared Dto.<br>7. Update regression tests and progress documentation.          | e0ff664    |
 | 2026-04-08 | 已提交 | v0.5.3: fix endpoint probe path and clarify sync progress counts            | 1. Update runtime/docs version to v0.5.3.<br>2. Fix HTML/script fetch failures, flexible script markup, replace the candidate latency probe with a GET-safe endpoint.<br>3. Persist metadata-sync local counts plus cumulative processed-work counts.<br>4. Refactor Settings save/test-connection flow.<br>5. Add XML docs to direct control handlers in View files.<br>6. Update regression tests and progress documentation.    | 81a8fcb    |
-| 2026-04-10 | 待提交 | v0.5.4: persist published API candidates and harden endpoint discovery      | 1. Update runtime/docs version to v0.5.4.<br>2. Keep the pending metadata-sync count persistence, Settings save/test-connection flow cleanup.<br>3. Switch candidate latency probing to health api.<br>4. Expand built-in API candidates, and persist discovered candidate lists back to SQLite.<br>5. Fix test connection and the discovered candidate list logic.<br>6. Update regression tests and progress documentation.      | -          |
+| 2026-04-10 | 已提交 | v0.5.4: persist published API candidates and harden endpoint discovery      | 1. Update runtime/docs version to v0.5.4.<br>2. Keep the pending metadata-sync count persistence, Settings save/test-connection flow cleanup.<br>3. Switch candidate latency probing to health api.<br>4. Expand built-in API candidates, and persist discovered candidate lists back to SQLite.<br>5. Fix test connection and the discovered candidate list logic.<br>6. Update regression tests and progress documentation.      | d6be49d    |
+| 2026-04-11 | 待提交 | v0.5.5: align runtime version and streamline anonymous endpoint probe       | 1. Update runtime/docs version to v0.5.5.<br>2. Keep `AsmrProbe` as the anonymous endpoint probe client and centralize its shared HTTP transport configuration.<br>3. Reuse one probe client across endpoint discovery and keep publish-source / health requests on the same probe header policy.<br>4. Update regression tests and progress documentation.                                                                        | -          |
 
 ---
  
@@ -1910,7 +1920,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [ ] 当发布页入口脚本使用相对路径、查询串或单引号 `link` 配置时，“测试连接”仍可正确解析入口脚本并发现可用 BaseUrl。
 - [x] “测试连接”应通过 `GET /api/health?cache=false` 完成候选探测；当旧探测端点不可用但 health API 可达时，仍能选中可用 BaseUrl。
 - [ ] 当发布页正文直接提供 `asmr-300/200/100/one` 最新域名时，“测试连接”会按正文顺序补齐候选列表并写回 SQLite `ApiCandidateUrls`；随后再次“保存并重新初始化”不会把新候选覆盖回旧值。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.5.4。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.5.5。
 
 ### 4.2 Search 功能
 

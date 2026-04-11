@@ -41,7 +41,7 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<IApplicationBootstrapper, ApplicationBootstrapper>();
 
                 services.AddTransient<AsmrAuthorizationHandler>();
-                services.AddHttpClient("AsmrProbe");
+                services.AddHttpClient(EndpointDiscoveryHttpTransport.ProbeClientName, EndpointDiscoveryHttpTransport.ConfigureProbeClient);
                 services.AddHttpClient("AsmrApi")
                     .AddHttpMessageHandler<AsmrAuthorizationHandler>();
 

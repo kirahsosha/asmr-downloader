@@ -7,7 +7,6 @@ namespace Asmroner.Infrastructure.Services;
 
 public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
 {
-    private const string PublishSourceUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
     private const string ProbeRequestPath = AsmrApiPaths.Health;
 
     private static readonly Regex ScriptTagRegex = new("<script\\b[^>]*\\bsrc=[\"'](?<path>[^\"']+)[\"'][^>]*>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -26,7 +25,8 @@ public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
     public async Task<EndpointDiscoveryResult> DiscoverAsync(CancellationToken cancellationToken = default)
     {
         var options = await _optionsProvider.GetOptionsAsync(cancellationToken);
-        var candidates = new List<string>(await GetPublishedCandidatesAsync(options, cancellationToken));
+        var probeClient = _httpClientFactory.CreateClient(EndpointDiscoveryHttpTransport.ProbeClientName);
+        var candidates = new List<string>(await GetPublishedCandidatesAsync(probeClient, options, cancellationToken));
         candidates.AddRange(options.CandidateBaseUrls);
 
         var uniqueCandidates = candidates
@@ -34,8 +34,6 @@ public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
             .Select(static item => item.Trim().TrimEnd('/'))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
-
-        var probeClient = _httpClientFactory.CreateClient("AsmrProbe");
 
         string bestUrl = options.BaseUrl;
         long bestLatency = long.MaxValue;
@@ -63,9 +61,8 @@ public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
         };
     }
 
-    private async Task<IReadOnlyList<string>> GetPublishedCandidatesAsync(AsmrApiOptions options, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<string>> GetPublishedCandidatesAsync(HttpClient probeClient, AsmrApiOptions options, CancellationToken cancellationToken)
     {
-        var probeClient = _httpClientFactory.CreateClient("AsmrProbe");
         foreach (var publishUrl in options.PublishSourceUrls)
         {
             var html = await GetStringWithTimeoutAsync(probeClient, publishUrl, options.Timeout, cancellationToken);
@@ -106,7 +103,7 @@ public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, baseUrl.TrimEnd('/') + ProbeRequestPath);
-            request.Headers.TryAddWithoutValidation("User-Agent", PublishSourceUserAgent);
+            EndpointDiscoveryHttpTransport.ApplyProbeRequestHeaders(request);
             var watch = Stopwatch.StartNew();
             using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCancellation.CancelAfter(timeout);
@@ -125,7 +122,7 @@ public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-            request.Headers.TryAddWithoutValidation("User-Agent", PublishSourceUserAgent);
+            EndpointDiscoveryHttpTransport.ApplyProbeRequestHeaders(request);
 
             using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCancellation.CancelAfter(timeout);

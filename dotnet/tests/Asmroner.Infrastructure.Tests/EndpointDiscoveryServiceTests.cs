@@ -423,4 +423,50 @@ public class EndpointDiscoveryServiceTests
 
         Assert.Equal("https://configured.example.com", result.BaseUrl);
     }
+
+    [Fact]
+    public async Task EndpointDiscoveryService_ShouldSendProbeUserAgent_OnPublishAndHealthRequests()
+    {
+        var observedUserAgents = new List<string>();
+        var factory = new RecordingHttpClientFactory();
+        factory.Register(EndpointDiscoveryHttpTransport.ProbeClientName, new RecordingHttpMessageHandler(request =>
+        {
+            observedUserAgents.Add(request.Headers.UserAgent.ToString());
+
+            var uri = request.RequestUri!;
+            if (uri.Host.Equals("publish.example.com", StringComparison.OrdinalIgnoreCase)
+                && uri.AbsolutePath == "/")
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent("asmr-200.com"),
+                });
+            }
+
+            if (uri.Host.Equals("api.asmr-200.com", StringComparison.OrdinalIgnoreCase)
+                && uri.PathAndQuery == AsmrApiPaths.Health)
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+            }
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+        }));
+
+        var sut = new EndpointDiscoveryService(
+            factory,
+            new StubInfrastructureOptionsProvider(new AsmrApiOptions
+            {
+                BaseUrl = "https://configured.example.com",
+                CandidateBaseUrls = Array.Empty<string>(),
+                PublishSourceUrls = new[]
+                {
+                    "https://publish.example.com",
+                },
+            }));
+
+        _ = await sut.DiscoverAsync();
+
+        Assert.True(observedUserAgents.Count >= 2);
+        Assert.All(observedUserAgents, userAgent => Assert.Equal(EndpointDiscoveryHttpTransport.ProbeUserAgent, userAgent));
+    }
 }

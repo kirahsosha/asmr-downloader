@@ -39,7 +39,6 @@ public class AuthServiceTests
         {
             Content = new StringContent("{\"token\":\"jwt-token\"}", Encoding.UTF8, "application/json"),
         })));
-        factory.Register("AsmrProbe", new RecordingHttpMessageHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))));
 
         var tokenStore = new TokenStore();
         var sut = new AuthService(
