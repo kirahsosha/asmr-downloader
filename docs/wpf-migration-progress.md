@@ -1,8 +1,8 @@
 # asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.5.5
+当前跟踪版本：v0.5.6
 
-AI约束策略：章节1.5.1到1.5.99的文本不加入分析上下文
+AI约束策略：章节1.5.1到1.5.100的文本不加入分析上下文
 
 ## 1. 项目进度跟踪清单
 
@@ -108,28 +108,40 @@ AI约束策略：章节1.5.1到1.5.99的文本不加入分析上下文
 
 ## 1.4 阻塞与风险登记
 
-| 日期       | 阶段   | 问题描述                                                                                                                                                                                                                           | 影响范围                                     | 处理人    | 当前状态 | 计划解决日期 | 实际解决日期 |
-| ---------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- | --------- | -------- | ------------ | ------------ |
-| 2026-03-15 | 阶段 2 | `dotnet test dotnet/Asmroner.sln` 出现 2 个失败，均为 `HttpClient` 已发起请求后再次修改 `Timeout/BaseAddress` 导致。                                                                                                               | API 与认证迁移 DoD 无法闭环                  | AI + 用户 | 已解决   | 2026-03-15   | 2026-03-15   |
-| 2026-03-15 | 阶段 3 | 分页交互中 UI 已传入 `page` 参数，但 `SearchService` 内部固定 `Page = 1`，导致翻页请求实际仍从第一页开始。                                                                                                                         | 阶段 3 DoD 第 3 条“分页搜索可稳定运行”不满足 | AI + 用户 | 已解决   | 2026-03-15   | 2026-03-15   |
-| 2026-03-16 | 阶段 4 | 下载流程 RunSingleAsync 仍报 API 调用失败 400 Bad Request，问题待继续定位。                                                                                                                                                        | 阶段 4 下载链路稳定性受影响                  | AI + 用户 | 已解决   | 2026-03-16   | 2026-03-16   |
-| 2026-03-17 | 阶段 4 | 在 Search 页面选择并点击"加入下载队列"时，如果该任务已存在且状态为 Canceled，仅通过 `_queuedStatusOverrides` 将枚举值更新为 Pending，但 `DownloadTaskRowViewModel.StatusText` 未同步更新，导致 Download 页面行仍显示"已取消"文本。 | Download 页面行状态文本与实际排队状态不一致  | AI + 用户 | 已解决   | 2026-03-27   | 2026-03-27   |
-| 2026-03-29 | 阶段 4 | Download 页面重启后，“只下载高清音频”“文件筛选”与未完成队列恢复项仍处于未通过，需补齐恢复链路与回归验证。                                                                                                                          | 阶段 4 状态持久化与重启恢复验证不闭环        | AI + 用户 | 已解决   | 2026-03-29   | 2026-03-29   |
-| 2026-03-30 | 阶段 1 | 在 Settings 页面点击“保存并重新初始化”后，初始化成功仍会自动切换到 Search 页签，导致设置页流程被中断。                                                                                                                             | Settings 配置闭环与页面停留行为不一致        | AI + 用户 | 已解决   | 2026-03-30   | 2026-03-30   |
-| 2026-03-31 | 阶段 4 | Search 页面导出 CSV/JSON 后每次调用 `Process.Start("explorer.exe", "/select,...")` 都会打开新的资源管理器窗口，导致连续多次导出到同一目录时产生重复窗口。                                                                          | 导出体验：大量重复资源管理器窗口堆积         | AI + 用户 | 已解决   | 2026-03-31   | 2026-03-31   |
-| 2026-03-31 | 阶段 4 | Download 页面导入 CSV/JSON 时，导入数量/跳过数量的计算仅参考下载任务列表，未同时纳入待下载队列中的 SourceId 与导入内容自身的重复项，导致二次导入同一文件或文件内含重复记录时，状态消息中的导入数量与跳过数量不准确。               | Download 导入计数显示不准确                  | AI + 用户 | 已解决   | 2026-03-31   | 2026-03-31   |
-| 2026-03-31 | 阶段 4 | 程序启动恢复 Download 未完成队列时，后台标题补拉请求会失败，导致列表标题持续空白。且失败后不会自动重试，启动后标题会长期缺失。                                                                                                     | Download 启动后的列表可读性                  | AI + 用户 | 已解决   | 2026-03-31   | 2026-03-31   |
-| 2026-04-01 | 阶段 4 | Search / 热门结果中的 `BJ02370869` 这类 `source_id` 与数值 `workId` 不一致的作品，在开启“加入翻译作品”后仍沿用 `source_id` 拉取详情，导致解析失败。                                                                                | 热门结果入队、翻译优先入队、浏览器打开链路   | AI + 用户 | 已解决   | 2026-04-01   | 2026-04-01   |
-| 2026-04-01 | 阶段 4 | 清空任务列表后再从 Search 页面入队时，`source_id/workId` 失配作品会提示“失败 1 项”，但实际 0 项入队；同时启动补拉失败项未在 Download 列表显式标记失败原因。                                                                        | Search -> Download 联动与启动恢复可观测性    | AI + 用户 | 已解决   | 2026-04-01   | 2026-04-01   |
-| 2026-04-01 | 阶段 4 | 部分轨道标题已自带扩展名时，下载文件会生成重复后缀。                                                                                                                                                                               | 下载文件命名                                 | AI + 用户 | 已解决   | 2026-04-01   | 2026-04-01   |
-| 2026-04-03 | 阶段 5 | Sync 页面缺少“当前页/当前作品完成后停止”的温和停止入口，且应用重启后不会记录未完成的同步元数据/同步下载进度。                                                                                                                      | 阶段 5 同步链路的可恢复性与可控性            | AI + 用户 | 已解决   | 2026-04-03   | 2026-04-03   |
-| 2026-04-03 | 阶段 5 | Sync 页面将开始/停止拆成四个独立按钮，且任一同步运行中会把“刷新统计”一并禁用，导致操作入口分散且无法手动查看实时同步/下载进度。                                                                                                    | Sync 页面操作一致性与实时可观测性            | AI + 用户 | 已解决   | 2026-04-03   | 2026-04-03   |
-| 2026-04-03 | 阶段 5 | Sync 页面合并后的元数据同步主按钮在开始后快速双击时，会把第二次点击误判为 stop request，导致界面提前进入“正在停止”态而后台仍继续同步；同步下载主按钮存在同类顺序型双击风险。                                                       | Sync 页面开始/停止按钮的可控性与一致性       | AI + 用户 | 已解决   | 2026-04-03   | 2026-04-03   |
-| 2026-04-08 | 阶段 5 | Sync 页面复用普通下载链路时，落地文件仍被写成 `source/title/url` 占位文本，导致同步目录中的下载数据错误。                                                                                                                          | Sync 下载结果正确性与重扫校验                | AI + 用户 | 已解决   | 2026-04-08   | 2026-04-08   |
-| 2026-04-08 | 阶段 4 | 当普通下载目录和同步下载目录都没有匹配文件时，`DownloadService` 没有直接请求 `mediaDownloadUrl`，而是写入占位文本，无法实时下载真实文件。                                                                                          | 普通下载链路与双目录补齐行为                 | AI + 用户 | 已解决   | 2026-04-08   | 2026-04-08   |
-| 2026-04-08 | 阶段 2 | 发布页入口脚本路径/引号形态比固定 `/assets/index.hash.js` 更宽，原有解析与 `GetStringWithTimeoutAsync` 组合无法稳定拿到正确脚本文本。                                                                                              | 启动 / 测试连接的站点发现稳定性              | AI + 用户 | 已解决   | 2026-04-08   | 2026-04-08   |
-| 2026-04-08 | 阶段 5 | 元数据同步原先只稳定写回分页与累计新增，本地总量/字幕量未同步到持久化进度，导致点击“刷新统计”后数量仍不正确。                                                                                                                      | Sync 页面手动刷新统计与完成态一致性          | AI + 用户 | 已解决   | 2026-04-08   | 2026-04-08   |
-| 2026-04-10 | 阶段 2 | 发布页正文虽然已经给出最新公开域名，但探测链路仍主要依赖旧候选列表/入口脚本，且“测试连接”只会回写 `ApiUrl` 不会回写 `ApiCandidateUrls`，导致 SQLite 中的候选集合无法随发布页更新。                                                 | 启动 warmup、测试连接与 SQLite 配置持久化    | AI + 用户 | 已解决   | 2026-04-10   | 2026-04-10   |
+### 说明
+- **当前状态**：`已解决` / `待验证` / `阻塞中`
+- **日期规则**：已解决项填写实际解决日期；待验证/阻塞中项填写计划解决日期
+
+### 风险与缺陷登记
+
+| 日期       | 阶段   | 问题描述                                                             | 影响范围                      | 当前状态 | 解决/计划日期 |
+| ---------- | ------ | -------------------------------------------------------------------- | ----------------------------- | -------- | ------------- |
+| 2026-03-15 | 阶段 2 | `HttpClient` 请求发起后再次修改 `Timeout/BaseAddress` 导致测试失败   | API 与认证迁移                | 已解决   | 2026-03-15    |
+| 2026-03-15 | 阶段 3 | `SearchService` 内部固定 `Page = 1`，翻页请求实际仍从第一页开始      | 分页搜索稳定性                | 已解决   | 2026-03-15    |
+| 2026-03-16 | 阶段 4 | 下载流程 `RunSingleAsync` 报 400 Bad Request                         | 下载链路稳定性                | 已解决   | 2026-03-16    |
+| 2026-03-17 | 阶段 4 | Canceled 任务重新入队后 `StatusText` 未同步更新                      | Download 页面状态一致性       | 已解决   | 2026-03-27    |
+| 2026-03-29 | 阶段 4 | 重启后"只下载高清音频""文件筛选"与未完成队列恢复项未通过             | 状态持久化与重启恢复          | 已解决   | 2026-03-29    |
+| 2026-03-30 | 阶段 1 | "保存并重新初始化"后自动切换到 Search 页签                           | Settings 页面停留行为         | 已解决   | 2026-03-30    |
+| 2026-03-31 | 阶段 4 | 连续导出时打开重复资源管理器窗口                                     | 导出体验                      | 已解决   | 2026-03-31    |
+| 2026-03-31 | 阶段 4 | CSV/JSON 导入数量/跳过数量计算不准确                                 | Download 导入计数             | 已解决   | 2026-03-31    |
+| 2026-03-31 | 阶段 4 | 启动后后台标题补拉失败导致列表标题空白                               | Download 启动后可读性         | 已解决   | 2026-03-31    |
+| 2026-04-01 | 阶段 4 | `BJ02370869` 等非 RJ 作品 `source_id` 与 `workId` 不一致导致解析失败 | 热门结果入队、翻译入队        | 已解决   | 2026-04-01    |
+| 2026-04-01 | 阶段 4 | 清空任务列表后入队 `source_id/workId` 失配作品误报"失败 1 项"        | Search->Download 联动         | 已解决   | 2026-04-01    |
+| 2026-04-01 | 阶段 4 | 轨道标题自带扩展名时下载文件生成重复后缀                             | 下载文件命名                  | 已解决   | 2026-04-01    |
+| 2026-04-03 | 阶段 5 | Sync 页面缺少温和停止入口，重启后不记录未完成进度                    | 同步链路可恢复性与可控性      | 已解决   | 2026-04-03    |
+| 2026-04-03 | 阶段 5 | Sync 页面开始/停止按钮分散，运行中禁用"刷新统计"                     | Sync 操作一致性与实时可观测性 | 已解决   | 2026-04-03    |
+| 2026-04-03 | 阶段 5 | Sync 主按钮快速双击误触发 stop request                               | 开始/停止按钮可控性           | 已解决   | 2026-04-03    |
+| 2026-04-08 | 阶段 5 | Sync 落地文件被写成占位文本而非真实媒体                              | Sync 下载结果正确性           | 已解决   | 2026-04-08    |
+| 2026-04-08 | 阶段 4 | 双目录无匹配文件时写入占位文本而非实时下载                           | 普通下载链路                  | 已解决   | 2026-04-08    |
+| 2026-04-08 | 阶段 2 | 发布页入口脚本路径/引号形态解析不稳定                                | 站点发现稳定性                | 已解决   | 2026-04-08    |
+| 2026-04-08 | 阶段 5 | 元数据同步本地总量/字幕量未持久化，刷新后数量不正确                  | Sync 统计一致性               | 已解决   | 2026-04-08    |
+| 2026-04-10 | 阶段 2 | "测试连接"不回写 `ApiCandidateUrls`，SQLite 候选集合无法随发布页更新 | 站点发现与配置持久化          | 已解决   | 2026-04-10    |
+| 2026-04-12 | 阶段 2 | 发布页入口脚本使用相对路径/查询串/单引号配置时解析可能失败           | 站点发现兼容性                | 阻塞中   | 待确定        |
+| 2026-04-12 | 阶段 2 | 发布页正文最新域名未按顺序补齐并持久化到 `ApiCandidateUrls`          | 站点发现与配置持久化          | 阻塞中   | 待确定        |
+| 2026-04-12 | 阶段 5 | 网站总量与本地一致时未提示"无需同步"，可能重复写入数据               | 同步效率与用户体验            | 待验证   | 待确定        |
+| 2026-04-12 | 阶段 5 | 已完成状态下存在过期元数据时未自动执行过期刷新                       | 元数据保鲜                    | 待验证   | 待确定        |
+| 2026-04-12 | 阶段 5 | 同步完成后页面摘要未完整显示累计处理/新增数量                        | 同步结果展示                  | 待验证   | 待确定        |
+| 2026-04-12 | 阶段 5 | 同步下载完成后未重置进度并从头校验，可能重复处理已匹配作品           | 同步下载重扫效率              | 待验证   | 待确定        |
 
 ## 1.5 变更与验证记录
 
@@ -1162,6 +1174,14 @@ AI约束策略：章节1.5.1到1.5.99的文本不加入分析上下文
 4. DoD 判定：是。用户本轮要求的 `v0.5.5` 版本升级、`AsmrProbe` 可用性确认与逻辑收敛、单元测试同步、progress 文档同步均已落地。
 5. 下次计划：由用户执行章节 4.1 的受影响手工回归，重点验证应用启动不阻塞、“测试连接”继续可用且发布页/health 探测链路正常，以及 Settings 页面版本文案显示 `v0.5.5`；章节 2.1 基线更新为 2026-04-11 的 `325/325`，章节 3.1 新增单一 `v0.5.5` 待提交记录，章节 4.1 受影响项已重置为未勾选。
 
+### 1.5.101 2026-04-11，v0.5.6：Track size 完整度校验与重下补强
+
+1. 变更摘要：运行时版本升级到 `v0.5.6`；`TrackDto` 新增 `Size` 字段并接收 track API 的 `size` 元数据；`DownloadService` 在普通下载目录、同步下载目录候选文件与真实下载落盘后三个阶段统一引入基于 track size 的完整度判断，仅在文件大小匹配时复用已有文件，大小不一致时忽略旧文件并重新下载；同时保留 legacy placeholder 与空文件防护逻辑。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Api/TrackDto.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/DownloadService.cs`、`dotnet/tests/Asmroner.Application.Tests/DownloadServiceTests.cs`、`dotnet/tests/Asmroner.Application.Tests/DownloadServiceTestDoubles.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/AsmrApiClientTests.cs`、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`。
+3. 验证结果：`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --nologo` 通过（75/75）；`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --nologo` 通过（82/82）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --nologo` 通过（158/158）；`rtk dotnet test dotnet/Asmroner.sln --nologo --no-restore` 通过（329/329）。
+4. DoD 判定：是。用户本轮要求的 `v0.5.6` 版本升级、track `size` 接入、已有文件大小不一致时重新下载、单元测试同步与 progress 文档同步均已落地。
+5. 下次计划：由用户执行章节 4.1、4.3 与 4.5 的受影响手工回归，重点验证 Settings 页面版本文案显示 `v0.5.6`、普通下载/同步下载目录中仅在文件大小匹配时复用已有文件、大小不一致时触发重下，以及 Sync completed-state 重扫只补齐目录缺失或文件大小不一致的作品；章节 2.1 基线更新为 2026-04-11 的 `329/329`，章节 3.1 新增单一 `v0.5.6` 待提交记录，章节 4 的受影响项已重置为未勾选。
+
 ---
 
 ## 1.6 维护规则
@@ -1182,7 +1202,7 @@ AI约束策略：章节1.5.1到1.5.99的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-11 的解决方案级回归（325/325）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-11 的解决方案级回归（329/329）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
@@ -1214,6 +1234,10 @@ AI约束策略：章节1.5.1到1.5.99的文本不加入分析上下文
 | [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldNotAppendDuplicateExtension_WhenTrackTitleAlreadyContainsExtension` | 轨道标题已带 `.mp3`，下载扩展名仍为 `.mp3`          | 落地文件名仅保留单个 `.mp3` 后缀                               |
 | [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldAppendExtension_WhenTrackTitleDoesNotContainExtension`              | 轨道标题无扩展名，下载扩展名为 `.wav`               | 落地文件名自动补齐 `.wav` 后缀                                 |
 | [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldCopyMatchingFiles_FromSyncDirectory`                                    | 下载目录缺失目标文件、同步下载目录已有匹配文件      | 复用同步下载目录中的真实文件到普通下载目录，不重复请求下载接口 |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldSkipDownload_WhenExistingTargetFileMatchesTrackSize`                    | 普通下载目录已存在与 track `size` 一致的目标文件    | 跳过下载请求，直接复用现有文件                                 |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldRedownload_WhenExistingTargetFileSizeDiffersFromTrackSize`              | 普通下载目录已存在与 track `size` 不一致的目标文件  | 忽略旧文件并重新下载，最终落盘文件大小与 track `size` 一致     |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldDownload_WhenSyncLookupFileSizeDiffersFromTrackSize`                    | 同步下载目录存在同路径但大小不一致的候选文件        | 不复制候选文件，改为真实下载并在普通下载目录重新落盘           |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldFail_WhenDownloadedFileSizeDiffersFromTrackSize`                        | track `size` 与实际下载响应体大小不一致             | 下载失败并删除不完整目标文件                                   |
 | [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldDownloadRealFiles_WhenNoExistingFileInEitherDirectory`                  | 普通下载目录与同步下载目录均无目标文件              | 直接调用 `mediaDownloadUrl` 下载真实文件并落盘，不写占位文本   |
 
 #### 2.1.2 Application.Tests / QueryParserServiceTests.cs
@@ -1271,19 +1295,19 @@ AI约束策略：章节1.5.1到1.5.99的文本不加入分析上下文
 
 #### 2.1.9 Infrastructure.Tests / AsmrApiClientTests.cs
 
-| 已创建 | 已通过 | 阶段    | 样例名                                                                                     | 输入                                                                                       | 期望输出                                                                                     |
-| ------ | ------ | ------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 2  | `AsmrApiClient_ShouldMapHttpErrors`                                                        | 业务请求返回 500                                                                           | 抛出 `AsmrApiException`，错误码为 `api_request_failed`                                       |
-| [x]    | [x]    | 阶段 4  | `GetPopularAsync_ShouldUsePostAndMapWorks`                                                 | 调用热门接口                                                                               | 使用 `POST /api/recommender/popular` 且正确映射返回 `works`，包括 Release、HasSubtitle、Tags |
-| [x]    | [x]    | 阶段 2  | `AsmrApiClient_ShouldAttachBearerToken_OnAuthorizedCalls`                                  | 已登录态调用受保护接口                                                                     | 请求头包含 `Authorization: Bearer xxx`                                                       |
-| [x]    | [x]    | 阶段 4  | `AsmrApiClient_ShouldNormalizeWorkUrlInput_ToWorkEndpointPath`                             | 输入作品 URL 形式 id 调用 `GetWorkInfoAsync`                                               | 请求路径归一化为 `/api/work/{numericId}`（纯数字，无 `RJ` 前缀）并成功调用                   |
-| [x]    | [x]    | 阶段 4  | `AsmrApiClient_ShouldNormalizeNonCanonicalSourceId_ToNumericApiPath`                       | 输入 `RJ-xxxx`/纯数字/`RJxxxx` 形式 id 调用 `GetWorkInfoAsync`                             | 请求路径归一化为 `/api/work/{numericId}`（纯数字，无 `RJ` 前缀）                             |
-| [x]    | [x]    | 阶段 4  | `AsmrApiClient_SearchAsync_ShouldNotDoubleEncodeQuery`                                     | 输入已编码 query（含高级筛选 token）调用 `SearchAsync`                                     | 请求 URL 不出现 `%25` 二次编码序列                                                           |
-| [x]    | [x]    | 阶段 4  | `AsmrApiClient_ShouldDeserializeTranslationMetadata_OnWorkInfoResponse`                    | 含 `translation_info`、`language_editions`、`other_language_editions_in_db` 的作品详情响应 | 正确反序列化当前语言、关联翻译版本与原作标记，供入队优先级选择复用                           |
-| [x]    | [x]    | 阶段 4  | `AsmrApiClient_ShouldResolveNonNumericSourceId_ToNumericWorkEndpointPath`                  | 输入 `BJ02370869` 这类 `source_id` 调用 `GetWorkInfoAsync`                                 | 先通过搜索结果解析数值 `workId`，再请求 `/api/work/{numericId}`                              |
-| [x]    | [x]    | 阶段 4  | `AsmrApiClient_GetTracksAsync_ShouldResolveNonNumericSourceId_ToNumericTracksEndpointPath` | 输入 `BJ02370869` 这类 `source_id` 调用 `GetTracksAsync`                                   | 先通过搜索结果解析数值 `workId`，再请求 `/api/tracks/{numericId}`                            |
-| [x]    | [x]    | 阶段 5  | `GetMetadataWorksAsync_ShouldUseWorksEndpoint_AndSubtitleFlag`                             | 调用 `/api/works` 元数据分页接口，`page=2`、`pageSize=50`、`subtitle=1`                    | 请求路径保留分页与字幕参数，并正确反序列化元数据分页结果                                     |
-| [x]    | [x]    | 阶段 4+ | `DownloadFileAsync_ShouldWriteResponseBody_ToDestinationPath`                              | 传入绝对 `mediaDownloadUrl` 与嵌套目标路径                                                 | 以流式方式写入响应体、自动创建目标目录，并保留授权请求头                                     |
+| 已创建 | 已通过 | 阶段    | 样例名                                                                                     | 输入                                                                                       | 期望输出                                                                                          |
+| ------ | ------ | ------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 2  | `AsmrApiClient_ShouldMapHttpErrors`                                                        | 业务请求返回 500                                                                           | 抛出 `AsmrApiException`，错误码为 `api_request_failed`                                            |
+| [x]    | [x]    | 阶段 4  | `GetPopularAsync_ShouldUsePostAndMapWorks`                                                 | 调用热门接口                                                                               | 使用 `POST /api/recommender/popular` 且正确映射返回 `works`，包括 Release、HasSubtitle、Tags      |
+| [x]    | [x]    | 阶段 2  | `AsmrApiClient_ShouldAttachBearerToken_OnAuthorizedCalls`                                  | 已登录态调用受保护接口                                                                     | 请求头包含 `Authorization: Bearer xxx`                                                            |
+| [x]    | [x]    | 阶段 4  | `AsmrApiClient_ShouldNormalizeWorkUrlInput_ToWorkEndpointPath`                             | 输入作品 URL 形式 id 调用 `GetWorkInfoAsync`                                               | 请求路径归一化为 `/api/work/{numericId}`（纯数字，无 `RJ` 前缀）并成功调用                        |
+| [x]    | [x]    | 阶段 4  | `AsmrApiClient_ShouldNormalizeNonCanonicalSourceId_ToNumericApiPath`                       | 输入 `RJ-xxxx`/纯数字/`RJxxxx` 形式 id 调用 `GetWorkInfoAsync`                             | 请求路径归一化为 `/api/work/{numericId}`（纯数字，无 `RJ` 前缀）                                  |
+| [x]    | [x]    | 阶段 4  | `AsmrApiClient_SearchAsync_ShouldNotDoubleEncodeQuery`                                     | 输入已编码 query（含高级筛选 token）调用 `SearchAsync`                                     | 请求 URL 不出现 `%25` 二次编码序列                                                                |
+| [x]    | [x]    | 阶段 4  | `AsmrApiClient_ShouldDeserializeTranslationMetadata_OnWorkInfoResponse`                    | 含 `translation_info`、`language_editions`、`other_language_editions_in_db` 的作品详情响应 | 正确反序列化当前语言、关联翻译版本与原作标记，供入队优先级选择复用                                |
+| [x]    | [x]    | 阶段 4  | `AsmrApiClient_ShouldResolveNonNumericSourceId_ToNumericWorkEndpointPath`                  | 输入 `BJ02370869` 这类 `source_id` 调用 `GetWorkInfoAsync`                                 | 先通过搜索结果解析数值 `workId`，再请求 `/api/work/{numericId}`                                   |
+| [x]    | [x]    | 阶段 4  | `AsmrApiClient_GetTracksAsync_ShouldResolveNonNumericSourceId_ToNumericTracksEndpointPath` | 输入 `BJ02370869` 这类 `source_id` 调用 `GetTracksAsync`，且 tracks 响应包含 `size` 字段   | 先通过搜索结果解析数值 `workId`，再请求 `/api/tracks/{numericId}`，并正确反序列化 `TrackDto.Size` |
+| [x]    | [x]    | 阶段 5  | `GetMetadataWorksAsync_ShouldUseWorksEndpoint_AndSubtitleFlag`                             | 调用 `/api/works` 元数据分页接口，`page=2`、`pageSize=50`、`subtitle=1`                    | 请求路径保留分页与字幕参数，并正确反序列化元数据分页结果                                          |
+| [x]    | [x]    | 阶段 4+ | `DownloadFileAsync_ShouldWriteResponseBody_ToDestinationPath`                              | 传入绝对 `mediaDownloadUrl` 与嵌套目标路径                                                 | 以流式方式写入响应体、自动创建目标目录，并保留授权请求头                                          |
 
 #### 2.1.10 Infrastructure.Tests / AuthServiceTests.cs
 
@@ -1662,7 +1686,7 @@ AI约束策略：章节1.5.1到1.5.99的文本不加入分析上下文
 
 | 已创建 | 已通过 | 阶段    | 样例名                                                                            | 输入                     | 期望输出                                    |
 | ------ | ------ | ------- | --------------------------------------------------------------------------------- | ------------------------ | ------------------------------------------- |
-| [x]    | [x]    | 阶段 5  | `GetDisplayVersion_ShouldReturnThreePartAssemblyVersion`                          | 当前程序集版本 `0.5.5.0` | 返回三段式版本文本 `0.5.5`                  |
+| [x]    | [x]    | 阶段 5  | `GetDisplayVersion_ShouldReturnThreePartAssemblyVersion`                          | 当前程序集版本 `0.5.6.0` | 返回三段式版本文本 `0.5.6`                  |
 | [x]    | [x]    | 阶段 1+ | `BuildSettingsVersionText_AndStartupMessage_ShouldUseDisplayVersionWithoutSuffix` | 动态版本文案构建         | Settings 文案与启动日志共用相同三段式版本号 |
 
 #### 2.1.52 Wpf.Tests / StartupUnfinishedQueueMetadataRefreshServiceTests.cs
@@ -1890,10 +1914,11 @@ AI约束策略：章节1.5.1到1.5.99的文本不加入分析上下文
 | 2026-04-08 | 已提交 | v0.5.2: unify workinfo dto, refresh stale metadata, stream real downloads   | 1. Update runtime/docs version to v0.5.2.<br>2. Modify configuration.<br>3. Prefer local MetadataWork for Search/Download before refresh from API.<br>4. Refresh expired metadata and rescan completed sync downloads.<br>5. Replace placeholder download outputs with real download streaming.<br>6. Unify Search/Download/Sync work-info flows on shared Dto.<br>7. Update regression tests and progress documentation.          | e0ff664    |
 | 2026-04-08 | 已提交 | v0.5.3: fix endpoint probe path and clarify sync progress counts            | 1. Update runtime/docs version to v0.5.3.<br>2. Fix HTML/script fetch failures, flexible script markup, replace the candidate latency probe with a GET-safe endpoint.<br>3. Persist metadata-sync local counts plus cumulative processed-work counts.<br>4. Refactor Settings save/test-connection flow.<br>5. Add XML docs to direct control handlers in View files.<br>6. Update regression tests and progress documentation.    | 81a8fcb    |
 | 2026-04-10 | 已提交 | v0.5.4: persist published API candidates and harden endpoint discovery      | 1. Update runtime/docs version to v0.5.4.<br>2. Keep the pending metadata-sync count persistence, Settings save/test-connection flow cleanup.<br>3. Switch candidate latency probing to health api.<br>4. Expand built-in API candidates, and persist discovered candidate lists back to SQLite.<br>5. Fix test connection and the discovered candidate list logic.<br>6. Update regression tests and progress documentation.      | d6be49d    |
-| 2026-04-11 | 待提交 | v0.5.5: align runtime version and streamline anonymous endpoint probe       | 1. Update runtime/docs version to v0.5.5.<br>2. Keep `AsmrProbe` as the anonymous endpoint probe client and centralize its shared HTTP transport configuration.<br>3. Reuse one probe client across endpoint discovery and keep publish-source / health requests on the same probe header policy.<br>4. Update regression tests and progress documentation.                                                                        | -          |
+| 2026-04-11 | 已提交 | v0.5.5: align runtime version and streamline anonymous endpoint probe       | 1. Update runtime/docs version to v0.5.5.<br>2. Keep `AsmrProbe` as the anonymous endpoint probe client and centralize its shared HTTP transport configuration.<br>3. Reuse one probe client across endpoint discovery and keep publish-source / health requests on the same probe header policy.<br>4. Update regression tests and progress documentation.                                                                        | 71a771a    |
+| 2026-04-11 | 待提交 | v0.5.6: validate track size before reusing existing downloads               | 1. Update runtime/docs version to v0.5.6.<br>2. Add `TrackDto.Size` to capture track api size metadata.<br>3. Reuse existing files only when the local file size matches the track size; otherwise redownload the file.<br>4. Validate downloaded file size against track metadata.<br>5. Update regression tests and progress documentation.                                                                                      | -          |
 
 ---
- 
+
 ## 4. 功能测试验证清单
 
 本章用于指导测试人员对当前已交付的 WPF 客户端执行功能测试与回归测试。当前范围覆盖阶段 1 到阶段 4，以及阶段 5 已落地的元数据同步、同步下载、失败重试、状态导出、统计报表、同步进度持久化、断点继续与温和停止入口。
@@ -1920,7 +1945,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [ ] 当发布页入口脚本使用相对路径、查询串或单引号 `link` 配置时，“测试连接”仍可正确解析入口脚本并发现可用 BaseUrl。
 - [x] “测试连接”应通过 `GET /api/health?cache=false` 完成候选探测；当旧探测端点不可用但 health API 可达时，仍能选中可用 BaseUrl。
 - [ ] 当发布页正文直接提供 `asmr-300/200/100/one` 最新域名时，“测试连接”会按正文顺序补齐候选列表并写回 SQLite `ApiCandidateUrls`；随后再次“保存并重新初始化”不会把新候选覆盖回旧值。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.5.5。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.5.6。
 
 ### 4.2 Search 功能
 
@@ -1962,7 +1987,8 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] Download 页面操作按钮顺序应为“立即下载选中任务 -> 执行下载队列 -> 刷新任务列表”。
 - [x] “重试失败任务”在存在选中项时仅重试选中的失败任务并忽略非失败项；无选中项时会批量重试全部失败任务，并能输出正确汇总结果。
 - [x] “打开下载目录”可打开当前生效的普通下载目录。
-- [x] 普通下载目录缺失目标文件但同步下载目录已存在匹配文件时，执行下载会优先复用同步下载目录中的真实文件，不重复请求下载接口。
+- [x] 普通下载目录缺失目标文件且同步下载目录已存在同路径、同大小的匹配文件时，执行下载会优先复用同步下载目录中的真实文件，不重复请求下载接口。
+- [x] 当目标文件或同步下载目录候选文件已存在但大小与 track `size` 不一致时，下载流程会忽略旧文件并重新下载真实文件。
 - [x] 当普通下载目录和同步下载目录都没有匹配文件时，执行下载会直接请求 `mediaDownloadUrl` 实时落盘，不写 `source/title/url` 占位文本。
 - [x] “清空任务列表”可停止运行中任务、清空下载队列并删除任务列表项，且清空后重启不会回流旧未完成队列。
 - [x] Download 页面会恢复上一次运行时的“只下载高清音频”“加入翻译作品”“文件筛选”与未完成队列（`Pending/Queued/Failed` 恢复为 `Pending`），并在后台补拉缺失作品标题后刷新列表显示。
@@ -2011,7 +2037,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 当 SQLite `UiState` 中存在未完成同步下载进度时，再次点击下载同步主按钮会继续后续候选作品，且不会重下已有 `COMPLETED/FAILED` 记录。
 - [x] 点击下载同步主按钮发出 stop request 后，按钮会切换为“正在停止下载...”，并在当前作品完成后恢复为空闲态。
 - [x] 同步下载开始后的 1 秒内连续双击主按钮时，第二次点击会被防抖忽略，按钮保持“停止同步下载”，不会误切到“正在停止下载...”。
-- [ ] 当同步下载进度已完成时，再次点击下载同步主按钮会重置 UiState 进度，并从头校验已有 `WorkSyncInfo` 记录；仅对目录缺失或内容差异的作品补齐，不重复写入已匹配作品。
+- [ ] 当同步下载进度已完成时，再次点击下载同步主按钮会重置 UiState 进度，并从头校验已有 `WorkSyncInfo` 记录；仅对目录缺失或文件大小不一致的作品补齐，不重复写入已匹配作品。
 - [x] 点击“重试失败项”后，Sync 页面会逐项清理旧失败目录并重试全部 `FAILED` 记录。
 - [x] 失败重试完成后，页面摘要会显示本次重试数量、恢复成功数量、剩余失败数量与当前已完成总数。
 - [x] 点击“导出失败记录”后，可通过保存对话框将全部 `FAILED` 同步记录导出为 CSV 或 JSON 文件。

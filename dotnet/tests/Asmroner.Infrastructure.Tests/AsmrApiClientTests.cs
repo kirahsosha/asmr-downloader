@@ -230,7 +230,7 @@ public class AsmrApiClientTests
 
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent("[]", Encoding.UTF8, "application/json"),
+                Content = new StringContent("[{\"title\":\"BJ track\",\"mediaDownloadUrl\":\"https://cdn.example.com/bj-track.mp3\",\"size\":4394285}]", Encoding.UTF8, "application/json"),
             });
         }));
 
@@ -241,7 +241,10 @@ public class AsmrApiClientTests
 
         var result = await sut.GetTracksAsync("BJ02370869");
 
-        Assert.Empty(result);
+        var track = Assert.Single(result);
+        Assert.Equal("BJ track", track.Title);
+        Assert.Equal("https://cdn.example.com/bj-track.mp3", track.MediaDownloadUrl);
+        Assert.Equal(4394285, track.Size);
         Assert.Equal("/api/search/BJ02370869?order=id&sort=desc&page=1&pageSize=20&subtitle=0&includeTranslationWorks=true", requestedPaths[0]);
         Assert.Equal("/api/tracks/100000062", requestedPaths[1]);
     }

@@ -218,6 +218,7 @@ internal sealed class TestConfigurationService : IConfigurationService
     public TestConfigurationService(
         string dataRoot,
         int maxWorkers = 4,
+        int maxRetries = 3,
         string? preferFormats = null,
         string syncWantedSize = "5GB",
         bool hdAudioOnly = true,
@@ -235,6 +236,7 @@ internal sealed class TestConfigurationService : IConfigurationService
                 SyncWantedSize = syncWantedSize,
                 PreferFormats = preferFormats ?? "mp3,wav,flac,jpg,jpeg,png,gif,webp,mp4,mkv,avi,webm,txt,lrc,ass",
                 MaxWorkers = maxWorkers,
+                MaxRetries = maxRetries,
                 HdAudioOnly = hdAudioOnly,
             },
             Limit = new LimitOptions

@@ -8,6 +8,9 @@ public sealed class TrackDto
 
     public string Title { get; init; } = string.Empty;
 
+    [JsonPropertyName("size")]
+    public long? Size { get; init; }
+
     public IReadOnlyList<TrackDto> Children { get; init; } = Array.Empty<TrackDto>();
 
     [JsonPropertyName("mediaStreamUrl")]

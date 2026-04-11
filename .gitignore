@@ -54,3 +54,4 @@ asmroner.exe
 /docs/prompts.md
 /dotnet/Asmroner.Backend/Asmroner.Infrastructure/bin
 /.agents
+/.github

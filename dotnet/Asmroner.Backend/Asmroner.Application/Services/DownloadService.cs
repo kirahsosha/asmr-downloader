@@ -364,6 +364,7 @@ public sealed class DownloadService : IDownloadService
                     task.SourceId,
                     item.Title,
                     item.Url,
+                    item.ExpectedSize,
                     maxRetries,
                     runCancellationToken);
 
@@ -407,9 +408,9 @@ public sealed class DownloadService : IDownloadService
         }
     }
 
-    private static IReadOnlyList<(string Title, string Url, string RelativePath)> FilterTextSidecarsForRemovedMp3(
-        IReadOnlyList<(string Title, string Url, string RelativePath)> originalEntries,
-        IReadOnlyList<(string Title, string Url, string RelativePath)> filteredEntries)
+    private static IReadOnlyList<(string Title, string Url, string RelativePath, long? ExpectedSize)> FilterTextSidecarsForRemovedMp3(
+        IReadOnlyList<(string Title, string Url, string RelativePath, long? ExpectedSize)> originalEntries,
+        IReadOnlyList<(string Title, string Url, string RelativePath, long? ExpectedSize)> filteredEntries)
     {
         if (originalEntries.Count == 0 || filteredEntries.Count == 0)
         {
@@ -522,10 +523,11 @@ public sealed class DownloadService : IDownloadService
         string sourceId,
         string title,
         string mediaUrl,
+        long? expectedSize,
         int maxRetries,
         CancellationToken cancellationToken)
     {
-        if (await IsReusableFileAsync(outputPath, sourceId, title, mediaUrl, cancellationToken))
+        if (await IsReusableFileAsync(outputPath, sourceId, title, mediaUrl, expectedSize, cancellationToken))
         {
             return;
         }
@@ -533,7 +535,7 @@ public sealed class DownloadService : IDownloadService
         foreach (var lookupDirectory in lookupDirectories)
         {
             var candidatePath = Path.Combine(lookupDirectory, relativeFilePath);
-            if (!await IsReusableFileAsync(candidatePath, sourceId, title, mediaUrl, cancellationToken))
+            if (!await IsReusableFileAsync(candidatePath, sourceId, title, mediaUrl, expectedSize, cancellationToken))
             {
                 continue;
             }
@@ -554,10 +556,10 @@ public sealed class DownloadService : IDownloadService
             Directory.CreateDirectory(directoryPath);
         }
 
-        await DownloadFileWithRetriesAsync(mediaUrl, outputPath, maxRetries, cancellationToken);
+        await DownloadFileWithRetriesAsync(mediaUrl, outputPath, expectedSize, maxRetries, cancellationToken);
     }
 
-    private async Task DownloadFileWithRetriesAsync(string mediaUrl, string outputPath, int maxRetries, CancellationToken cancellationToken)
+    private async Task DownloadFileWithRetriesAsync(string mediaUrl, string outputPath, long? expectedSize, int maxRetries, CancellationToken cancellationToken)
     {
         for (var attempt = 0; attempt <= maxRetries; attempt++)
         {
@@ -571,9 +573,20 @@ public sealed class DownloadService : IDownloadService
                 }
 
                 await _apiClient.DownloadFileAsync(mediaUrl, outputPath, cancellationToken);
-                if (!File.Exists(outputPath) || new FileInfo(outputPath).Length <= 0)
+                if (!File.Exists(outputPath))
+                {
+                    throw new InvalidOperationException("下载文件不存在。");
+                }
+
+                var fileInfo = new FileInfo(outputPath);
+                if (fileInfo.Length <= 0)
                 {
                     throw new InvalidOperationException("下载文件为空。");
+                }
+
+                if (HasExpectedSizeMismatch(fileInfo, expectedSize))
+                {
+                    throw new InvalidOperationException($"下载文件大小与轨道元数据不一致。期望={expectedSize!.Value}，实际={fileInfo.Length}。");
                 }
 
                 return;
@@ -599,7 +612,7 @@ public sealed class DownloadService : IDownloadService
         }
     }
 
-    private static async Task<bool> IsReusableFileAsync(string path, string sourceId, string title, string mediaUrl, CancellationToken cancellationToken)
+    private static async Task<bool> IsReusableFileAsync(string path, string sourceId, string title, string mediaUrl, long? expectedSize, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
         {
@@ -612,7 +625,22 @@ public sealed class DownloadService : IDownloadService
             return false;
         }
 
+        if (HasExpectedSizeMismatch(fileInfo, expectedSize))
+        {
+            return false;
+        }
+
         return !await IsLegacyPlaceholderFileAsync(path, BuildLegacyPlaceholderContent(sourceId, title, mediaUrl), cancellationToken);
+    }
+
+    private static bool HasExpectedSizeMismatch(FileInfo fileInfo, long? expectedSize)
+    {
+        if (expectedSize is null || expectedSize.Value <= 0)
+        {
+            return false;
+        }
+
+        return fileInfo.Length != expectedSize.Value;
     }
 
     private static async Task<bool> IsLegacyPlaceholderFileAsync(string path, string legacyPlaceholderContent, CancellationToken cancellationToken)
@@ -733,14 +761,14 @@ public sealed class DownloadService : IDownloadService
         return SyncDownloadPathPolicy.SanitizePathPart(value);
     }
 
-    private static IEnumerable<(string Title, string Url, string RelativePath)> FlattenTracksWithPath(
+    private static IEnumerable<(string Title, string Url, string RelativePath, long? ExpectedSize)> FlattenTracksWithPath(
         IEnumerable<TrackDto> tracks, string currentPath = "")
     {
         foreach (var track in tracks)
         {
             if (!string.IsNullOrWhiteSpace(track.MediaDownloadUrl))
             {
-                yield return (track.Title, track.MediaDownloadUrl, currentPath);
+                yield return (track.Title, track.MediaDownloadUrl, currentPath, track.Size);
             }
 
             if (track.Children.Count > 0)

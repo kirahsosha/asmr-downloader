@@ -132,6 +132,239 @@ public class DownloadServiceTests
     }
 
     [Fact]
+    public async Task StartAsync_ShouldSkipDownload_WhenExistingTargetFileMatchesTrackSize()
+    {
+        var tempRoot = CreateTempRoot("skip-existing-same-size");
+        var downloadRoot = Path.Combine(tempRoot, "download-data");
+        var syncRoot = Path.Combine(tempRoot, "sync-data");
+        Directory.CreateDirectory(downloadRoot);
+        Directory.CreateDirectory(syncRoot);
+
+        var workInfo = new Asmroner.Core.Api.WorkInfoDto
+        {
+            Id = 5003,
+            SourceId = "RJ5003",
+            Title = "Reuse Title",
+            Release = "2026-04-11",
+            HasSubtitle = false,
+        };
+        var existingPayload = new byte[] { 0x11, 0x22, 0x33, 0x44 };
+        var trackUrl = "https://cdn.example.com/a/track-3.mp3";
+        var apiClient = new ScriptedApiClient(
+            workInfos: new[] { workInfo },
+            tracks: new[]
+            {
+                new Asmroner.Core.Api.TrackDto
+                {
+                    Title = "track-3",
+                    MediaDownloadUrl = trackUrl,
+                    Size = existingPayload.Length,
+                },
+            },
+            downloadPayloads: new Dictionary<string, byte[]>
+            {
+                [trackUrl] = new byte[] { 0xAA, 0xBB, 0xCC },
+            });
+
+        var targetFile = Path.Combine(downloadRoot, "[RJ5003]Reuse Title", "track-3.mp3");
+        Directory.CreateDirectory(Path.GetDirectoryName(targetFile)!);
+        await File.WriteAllBytesAsync(targetFile, existingPayload);
+
+        var sut = new DownloadService(
+            apiClient,
+            new TestConfigurationService(
+                tempRoot,
+                downloadDataFolder: downloadRoot,
+                syncDownloadDataFolder: syncRoot),
+            new SearchStateStore(),
+            new TestAppPathService(tempRoot),
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
+
+        var result = await sut.StartAsync("RJ5003");
+
+        Assert.NotNull(result);
+        Assert.Equal(DownloadTaskStatus.Completed, result!.Status);
+        Assert.Empty(apiClient.DownloadFileRequests);
+        Assert.Equal(existingPayload, await File.ReadAllBytesAsync(targetFile));
+    }
+
+    [Fact]
+    public async Task StartAsync_ShouldRedownload_WhenExistingTargetFileSizeDiffersFromTrackSize()
+    {
+        var tempRoot = CreateTempRoot("redownload-existing-size-mismatch");
+        var downloadRoot = Path.Combine(tempRoot, "download-data");
+        var syncRoot = Path.Combine(tempRoot, "sync-data");
+        Directory.CreateDirectory(downloadRoot);
+        Directory.CreateDirectory(syncRoot);
+
+        var workInfo = new Asmroner.Core.Api.WorkInfoDto
+        {
+            Id = 5004,
+            SourceId = "RJ5004",
+            Title = "Mismatch Title",
+            Release = "2026-04-11",
+            HasSubtitle = false,
+        };
+        var trackUrl = "https://cdn.example.com/a/track-4.mp3";
+        var downloadedPayload = new byte[] { 0x01, 0x02, 0x03, 0x04 };
+        var apiClient = new ScriptedApiClient(
+            workInfos: new[] { workInfo },
+            tracks: new[]
+            {
+                new Asmroner.Core.Api.TrackDto
+                {
+                    Title = "track-4",
+                    MediaDownloadUrl = trackUrl,
+                    Size = downloadedPayload.Length,
+                },
+            },
+            downloadPayloads: new Dictionary<string, byte[]>
+            {
+                [trackUrl] = downloadedPayload,
+            });
+
+        var targetFile = Path.Combine(downloadRoot, "[RJ5004]Mismatch Title", "track-4.mp3");
+        Directory.CreateDirectory(Path.GetDirectoryName(targetFile)!);
+        await File.WriteAllBytesAsync(targetFile, new byte[] { 0x99, 0x98 });
+
+        var sut = new DownloadService(
+            apiClient,
+            new TestConfigurationService(
+                tempRoot,
+                downloadDataFolder: downloadRoot,
+                syncDownloadDataFolder: syncRoot),
+            new SearchStateStore(),
+            new TestAppPathService(tempRoot),
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
+
+        var result = await sut.StartAsync("RJ5004");
+
+        Assert.NotNull(result);
+        Assert.Equal(DownloadTaskStatus.Completed, result!.Status);
+        Assert.Equal([trackUrl], apiClient.DownloadFileRequests);
+        Assert.Equal(downloadedPayload, await File.ReadAllBytesAsync(targetFile));
+    }
+
+    [Fact]
+    public async Task StartAsync_ShouldDownload_WhenSyncLookupFileSizeDiffersFromTrackSize()
+    {
+        var tempRoot = CreateTempRoot("lookup-size-mismatch");
+        var downloadRoot = Path.Combine(tempRoot, "download-data");
+        var syncRoot = Path.Combine(tempRoot, "sync-data");
+        Directory.CreateDirectory(downloadRoot);
+        Directory.CreateDirectory(syncRoot);
+
+        var workInfo = new Asmroner.Core.Api.WorkInfoDto
+        {
+            Id = 5005,
+            SourceId = "RJ5005",
+            Title = "Lookup Mismatch",
+            Release = "2026-04-11",
+            HasSubtitle = false,
+        };
+        var trackUrl = "https://cdn.example.com/a/track-5.flac";
+        var downloadedPayload = new byte[] { 0x21, 0x22, 0x23, 0x24, 0x25 };
+        var apiClient = new ScriptedApiClient(
+            workInfos: new[] { workInfo },
+            tracks: new[]
+            {
+                new Asmroner.Core.Api.TrackDto
+                {
+                    Title = "track-5",
+                    MediaDownloadUrl = trackUrl,
+                    Size = downloadedPayload.Length,
+                },
+            },
+            downloadPayloads: new Dictionary<string, byte[]>
+            {
+                [trackUrl] = downloadedPayload,
+            });
+
+        var syncFile = Path.Combine(syncRoot, "[RJ5005]Lookup Mismatch", "track-5.flac");
+        Directory.CreateDirectory(Path.GetDirectoryName(syncFile)!);
+        await File.WriteAllBytesAsync(syncFile, new byte[] { 0x01, 0x02 });
+
+        var sut = new DownloadService(
+            apiClient,
+            new TestConfigurationService(
+                tempRoot,
+                downloadDataFolder: downloadRoot,
+                syncDownloadDataFolder: syncRoot),
+            new SearchStateStore(),
+            new TestAppPathService(tempRoot),
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
+
+        var result = await sut.StartAsync("RJ5005");
+        var downloadedFile = Path.Combine(downloadRoot, "[RJ5005]Lookup Mismatch", "track-5.flac");
+
+        Assert.NotNull(result);
+        Assert.Equal(DownloadTaskStatus.Completed, result!.Status);
+        Assert.Equal([trackUrl], apiClient.DownloadFileRequests);
+        Assert.True(File.Exists(downloadedFile));
+        Assert.Equal(downloadedPayload, await File.ReadAllBytesAsync(downloadedFile));
+    }
+
+    [Fact]
+    public async Task StartAsync_ShouldFail_WhenDownloadedFileSizeDiffersFromTrackSize()
+    {
+        var tempRoot = CreateTempRoot("download-size-mismatch");
+        var downloadRoot = Path.Combine(tempRoot, "download-data");
+        var syncRoot = Path.Combine(tempRoot, "sync-data");
+        Directory.CreateDirectory(downloadRoot);
+        Directory.CreateDirectory(syncRoot);
+
+        var workInfo = new Asmroner.Core.Api.WorkInfoDto
+        {
+            Id = 5006,
+            SourceId = "RJ5006",
+            Title = "Broken Size",
+            Release = "2026-04-11",
+            HasSubtitle = false,
+        };
+        var trackUrl = "https://cdn.example.com/a/track-6.wav";
+        var downloadedPayload = new byte[] { 0x31, 0x32 };
+        var apiClient = new ScriptedApiClient(
+            workInfos: new[] { workInfo },
+            tracks: new[]
+            {
+                new Asmroner.Core.Api.TrackDto
+                {
+                    Title = "track-6",
+                    MediaDownloadUrl = trackUrl,
+                    Size = downloadedPayload.Length + 3,
+                },
+            },
+            downloadPayloads: new Dictionary<string, byte[]>
+            {
+                [trackUrl] = downloadedPayload,
+            });
+
+        var sut = new DownloadService(
+            apiClient,
+            new TestConfigurationService(
+                tempRoot,
+                maxRetries: 0,
+                downloadDataFolder: downloadRoot,
+                syncDownloadDataFolder: syncRoot),
+            new SearchStateStore(),
+            new TestAppPathService(tempRoot),
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache());
+
+        var result = await sut.StartAsync("RJ5006");
+        var targetFile = Path.Combine(downloadRoot, "[RJ5006]Broken Size", "track-6.wav");
+
+        Assert.NotNull(result);
+        Assert.Equal(DownloadTaskStatus.Failed, result!.Status);
+        Assert.Contains("大小与轨道元数据不一致", result.ErrorMessage, StringComparison.Ordinal);
+        Assert.Equal([trackUrl], apiClient.DownloadFileRequests);
+        Assert.False(File.Exists(targetFile));
+    }
+
+    [Fact]
     public async Task StartAsync_ShouldDownloadRealFiles_WhenNoExistingFileInEitherDirectory()
     {
         var tempRoot = CreateTempRoot("download-real-file");
