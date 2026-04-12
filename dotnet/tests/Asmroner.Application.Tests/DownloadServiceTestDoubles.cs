@@ -615,3 +615,155 @@ internal sealed class TestWorkInfoCache : IWorkInfoCache
 
     private sealed record CachedWorkInfoEntry(WorkInfoDto WorkInfo, WorkInfoCacheEntryLevel CacheLevel);
 }
+
+internal sealed class TestMetadataSyncStore : IMetadataSyncStore
+{
+    private readonly Dictionary<string, MetadataWorkItem> _metadataWorks = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<int, WorkSyncInfoItem> _syncInfos = [];
+    private int _nextSyncInfoId = 1;
+
+    public Task<MetadataSyncSnapshot> GetMetadataSnapshotAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(new MetadataSyncSnapshot
+        {
+            LocalTotalCount = _metadataWorks.Count,
+            LocalSubtitleCount = _metadataWorks.Values.Count(static work => work.HasSubtitle),
+            LastUpdatedAt = _metadataWorks.Count == 0 ? null : _metadataWorks.Values.Max(static work => work.UpdatedAt),
+        });
+    }
+
+    public Task<int> UpsertMetadataWorksAsync(IReadOnlyCollection<MetadataWorkItem> works, CancellationToken cancellationToken = default)
+    {
+        var insertedCount = 0;
+        foreach (var work in works)
+        {
+            if (!_metadataWorks.ContainsKey(work.SourceId))
+            {
+                insertedCount++;
+            }
+
+            _metadataWorks[work.SourceId] = work;
+        }
+
+        return Task.FromResult(insertedCount);
+    }
+
+    public Task<IReadOnlyDictionary<string, MetadataWorkItem>> GetMetadataWorksBySourceIdsAsync(IReadOnlyCollection<string> sourceIds, CancellationToken cancellationToken = default)
+    {
+        var items = sourceIds
+            .Where(static sourceId => !string.IsNullOrWhiteSpace(sourceId))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(sourceId => _metadataWorks.ContainsKey(sourceId))
+            .ToDictionary(sourceId => sourceId, sourceId => _metadataWorks[sourceId], StringComparer.OrdinalIgnoreCase);
+        return Task.FromResult<IReadOnlyDictionary<string, MetadataWorkItem>>(items);
+    }
+
+    public Task<IReadOnlyList<int>> GetExpiredMetadataWorkIdsAsync(DateTime updatedBefore, CancellationToken cancellationToken = default)
+    {
+        var items = _metadataWorks.Values
+            .Where(work => work.UpdatedAt < updatedBefore)
+            .Select(static work => work.Id)
+            .OrderBy(static id => id)
+            .ToArray();
+        return Task.FromResult<IReadOnlyList<int>>(items);
+    }
+
+    public Task<IReadOnlyList<MetadataWorkItem>> GetAllMetadataWorksAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<MetadataWorkItem>>(_metadataWorks.Values.OrderBy(static work => work.Id).ToArray());
+    }
+
+    public Task<SyncDownloadSnapshot> GetDownloadSnapshotAsync(CancellationToken cancellationToken = default)
+    {
+        var items = _syncInfos.Values.ToArray();
+        return Task.FromResult(new SyncDownloadSnapshot
+        {
+            PendingCount = items.Count(static item => item.Status == "PENDING"),
+            CompletedCount = items.Count(static item => item.Status == "COMPLETED"),
+            FailedCount = items.Count(static item => item.Status == "FAILED"),
+            RemainingMetadataCount = _metadataWorks.Values.Count(work => !_syncInfos.ContainsKey(work.Id)),
+            CompletedSizeBytes = items.Where(static item => item.Status == "COMPLETED").Sum(static item => item.DirSize),
+            LastUpdatedAt = items.Length == 0 ? null : items.Max(static item => item.UpdatedAt),
+        });
+    }
+
+    public Task<IReadOnlyDictionary<int, WorkSyncInfoItem>> GetWorkSyncInfoMapAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyDictionary<int, WorkSyncInfoItem>>(new Dictionary<int, WorkSyncInfoItem>(_syncInfos));
+    }
+
+    public Task<int> CleanupPendingSyncDownloadsAsync(CancellationToken cancellationToken = default)
+    {
+        var removedKeys = _syncInfos
+            .Where(static pair => pair.Value.Status == "PENDING")
+            .Select(static pair => pair.Key)
+            .ToArray();
+        foreach (var key in removedKeys)
+        {
+            _syncInfos.Remove(key);
+        }
+
+        return Task.FromResult(removedKeys.Length);
+    }
+
+    public Task<IReadOnlyList<MetadataWorkItem>> GetSyncDownloadCandidatesAsync(int count, CancellationToken cancellationToken = default)
+    {
+        var items = _metadataWorks.Values
+            .Where(work => !_syncInfos.ContainsKey(work.Id))
+            .OrderBy(static work => work.Id)
+            .Take(count)
+            .ToArray();
+        return Task.FromResult<IReadOnlyList<MetadataWorkItem>>(items);
+    }
+
+    public Task<IReadOnlyList<WorkSyncInfoItem>> GetFailedSyncDownloadsAsync(CancellationToken cancellationToken = default)
+    {
+        var items = _syncInfos.Values
+            .Where(static item => item.Status == "FAILED")
+            .OrderBy(static item => item.UpdatedAt)
+            .ToArray();
+        return Task.FromResult<IReadOnlyList<WorkSyncInfoItem>>(items);
+    }
+
+    public Task<IReadOnlyList<WorkSyncInfoItem>> GetSyncDownloadsByStatusAsync(string status, CancellationToken cancellationToken = default)
+    {
+        var items = _syncInfos.Values
+            .Where(item => string.Equals(item.Status, status, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(static item => item.UpdatedAt)
+            .ToArray();
+        return Task.FromResult<IReadOnlyList<WorkSyncInfoItem>>(items);
+    }
+
+    public Task<WorkSyncInfoItem> CreatePendingWorkSyncInfoAsync(MetadataWorkItem work, string filePath, CancellationToken cancellationToken = default)
+    {
+        var item = new WorkSyncInfoItem
+        {
+            Id = _nextSyncInfoId++,
+            MetadataWorkId = work.Id,
+            SourceId = work.SourceId,
+            HasSubtitle = work.HasSubtitle,
+            Status = "PENDING",
+            FilePath = filePath,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        _syncInfos[work.Id] = item;
+        return Task.FromResult(item);
+    }
+
+    public Task UpdateWorkSyncInfoAsync(WorkSyncInfoItem item, CancellationToken cancellationToken = default)
+    {
+        _syncInfos[item.MetadataWorkId] = item;
+        _nextSyncInfoId = Math.Max(_nextSyncInfoId, item.Id + 1);
+        return Task.CompletedTask;
+    }
+
+    public MetadataWorkItem? GetMetadataWork(string sourceId)
+    {
+        return _metadataWorks.TryGetValue(sourceId, out var item) ? item : null;
+    }
+
+    public WorkSyncInfoItem? GetSyncInfo(int metadataWorkId)
+    {
+        return _syncInfos.TryGetValue(metadataWorkId, out var item) ? item : null;
+    }
+}

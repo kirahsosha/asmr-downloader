@@ -219,6 +219,7 @@ public class SyncDownloadServiceTests
             Assert.Equal(1, result.CompletedCount);
             Assert.Equal(["BJ02370869"], downloadService.RequestedSourceIds);
             Assert.Equal([100000062], downloadService.RequestedWorkIds);
+            Assert.All(downloadService.RequestedPurposes, static purpose => Assert.Equal(DownloadExecutionPurpose.SyncManaged, purpose));
         }
         finally
         {
@@ -628,6 +629,8 @@ public class SyncDownloadServiceTests
 
         public List<int?> RequestedWorkIds { get; } = [];
 
+        public List<DownloadExecutionPurpose> RequestedPurposes { get; } = [];
+
         public Task<IReadOnlyList<DownloadTaskItem>> RunQueuedAsync(string? fileFilter = null, bool hdAudioOnly = false, CancellationToken cancellationToken = default)
         {
             throw new NotImplementedException();
@@ -637,6 +640,7 @@ public class SyncDownloadServiceTests
         {
             RequestedSourceIds.Add(sourceId);
             RequestedWorkIds.Add(options?.WorkId);
+            RequestedPurposes.Add(options?.Purpose ?? DownloadExecutionPurpose.Standard);
             var startCallCount = Interlocked.Increment(ref _startCallCount);
             var plan = _plans[sourceId];
             var targetDirectory = SyncDownloadPathPolicy.BuildTargetDirectory(options?.TargetRoot ?? _targetRoot, sourceId, plan.Title);

@@ -109,6 +109,7 @@ public class DownloadServiceTests
         var syncFile = Path.Combine(syncFolder, "track-1.mp3");
         var expectedPayload = new byte[] { 0x10, 0x20, 0x30, 0x40 };
         await File.WriteAllBytesAsync(syncFile, expectedPayload);
+        var metadataSyncStore = new TestMetadataSyncStore();
 
         var sut = new DownloadService(
             apiClient,
@@ -119,7 +120,8 @@ public class DownloadServiceTests
             new SearchStateStore(),
             new TestAppPathService(tempRoot),
             new NoopRateLimiterService(),
-            new TestWorkInfoCache());
+            new TestWorkInfoCache(),
+            metadataSyncStore);
 
         var result = await sut.StartAsync("RJ5001");
         var downloadedFile = Path.Combine(downloadRoot, "[RJ5001]Copy Title", "track-1.mp3");
@@ -129,6 +131,11 @@ public class DownloadServiceTests
         Assert.True(File.Exists(downloadedFile));
         Assert.Equal(expectedPayload, await File.ReadAllBytesAsync(downloadedFile));
         Assert.Empty(apiClient.DownloadFileRequests);
+
+        var syncInfo = metadataSyncStore.GetSyncInfo(workInfo.Id);
+        Assert.NotNull(syncInfo);
+        Assert.Equal("COMPLETED", syncInfo!.Status);
+        Assert.Equal(syncFolder, syncInfo.FilePath);
     }
 
     [Fact]
@@ -169,6 +176,7 @@ public class DownloadServiceTests
         var targetFile = Path.Combine(downloadRoot, "[RJ5003]Reuse Title", "track-3.mp3");
         Directory.CreateDirectory(Path.GetDirectoryName(targetFile)!);
         await File.WriteAllBytesAsync(targetFile, existingPayload);
+        var metadataSyncStore = new TestMetadataSyncStore();
 
         var sut = new DownloadService(
             apiClient,
@@ -179,7 +187,8 @@ public class DownloadServiceTests
             new SearchStateStore(),
             new TestAppPathService(tempRoot),
             new NoopRateLimiterService(),
-            new TestWorkInfoCache());
+            new TestWorkInfoCache(),
+            metadataSyncStore);
 
         var result = await sut.StartAsync("RJ5003");
 
@@ -187,6 +196,8 @@ public class DownloadServiceTests
         Assert.Equal(DownloadTaskStatus.Completed, result!.Status);
         Assert.Empty(apiClient.DownloadFileRequests);
         Assert.Equal(existingPayload, await File.ReadAllBytesAsync(targetFile));
+        Assert.Null(metadataSyncStore.GetSyncInfo(workInfo.Id));
+        Assert.False(File.Exists(Path.Combine(syncRoot, "[RJ5003]Reuse Title", "track-3.mp3")));
     }
 
     [Fact]
@@ -397,6 +408,7 @@ public class DownloadServiceTests
             {
                 [trackUrl] = payload,
             });
+        var metadataSyncStore = new TestMetadataSyncStore();
 
         var sut = new DownloadService(
             apiClient,
@@ -407,16 +419,161 @@ public class DownloadServiceTests
             new SearchStateStore(),
             new TestAppPathService(tempRoot),
             new NoopRateLimiterService(),
-            new TestWorkInfoCache());
+            new TestWorkInfoCache(),
+            metadataSyncStore);
 
         var result = await sut.StartAsync("RJ5002");
         var downloadedFile = Path.Combine(downloadRoot, "[RJ5002]Download Title", "track-2.flac");
+        var mirroredFile = Path.Combine(syncRoot, "[RJ5002]Download Title", "track-2.flac");
 
         Assert.NotNull(result);
         Assert.Equal(DownloadTaskStatus.Completed, result!.Status);
         Assert.Equal([trackUrl], apiClient.DownloadFileRequests);
         Assert.True(File.Exists(downloadedFile));
         Assert.Equal(payload, await File.ReadAllBytesAsync(downloadedFile));
+        Assert.True(File.Exists(mirroredFile));
+        Assert.Equal(payload, await File.ReadAllBytesAsync(mirroredFile));
+
+        var syncInfo = metadataSyncStore.GetSyncInfo(workInfo.Id);
+        Assert.NotNull(syncInfo);
+        Assert.Equal("COMPLETED", syncInfo!.Status);
+        Assert.Equal(Path.Combine(syncRoot, "[RJ5002]Download Title"), syncInfo.FilePath);
+    }
+
+    [Fact]
+    public async Task StartAsync_ShouldRegisterCompletedSyncInfo_WithoutDuplicatingFiles_WhenDownloadAndSyncDirectoriesMatch()
+    {
+        var tempRoot = CreateTempRoot("shared-download-sync-root");
+        var sharedRoot = Path.Combine(tempRoot, "shared-data");
+        Directory.CreateDirectory(sharedRoot);
+
+        var trackUrl = "https://cdn.example.com/a/track-7.flac";
+        var payload = new byte[] { 0x51, 0x52, 0x53, 0x54 };
+        var workInfo = new Asmroner.Core.Api.WorkInfoDto
+        {
+            Id = 5007,
+            SourceId = "RJ5007",
+            Title = "Shared Title",
+            Release = "2026-04-12",
+            HasSubtitle = true,
+        };
+        var apiClient = new ScriptedApiClient(
+            workInfos: new[] { workInfo },
+            tracks: new[]
+            {
+                new Asmroner.Core.Api.TrackDto
+                {
+                    Title = "track-7",
+                    MediaDownloadUrl = trackUrl,
+                    Size = payload.Length,
+                },
+            },
+            downloadPayloads: new Dictionary<string, byte[]>
+            {
+                [trackUrl] = payload,
+            });
+        var metadataSyncStore = new TestMetadataSyncStore();
+
+        var sut = new DownloadService(
+            apiClient,
+            new TestConfigurationService(
+                tempRoot,
+                downloadDataFolder: sharedRoot,
+                syncDownloadDataFolder: sharedRoot),
+            new SearchStateStore(),
+            new TestAppPathService(tempRoot),
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache(),
+            metadataSyncStore);
+
+        var result = await sut.StartAsync("RJ5007");
+        var sharedDirectory = Path.Combine(sharedRoot, "[RJ5007]Shared Title");
+        var files = Directory.EnumerateFiles(sharedDirectory, "*", SearchOption.AllDirectories).ToArray();
+
+        Assert.NotNull(result);
+        Assert.Equal(DownloadTaskStatus.Completed, result!.Status);
+        Assert.Equal([trackUrl], apiClient.DownloadFileRequests);
+        Assert.Single(files);
+        Assert.Equal(payload, await File.ReadAllBytesAsync(files[0]));
+
+        var syncInfo = metadataSyncStore.GetSyncInfo(workInfo.Id);
+        Assert.NotNull(syncInfo);
+        Assert.Equal("COMPLETED", syncInfo!.Status);
+        Assert.Equal(sharedDirectory, syncInfo.FilePath);
+        Assert.True(syncInfo.HasSubtitle);
+    }
+
+    [Fact]
+    public async Task StartAsync_ShouldMirrorSubsetDownloadWithoutMarkingSyncCompleted_WhenFileFilterIsUsed()
+    {
+        var tempRoot = CreateTempRoot("subset-download-without-sync-complete");
+        var downloadRoot = Path.Combine(tempRoot, "downloads");
+        var syncRoot = Path.Combine(tempRoot, "sync-downloads");
+        Directory.CreateDirectory(downloadRoot);
+        Directory.CreateDirectory(syncRoot);
+
+        var firstTrackUrl = "https://cdn.example.com/a/filter-track-1.flac";
+        var secondTrackUrl = "https://cdn.example.com/a/filter-track-2.flac";
+        var firstPayload = new byte[] { 0x61, 0x62, 0x63 };
+        var secondPayload = new byte[] { 0x71, 0x72, 0x73 };
+        var workInfo = new Asmroner.Core.Api.WorkInfoDto
+        {
+            Id = 5008,
+            SourceId = "RJ5008",
+            Title = "Filtered Title",
+            Release = "2026-04-12",
+            HasSubtitle = false,
+        };
+        var apiClient = new ScriptedApiClient(
+            workInfos: new[] { workInfo },
+            tracks: new[]
+            {
+                new Asmroner.Core.Api.TrackDto
+                {
+                    Title = "keep-track",
+                    MediaDownloadUrl = firstTrackUrl,
+                    Size = firstPayload.Length,
+                },
+                new Asmroner.Core.Api.TrackDto
+                {
+                    Title = "skip-track",
+                    MediaDownloadUrl = secondTrackUrl,
+                    Size = secondPayload.Length,
+                },
+            },
+            downloadPayloads: new Dictionary<string, byte[]>
+            {
+                [firstTrackUrl] = firstPayload,
+                [secondTrackUrl] = secondPayload,
+            });
+        var metadataSyncStore = new TestMetadataSyncStore();
+
+        var sut = new DownloadService(
+            apiClient,
+            new TestConfigurationService(
+                tempRoot,
+                downloadDataFolder: downloadRoot,
+                syncDownloadDataFolder: syncRoot),
+            new SearchStateStore(),
+            new TestAppPathService(tempRoot),
+            new NoopRateLimiterService(),
+            new TestWorkInfoCache(),
+            metadataSyncStore);
+
+        var result = await sut.StartAsync("RJ5008", fileFilter: "keep");
+        var keptDownloadFile = Path.Combine(downloadRoot, "[RJ5008]Filtered Title", "keep-track.flac");
+        var keptSyncFile = Path.Combine(syncRoot, "[RJ5008]Filtered Title", "keep-track.flac");
+        var skippedDownloadFile = Path.Combine(downloadRoot, "[RJ5008]Filtered Title", "skip-track.flac");
+        var skippedSyncFile = Path.Combine(syncRoot, "[RJ5008]Filtered Title", "skip-track.flac");
+
+        Assert.NotNull(result);
+        Assert.Equal(DownloadTaskStatus.Completed, result!.Status);
+        Assert.Equal([firstTrackUrl], apiClient.DownloadFileRequests);
+        Assert.True(File.Exists(keptDownloadFile));
+        Assert.True(File.Exists(keptSyncFile));
+        Assert.False(File.Exists(skippedDownloadFile));
+        Assert.False(File.Exists(skippedSyncFile));
+        Assert.Null(metadataSyncStore.GetSyncInfo(workInfo.Id));
     }
 
     [Fact]

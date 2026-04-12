@@ -1,5 +1,11 @@
 namespace Asmroner.Core.Download;
 
+public enum DownloadExecutionPurpose
+{
+    Standard,
+    SyncManaged,
+}
+
 public sealed class DownloadStartOptions
 {
     public string? TargetRoot { get; init; }
@@ -7,4 +13,6 @@ public sealed class DownloadStartOptions
     public IReadOnlyList<string> LookupRoots { get; init; } = Array.Empty<string>();
 
     public int? WorkId { get; init; }
+
+    public DownloadExecutionPurpose Purpose { get; init; } = DownloadExecutionPurpose.Standard;
 }

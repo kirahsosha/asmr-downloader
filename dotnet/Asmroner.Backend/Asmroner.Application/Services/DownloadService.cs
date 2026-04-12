@@ -17,6 +17,7 @@ public sealed class DownloadService : IDownloadService
     private readonly IAppPathService _appPathService;
     private readonly IRateLimiterService _rateLimiterService;
     private readonly IWorkInfoCache _workInfoCache;
+    private readonly IMetadataSyncStore _metadataSyncStore;
     private readonly object _stateLock = new();
     private readonly List<DownloadTaskItem> _tasks = new();
     private readonly Dictionary<Guid, CancellationTokenSource> _taskCancellationSources = new();
@@ -28,6 +29,25 @@ public sealed class DownloadService : IDownloadService
         IAppPathService appPathService,
         IRateLimiterService rateLimiterService,
         IWorkInfoCache workInfoCache)
+        : this(
+            apiClient,
+            configurationService,
+            searchStateStore,
+            appPathService,
+            rateLimiterService,
+            workInfoCache,
+            NullMetadataSyncStore.Instance)
+    {
+    }
+
+    public DownloadService(
+        IAsmrApiClient apiClient,
+        IConfigurationService configurationService,
+        ISearchStateStore searchStateStore,
+        IAppPathService appPathService,
+        IRateLimiterService rateLimiterService,
+        IWorkInfoCache workInfoCache,
+        IMetadataSyncStore metadataSyncStore)
     {
         _apiClient = apiClient;
         _configurationService = configurationService;
@@ -35,6 +55,7 @@ public sealed class DownloadService : IDownloadService
         _appPathService = appPathService;
         _rateLimiterService = rateLimiterService;
         _workInfoCache = workInfoCache;
+        _metadataSyncStore = metadataSyncStore;
     }
 
     public async Task<IReadOnlyList<DownloadTaskItem>> RunQueuedAsync(string? fileFilter = null, bool hdAudioOnly = false, CancellationToken cancellationToken = default)
@@ -286,6 +307,8 @@ public sealed class DownloadService : IDownloadService
                 .Where(path => !path.Equals(targetDirectory, StringComparison.OrdinalIgnoreCase))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
+            var syncCompletionContext = ResolveSyncCompletionContext(config, options, folderName, targetDirectory);
+            var canRegisterCompletedSyncInfo = CanRegisterCompletedSyncInfo(fileFilter, hdAudioOnly);
             lock (_stateLock)
             {
                 task.TargetDirectory = targetDirectory;
@@ -357,7 +380,7 @@ public sealed class DownloadService : IDownloadService
                 var relativeFilePath = string.IsNullOrEmpty(item.RelativePath)
                     ? fileName
                     : Path.Combine(item.RelativePath, fileName);
-                await EnsureTargetFileAsync(
+                var targetFileResult = await EnsureTargetFileAsync(
                     outputPath,
                     relativeFilePath,
                     lookupDirectories,
@@ -366,6 +389,16 @@ public sealed class DownloadService : IDownloadService
                     item.Url,
                     item.ExpectedSize,
                     maxRetries,
+                    runCancellationToken);
+                await PromoteSyncOutputAsync(
+                    syncCompletionContext,
+                    outputPath,
+                    relativeFilePath,
+                    targetFileResult,
+                    task.SourceId,
+                    item.Title,
+                    item.Url,
+                    item.ExpectedSize,
                     runCancellationToken);
 
                 lock (_stateLock)
@@ -381,6 +414,11 @@ public sealed class DownloadService : IDownloadService
             lock (_stateLock)
             {
                 task.Status = DownloadTaskStatus.Completed;
+            }
+
+            if (syncCompletionContext?.CanRegisterCompletion == true && canRegisterCompletedSyncInfo)
+            {
+                await RegisterCompletedSyncDownloadAsync(workInfo, syncCompletionContext.SyncDirectory, runCancellationToken);
             }
         }
         catch (OperationCanceledException) when (runCancellationToken.IsCancellationRequested)
@@ -438,6 +476,11 @@ public sealed class DownloadService : IDownloadService
                 !TextSidecarExtensions.Contains(ReadExtension(entry.Url), StringComparer.OrdinalIgnoreCase)
                 || !removedMp3Keys.Contains(BuildEntryKey(entry.RelativePath, entry.Title)))
             .ToArray();
+    }
+
+    private static bool CanRegisterCompletedSyncInfo(IReadOnlyList<(string Term, bool IsExclude)> fileFilter, bool hdAudioOnly)
+    {
+        return fileFilter.Count == 0 && !hdAudioOnly;
     }
 
     private static bool IsExtension(string url, string extension)
@@ -516,7 +559,116 @@ public sealed class DownloadService : IDownloadService
         return $"source={sourceId}{Environment.NewLine}title={title}{Environment.NewLine}url={url}{Environment.NewLine}";
     }
 
-    private async Task EnsureTargetFileAsync(
+    private SyncCompletionContext? ResolveSyncCompletionContext(
+        Core.Configuration.AppConfig? config,
+        DownloadStartOptions? options,
+        string folderName,
+        string targetDirectory)
+    {
+        if (options?.Purpose == DownloadExecutionPurpose.SyncManaged)
+        {
+            return null;
+        }
+
+        var syncRoot = string.IsNullOrWhiteSpace(config?.Downloader.SyncDataFolder)
+            ? _appPathService.DefaultSyncDataDirectory
+            : config.Downloader.SyncDataFolder.Trim();
+        Directory.CreateDirectory(syncRoot);
+
+        var syncDirectory = Path.Combine(syncRoot, folderName);
+        return new SyncCompletionContext(
+            syncDirectory,
+            syncDirectory.Equals(targetDirectory, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task PromoteSyncOutputAsync(
+        SyncCompletionContext? context,
+        string outputPath,
+        string relativeFilePath,
+        EnsuredTargetFileResult targetFileResult,
+        string sourceId,
+        string title,
+        string mediaUrl,
+        long? expectedSize,
+        CancellationToken cancellationToken)
+    {
+        if (context is null || context.SharesTargetDirectory || !context.CanRegisterCompletion)
+        {
+            return;
+        }
+
+        var syncOutputPath = Path.Combine(context.SyncDirectory, relativeFilePath);
+        if (await IsReusableFileAsync(syncOutputPath, sourceId, title, mediaUrl, expectedSize, cancellationToken))
+        {
+            return;
+        }
+
+        switch (targetFileResult.Source)
+        {
+            case DownloadFileSource.Downloaded:
+                {
+                    var directory = Path.GetDirectoryName(syncOutputPath);
+                    if (!string.IsNullOrWhiteSpace(directory))
+                    {
+                        Directory.CreateDirectory(directory);
+                    }
+
+                    File.Copy(outputPath, syncOutputPath, overwrite: true);
+                    return;
+                }
+            case DownloadFileSource.LookupCopy
+                when targetFileResult.SourcePath.Equals(syncOutputPath, StringComparison.OrdinalIgnoreCase):
+                return;
+            default:
+                context.CanRegisterCompletion = false;
+                return;
+        }
+    }
+
+    private async Task RegisterCompletedSyncDownloadAsync(WorkInfoDto workInfo, string syncDirectory, CancellationToken cancellationToken)
+    {
+        if (workInfo.Id <= 0 || string.IsNullOrWhiteSpace(workInfo.SourceId) || !Directory.Exists(syncDirectory))
+        {
+            return;
+        }
+
+        var existingMetadataMap = await _metadataSyncStore.GetMetadataWorksBySourceIdsAsync([workInfo.SourceId], cancellationToken);
+        existingMetadataMap.TryGetValue(workInfo.SourceId, out var existingMetadata);
+
+        var updatedAt = DateTime.UtcNow;
+        var metadataWork = MetadataWorkSummaryMapper.MergeFromWorkInfo(workInfo, existingMetadata, updatedAt);
+        if (metadataWork.Id <= 0 || string.IsNullOrWhiteSpace(metadataWork.SourceId))
+        {
+            return;
+        }
+
+        await _metadataSyncStore.UpsertMetadataWorksAsync([metadataWork], cancellationToken);
+
+        var syncInfoMap = await _metadataSyncStore.GetWorkSyncInfoMapAsync(cancellationToken);
+        if (!syncInfoMap.TryGetValue(metadataWork.Id, out var existingSyncInfo))
+        {
+            existingSyncInfo = await _metadataSyncStore.CreatePendingWorkSyncInfoAsync(metadataWork, syncDirectory, cancellationToken);
+        }
+
+        var completedSyncInfo = new WorkSyncInfoItem
+        {
+            Id = existingSyncInfo.Id,
+            MetadataWorkId = metadataWork.Id,
+            SourceId = metadataWork.SourceId,
+            HasSubtitle = workInfo.HasSubtitle,
+            DirSize = MeasureDirectorySize(syncDirectory),
+            Status = "COMPLETED",
+            FilePath = syncDirectory,
+            FailReason = string.Empty,
+            RetryCount = existingSyncInfo.RetryCount,
+            UpdatedAt = updatedAt,
+            FailedAt = null,
+        };
+
+        await _metadataSyncStore.UpdateWorkSyncInfoAsync(completedSyncInfo, cancellationToken);
+    }
+
+    private async Task<EnsuredTargetFileResult> EnsureTargetFileAsync(
         string outputPath,
         string relativeFilePath,
         IReadOnlyList<string> lookupDirectories,
@@ -529,7 +681,7 @@ public sealed class DownloadService : IDownloadService
     {
         if (await IsReusableFileAsync(outputPath, sourceId, title, mediaUrl, expectedSize, cancellationToken))
         {
-            return;
+            return new EnsuredTargetFileResult(DownloadFileSource.ExistingTarget, outputPath);
         }
 
         foreach (var lookupDirectory in lookupDirectories)
@@ -547,7 +699,7 @@ public sealed class DownloadService : IDownloadService
             }
 
             File.Copy(candidatePath, outputPath, overwrite: true);
-            return;
+            return new EnsuredTargetFileResult(DownloadFileSource.LookupCopy, candidatePath);
         }
 
         var directoryPath = Path.GetDirectoryName(outputPath);
@@ -557,6 +709,7 @@ public sealed class DownloadService : IDownloadService
         }
 
         await DownloadFileWithRetriesAsync(mediaUrl, outputPath, expectedSize, maxRetries, cancellationToken);
+        return new EnsuredTargetFileResult(DownloadFileSource.Downloaded, outputPath);
     }
 
     private async Task DownloadFileWithRetriesAsync(string mediaUrl, string outputPath, long? expectedSize, int maxRetries, CancellationToken cancellationToken)
@@ -785,5 +938,120 @@ public sealed class DownloadService : IDownloadService
         }
     }
 
+    private static long MeasureDirectorySize(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
+        {
+            return 0;
+        }
+
+        return Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
+            .Select(filePath => new FileInfo(filePath).Length)
+            .Sum();
+    }
+
     private sealed record DownloadRunDirectories(string TargetRoot, IReadOnlyList<string> LookupRoots);
+
+    private sealed class SyncCompletionContext
+    {
+        public SyncCompletionContext(string syncDirectory, bool sharesTargetDirectory)
+        {
+            SyncDirectory = syncDirectory;
+            SharesTargetDirectory = sharesTargetDirectory;
+        }
+
+        public string SyncDirectory { get; }
+
+        public bool SharesTargetDirectory { get; }
+
+        public bool CanRegisterCompletion { get; set; } = true;
+    }
+
+    private enum DownloadFileSource
+    {
+        ExistingTarget,
+        LookupCopy,
+        Downloaded,
+    }
+
+    private sealed record EnsuredTargetFileResult(DownloadFileSource Source, string SourcePath);
+
+    private sealed class NullMetadataSyncStore : IMetadataSyncStore
+    {
+        public static NullMetadataSyncStore Instance { get; } = new();
+
+        public Task<MetadataSyncSnapshot> GetMetadataSnapshotAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new MetadataSyncSnapshot());
+        }
+
+        public Task<int> UpsertMetadataWorksAsync(IReadOnlyCollection<MetadataWorkItem> works, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(0);
+        }
+
+        public Task<IReadOnlyDictionary<string, MetadataWorkItem>> GetMetadataWorksBySourceIdsAsync(IReadOnlyCollection<string> sourceIds, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyDictionary<string, MetadataWorkItem>>(new Dictionary<string, MetadataWorkItem>(StringComparer.OrdinalIgnoreCase));
+        }
+
+        public Task<IReadOnlyList<int>> GetExpiredMetadataWorkIdsAsync(DateTime updatedBefore, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<int>>(Array.Empty<int>());
+        }
+
+        public Task<IReadOnlyList<MetadataWorkItem>> GetAllMetadataWorksAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<MetadataWorkItem>>(Array.Empty<MetadataWorkItem>());
+        }
+
+        public Task<SyncDownloadSnapshot> GetDownloadSnapshotAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new SyncDownloadSnapshot());
+        }
+
+        public Task<IReadOnlyDictionary<int, WorkSyncInfoItem>> GetWorkSyncInfoMapAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyDictionary<int, WorkSyncInfoItem>>(new Dictionary<int, WorkSyncInfoItem>());
+        }
+
+        public Task<int> CleanupPendingSyncDownloadsAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(0);
+        }
+
+        public Task<IReadOnlyList<MetadataWorkItem>> GetSyncDownloadCandidatesAsync(int count, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<MetadataWorkItem>>(Array.Empty<MetadataWorkItem>());
+        }
+
+        public Task<IReadOnlyList<WorkSyncInfoItem>> GetFailedSyncDownloadsAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<WorkSyncInfoItem>>(Array.Empty<WorkSyncInfoItem>());
+        }
+
+        public Task<IReadOnlyList<WorkSyncInfoItem>> GetSyncDownloadsByStatusAsync(string status, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<IReadOnlyList<WorkSyncInfoItem>>(Array.Empty<WorkSyncInfoItem>());
+        }
+
+        public Task<WorkSyncInfoItem> CreatePendingWorkSyncInfoAsync(MetadataWorkItem work, string filePath, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new WorkSyncInfoItem
+            {
+                Id = 0,
+                MetadataWorkId = work.Id,
+                SourceId = work.SourceId,
+                HasSubtitle = work.HasSubtitle,
+                Status = "PENDING",
+                FilePath = filePath,
+                UpdatedAt = DateTime.UtcNow,
+            });
+        }
+
+        public Task UpdateWorkSyncInfoAsync(WorkSyncInfoItem item, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+    }
 }

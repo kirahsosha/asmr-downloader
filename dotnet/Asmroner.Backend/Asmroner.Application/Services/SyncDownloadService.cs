@@ -68,6 +68,7 @@ public sealed class SyncDownloadService
             LookupRoots = string.IsNullOrWhiteSpace(downloadLookupRoot)
                 ? Array.Empty<string>()
                 : new[] { downloadLookupRoot },
+            Purpose = DownloadExecutionPurpose.SyncManaged,
         };
         var startedAt = resumedFromProgress
             ? progress.StartedAt ?? DateTime.UtcNow
@@ -152,6 +153,7 @@ public sealed class SyncDownloadService
                 TargetRoot = baseDownloadOptions.TargetRoot,
                 LookupRoots = baseDownloadOptions.LookupRoots,
                 WorkId = candidate.Id,
+                Purpose = baseDownloadOptions.Purpose,
             };
             var task = await _downloadService.StartAsync(
                 candidate.SourceId,
@@ -322,6 +324,7 @@ public sealed class SyncDownloadService
             LookupRoots = string.IsNullOrWhiteSpace(ResolveDownloadLookupRoot(config))
                 ? Array.Empty<string>()
                 : new[] { ResolveDownloadLookupRoot(config) },
+            Purpose = DownloadExecutionPurpose.SyncManaged,
         };
 
         if (failedItems.Count == 0)
@@ -441,6 +444,7 @@ public sealed class SyncDownloadService
                     TargetRoot = options.TargetRoot,
                     LookupRoots = options.LookupRoots,
                     WorkId = failedItem.MetadataWorkId,
+                    Purpose = options.Purpose,
                 },
                 cancellationToken: cancellationToken);
 

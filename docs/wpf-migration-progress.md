@@ -1,6 +1,6 @@
 # asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.5.6
+当前跟踪版本：v0.5.7
 
 AI约束策略：章节1.5.1到1.5.100的文本不加入分析上下文
 
@@ -114,34 +114,35 @@ AI约束策略：章节1.5.1到1.5.100的文本不加入分析上下文
 
 ### 风险与缺陷登记
 
-| 日期       | 阶段   | 问题描述                                                             | 影响范围                      | 当前状态 | 解决/计划日期 |
-| ---------- | ------ | -------------------------------------------------------------------- | ----------------------------- | -------- | ------------- |
-| 2026-03-15 | 阶段 2 | `HttpClient` 请求发起后再次修改 `Timeout/BaseAddress` 导致测试失败   | API 与认证迁移                | 已解决   | 2026-03-15    |
-| 2026-03-15 | 阶段 3 | `SearchService` 内部固定 `Page = 1`，翻页请求实际仍从第一页开始      | 分页搜索稳定性                | 已解决   | 2026-03-15    |
-| 2026-03-16 | 阶段 4 | 下载流程 `RunSingleAsync` 报 400 Bad Request                         | 下载链路稳定性                | 已解决   | 2026-03-16    |
-| 2026-03-17 | 阶段 4 | Canceled 任务重新入队后 `StatusText` 未同步更新                      | Download 页面状态一致性       | 已解决   | 2026-03-27    |
-| 2026-03-29 | 阶段 4 | 重启后"只下载高清音频""文件筛选"与未完成队列恢复项未通过             | 状态持久化与重启恢复          | 已解决   | 2026-03-29    |
-| 2026-03-30 | 阶段 1 | "保存并重新初始化"后自动切换到 Search 页签                           | Settings 页面停留行为         | 已解决   | 2026-03-30    |
-| 2026-03-31 | 阶段 4 | 连续导出时打开重复资源管理器窗口                                     | 导出体验                      | 已解决   | 2026-03-31    |
-| 2026-03-31 | 阶段 4 | CSV/JSON 导入数量/跳过数量计算不准确                                 | Download 导入计数             | 已解决   | 2026-03-31    |
-| 2026-03-31 | 阶段 4 | 启动后后台标题补拉失败导致列表标题空白                               | Download 启动后可读性         | 已解决   | 2026-03-31    |
-| 2026-04-01 | 阶段 4 | `BJ02370869` 等非 RJ 作品 `source_id` 与 `workId` 不一致导致解析失败 | 热门结果入队、翻译入队        | 已解决   | 2026-04-01    |
-| 2026-04-01 | 阶段 4 | 清空任务列表后入队 `source_id/workId` 失配作品误报"失败 1 项"        | Search->Download 联动         | 已解决   | 2026-04-01    |
-| 2026-04-01 | 阶段 4 | 轨道标题自带扩展名时下载文件生成重复后缀                             | 下载文件命名                  | 已解决   | 2026-04-01    |
-| 2026-04-03 | 阶段 5 | Sync 页面缺少温和停止入口，重启后不记录未完成进度                    | 同步链路可恢复性与可控性      | 已解决   | 2026-04-03    |
-| 2026-04-03 | 阶段 5 | Sync 页面开始/停止按钮分散，运行中禁用"刷新统计"                     | Sync 操作一致性与实时可观测性 | 已解决   | 2026-04-03    |
-| 2026-04-03 | 阶段 5 | Sync 主按钮快速双击误触发 stop request                               | 开始/停止按钮可控性           | 已解决   | 2026-04-03    |
-| 2026-04-08 | 阶段 5 | Sync 落地文件被写成占位文本而非真实媒体                              | Sync 下载结果正确性           | 已解决   | 2026-04-08    |
-| 2026-04-08 | 阶段 4 | 双目录无匹配文件时写入占位文本而非实时下载                           | 普通下载链路                  | 已解决   | 2026-04-08    |
-| 2026-04-08 | 阶段 2 | 发布页入口脚本路径/引号形态解析不稳定                                | 站点发现稳定性                | 已解决   | 2026-04-08    |
-| 2026-04-08 | 阶段 5 | 元数据同步本地总量/字幕量未持久化，刷新后数量不正确                  | Sync 统计一致性               | 已解决   | 2026-04-08    |
-| 2026-04-10 | 阶段 2 | "测试连接"不回写 `ApiCandidateUrls`，SQLite 候选集合无法随发布页更新 | 站点发现与配置持久化          | 已解决   | 2026-04-10    |
-| 2026-04-12 | 阶段 2 | 发布页入口脚本使用相对路径/查询串/单引号配置时解析可能失败           | 站点发现兼容性                | 阻塞中   | 待确定        |
-| 2026-04-12 | 阶段 2 | 发布页正文最新域名未按顺序补齐并持久化到 `ApiCandidateUrls`          | 站点发现与配置持久化          | 阻塞中   | 待确定        |
-| 2026-04-12 | 阶段 5 | 网站总量与本地一致时未提示"无需同步"，可能重复写入数据               | 同步效率与用户体验            | 待验证   | 待确定        |
-| 2026-04-12 | 阶段 5 | 已完成状态下存在过期元数据时未自动执行过期刷新                       | 元数据保鲜                    | 待验证   | 待确定        |
-| 2026-04-12 | 阶段 5 | 同步完成后页面摘要未完整显示累计处理/新增数量                        | 同步结果展示                  | 待验证   | 待确定        |
-| 2026-04-12 | 阶段 5 | 同步下载完成后未重置进度并从头校验，可能重复处理已匹配作品           | 同步下载重扫效率              | 待验证   | 待确定        |
+| 日期       | 阶段   | 问题描述                                                                       | 影响范围                      | 当前状态 | 解决/计划日期 |
+| ---------- | ------ | ------------------------------------------------------------------------------ | ----------------------------- | -------- | ------------- |
+| 2026-03-15 | 阶段 2 | `HttpClient` 请求发起后再次修改 `Timeout/BaseAddress` 导致测试失败             | API 与认证迁移                | 已解决   | 2026-03-15    |
+| 2026-03-15 | 阶段 3 | `SearchService` 内部固定 `Page = 1`，翻页请求实际仍从第一页开始                | 分页搜索稳定性                | 已解决   | 2026-03-15    |
+| 2026-03-16 | 阶段 4 | 下载流程 `RunSingleAsync` 报 400 Bad Request                                   | 下载链路稳定性                | 已解决   | 2026-03-16    |
+| 2026-03-17 | 阶段 4 | Canceled 任务重新入队后 `StatusText` 未同步更新                                | Download 页面状态一致性       | 已解决   | 2026-03-27    |
+| 2026-03-29 | 阶段 4 | 重启后"只下载高清音频""文件筛选"与未完成队列恢复项未通过                       | 状态持久化与重启恢复          | 已解决   | 2026-03-29    |
+| 2026-03-30 | 阶段 1 | "保存并重新初始化"后自动切换到 Search 页签                                     | Settings 页面停留行为         | 已解决   | 2026-03-30    |
+| 2026-03-31 | 阶段 4 | 连续导出时打开重复资源管理器窗口                                               | 导出体验                      | 已解决   | 2026-03-31    |
+| 2026-03-31 | 阶段 4 | CSV/JSON 导入数量/跳过数量计算不准确                                           | Download 导入计数             | 已解决   | 2026-03-31    |
+| 2026-03-31 | 阶段 4 | 启动后后台标题补拉失败导致列表标题空白                                         | Download 启动后可读性         | 已解决   | 2026-03-31    |
+| 2026-04-01 | 阶段 4 | `BJ02370869` 等非 RJ 作品 `source_id` 与 `workId` 不一致导致解析失败           | 热门结果入队、翻译入队        | 已解决   | 2026-04-01    |
+| 2026-04-01 | 阶段 4 | 清空任务列表后入队 `source_id/workId` 失配作品误报"失败 1 项"                  | Search->Download 联动         | 已解决   | 2026-04-01    |
+| 2026-04-01 | 阶段 4 | 轨道标题自带扩展名时下载文件生成重复后缀                                       | 下载文件命名                  | 已解决   | 2026-04-01    |
+| 2026-04-03 | 阶段 5 | Sync 页面缺少温和停止入口，重启后不记录未完成进度                              | 同步链路可恢复性与可控性      | 已解决   | 2026-04-03    |
+| 2026-04-03 | 阶段 5 | Sync 页面开始/停止按钮分散，运行中禁用"刷新统计"                               | Sync 操作一致性与实时可观测性 | 已解决   | 2026-04-03    |
+| 2026-04-03 | 阶段 5 | Sync 主按钮快速双击误触发 stop request                                         | 开始/停止按钮可控性           | 已解决   | 2026-04-03    |
+| 2026-04-08 | 阶段 5 | Sync 落地文件被写成占位文本而非真实媒体                                        | Sync 下载结果正确性           | 已解决   | 2026-04-08    |
+| 2026-04-08 | 阶段 4 | 双目录无匹配文件时写入占位文本而非实时下载                                     | 普通下载链路                  | 已解决   | 2026-04-08    |
+| 2026-04-08 | 阶段 2 | 发布页入口脚本路径/引号形态解析不稳定                                          | 站点发现稳定性                | 已解决   | 2026-04-08    |
+| 2026-04-08 | 阶段 5 | 元数据同步本地总量/字幕量未持久化，刷新后数量不正确                            | Sync 统计一致性               | 已解决   | 2026-04-08    |
+| 2026-04-10 | 阶段 2 | "测试连接"不回写 `ApiCandidateUrls`，SQLite 候选集合无法随发布页更新           | 站点发现与配置持久化          | 已解决   | 2026-04-10    |
+| 2026-04-12 | 阶段 2 | 发布页入口脚本使用相对路径/查询串/单引号配置时解析可能失败                     | 站点发现兼容性                | 阻塞中   | 待确定        |
+| 2026-04-12 | 阶段 2 | 发布页正文最新域名未按顺序补齐并持久化到 `ApiCandidateUrls`                    | 站点发现与配置持久化          | 阻塞中   | 待确定        |
+| 2026-04-12 | 阶段 5 | 网站总量与本地一致时未提示"无需同步"，可能重复写入数据                         | 同步效率与用户体验            | 待验证   | 待确定        |
+| 2026-04-12 | 阶段 5 | 已完成状态下存在过期元数据时未自动执行过期刷新                                 | 元数据保鲜                    | 待验证   | 待确定        |
+| 2026-04-12 | 阶段 5 | 同步完成后页面摘要未完整显示累计处理/新增数量                                  | 同步结果展示                  | 待验证   | 待确定        |
+| 2026-04-12 | 阶段 5 | 同步下载完成后未重置进度并从头校验，可能重复处理已匹配作品                     | 同步下载重扫效率              | 待验证   | 待确定        |
+| 2026-04-12 | 阶段 4 | 普通下载未区分完整下载与子集下载的同步完成态，可能误把子集结果写成 `COMPLETED` | 普通下载与 Sync 增量判定      | 已解决   | 2026-04-12    |
 
 ## 1.5 变更与验证记录
 
@@ -1182,6 +1183,14 @@ AI约束策略：章节1.5.1到1.5.100的文本不加入分析上下文
 4. DoD 判定：是。用户本轮要求的 `v0.5.6` 版本升级、track `size` 接入、已有文件大小不一致时重新下载、单元测试同步与 progress 文档同步均已落地。
 5. 下次计划：由用户执行章节 4.1、4.3 与 4.5 的受影响手工回归，重点验证 Settings 页面版本文案显示 `v0.5.6`、普通下载/同步下载目录中仅在文件大小匹配时复用已有文件、大小不一致时触发重下，以及 Sync completed-state 重扫只补齐目录缺失或文件大小不一致的作品；章节 2.1 基线更新为 2026-04-11 的 `329/329`，章节 3.1 新增单一 `v0.5.6` 待提交记录，章节 4 的受影响项已重置为未勾选。
 
+### 1.5.102 2026-04-12，v0.5.7：普通下载同步镜像、同目录防重与 Sync 完成态护栏
+
+1. 变更摘要：运行时与 README 版本升级到 `v0.5.7`；`DownloadStartOptions` 新增 `DownloadExecutionPurpose`，普通下载默认走 `Standard`，Sync 页面触发的下载显式走 `SyncManaged`；`DownloadService` 在普通下载目录与同步下载目录相同的场景下避免对同一路径做重复复制/重复处理；当普通下载是完整下载且普通目录/同步目录都缺少目标文件时，会在普通目录落盘真实媒体的同时镜像一份到同步下载目录，并将 SQLite `WorkSyncInfo` 直接写为 `COMPLETED`；若普通下载属于子集下载（如 `fileFilter`、`hdAudioOnly`），则只镜像实际下载的文件，不再误写 `COMPLETED`，避免污染后续 Sync 增量判定。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Download/DownloadStartOptions.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/DownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/SyncDownloadService.cs`、`dotnet/tests/Asmroner.Application.Tests/DownloadServiceTests.cs`、`dotnet/tests/Asmroner.Application.Tests/DownloadServiceTestDoubles.cs`、`dotnet/tests/Asmroner.Application.Tests/SyncDownloadServiceTests.cs`、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`。
+3. 验证结果：`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj` 通过（84/84）；`rtk dotnet test dotnet/Asmroner.sln` 通过（331/331）。
+4. DoD 判定：是。用户本轮要求的 `v0.5.7` 版本对齐、普通下载/同步目录同路径防重、完整普通下载同步镜像与 SQLite `COMPLETED` 回写、SyncManaged 路径隔离、子集下载完成态护栏、回归测试与 progress 文档同步均已落地。
+5. 下次计划：由用户执行章节 4.1、4.3 与 4.5 的受影响手工回归，重点验证 Settings 页面版本文案显示 `v0.5.7`、完整普通下载在双目录都为空时会同时落普通目录和同步目录并写 SQLite `COMPLETED`、下载目录与同步目录同路径时不会重复处理，以及子集普通下载不会误写 `COMPLETED`；章节 2.1 基线更新为 2026-04-12 的 `331/331`，章节 3.1 保持单一 `v0.5.7` 待提交记录，章节 4 的受影响项已重置为未勾选。
+
 ---
 
 ## 1.6 维护规则
@@ -1202,43 +1211,45 @@ AI约束策略：章节1.5.1到1.5.100的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-11 的解决方案级回归（329/329）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-12 的解决方案级回归（331/331）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
-| 已创建 | 已通过 | 阶段    | 样例名                                                                                    | 输入                                                | 期望输出                                                       |
-| ------ | ------ | ------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 4  | `DirectoryNameStrategy_ShouldMatchGoCompatibilityRule`                                    | 含非法字符标题 + SourceId                           | 目录名格式为 `[{SourceId}]{Title}`                             |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldCreateCompletedTaskAndFiles`                                        | 入队 1 个 RJID 并执行                               | 任务 `Completed`，文件落地成功，队列清空                       |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldMarkTaskFailed_WhenApiThrows`                                       | WorkInfo API 抛异常                                 | 任务状态 `Failed` 且含错误信息                                 |
-| [x]    | [x]    | 阶段 4  | `CancelAsync_ShouldCancelRunningTask`                                                     | 长任务执行中调用 `CancelAsync`                      | 目标任务最终状态为 `Canceled`                                  |
-| [x]    | [x]    | 阶段 4  | `CancelAsync_ShouldCancelQueuedTask_BeforeWorkerStarts`                                   | 单 worker 场景下取消排队任务                        | 排队任务状态更新为 `Canceled`                                  |
-| [x]    | [x]    | 阶段 4  | `RetryFailedAsync_ShouldRetryAndCompleteTask`                                             | 首次失败后重试                                      | 重试计数 +1，任务转为 `Completed`                              |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldRespectConfiguredMaxWorkers`                                        | 入队 4 条、`MaxWorkers=2`                           | 最大观测并发不超过且达到 2                                     |
-| [x]    | [x]    | 阶段 4  | `StartAsync_ShouldTrackFailedTask_WhenNewTaskFails`                                       | 新任务 `StartAsync` 失败                            | 失败任务仍可在 `GetTasks()` 中追踪                             |
-| [x]    | [x]    | 阶段 4  | `StartAsync_ShouldReuseFailedTask_WhenPreferredTaskProvided`                              | 选中失败任务立即下载（带 `preferredTaskId`）        | 复用原 `TaskId` 行并重启，不新增任务行                         |
-| [x]    | [x]    | 阶段 4  | `StartAsync_ShouldReuseCanceledTask_WhenPreferredTaskProvided`                            | 选中已取消任务立即下载（带 `preferredTaskId`）      | 复用原 `TaskId` 行并重启，不新增任务行                         |
-| [x]    | [x]    | 阶段 4  | `UpsertPrefetchedWorkInfo_ShouldExposeSnapshot_ForCrossViewTitleReuse`                    | Search 侧写入预取 WorkInfo 后读取快照               | 快照可读且包含对应标题映射                                     |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldDownloadAllFormats_WhenPreferFormatsEmpty`                          | `PreferFormats` 置空且存在多种扩展名轨道            | 不限扩展名，全部下载                                           |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldUsePrefetchedWorkInfo_WithoutApiWorkInfoCall`                       | 预先写入内存 WorkInfo 且 API 禁止 WorkInfo 调用     | 下载成功且不触发 WorkInfo API                                  |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldFetchWorkInfo_WhenOnlySummaryCacheExists`                           | 仅命中摘要缓存且允许 API 继续补拉完整详情           | 下载成功，且补拉一次 Full WorkInfo                             |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldReuseCanceledTask_WhenSameSourceRequeued`                           | 已取消任务再次由 Search 入队后执行队列              | 复用原任务并回流为待执行/完成，不新增重复行                    |
-| [x]    | [x]    | 阶段 4  | `CancelAsync_ShouldReturnFalse_WhenTaskDoesNotExist`                                      | 随机 `TaskId` 调取消                                | 返回 `false`                                                   |
-| [x]    | [x]    | 阶段 4  | `RetryFailedAsync_ShouldNotRetry_WhenTaskIsNotFailed`                                     | 任务状态为 `Completed/Canceled` 调重试              | 返回空或拒绝重试                                               |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldContinueOtherTasks_WhenSingleTaskFails`                             | 批量队列中单任务失败                                | 其他任务继续完成                                               |
-| [x]    | [x]    | 阶段 4+ | `ClearAllTasksAsync_ShouldStopRunningAndClearQueueAndTasks`                               | 运行中任务 + 待下载队列混合场景                     | 运行任务被停止、任务列表清空、队列清空                         |
-| [x]    | [x]    | 阶段 4+ | `ClearAllTasksAsync_ShouldKeepPrefetchedWorkInfoSnapshot_UntilProcessEnds`                | 已写入作品缓存后执行 `ClearAllTasksAsync`           | 清空任务/队列后，进程内作品快照仍可读取                        |
-| [x]    | [x]    | 阶段 4+ | `RunQueuedAsync_ShouldSkipTextSidecars_WhenHdAudioOnlyRemovesMp3`                         | 同路径同名 `mp3+wav+txt/lrc/ass`                    | 保留 `wav`，移除对应 `mp3/txt/lrc/ass`                         |
-| [x]    | [x]    | 阶段 4+ | `RunQueuedAsync_ShouldKeepTextSidecars_WhenHdAudioOnlyIsFalse`                            | 同路径同名 `mp3+wav+txt/lrc/ass`，hdAudioOnly=false | 全部文件保留并下载                                             |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldUsePrefetchedWorkId_ForNonRjTrackLookup`                            | 非 `RJ` `SourceId` + 预取 `WorkId`                  | `tracks` 查询使用数值 `WorkId` 并下载成功                      |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldNotAppendDuplicateExtension_WhenTrackTitleAlreadyContainsExtension` | 轨道标题已带 `.mp3`，下载扩展名仍为 `.mp3`          | 落地文件名仅保留单个 `.mp3` 后缀                               |
-| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldAppendExtension_WhenTrackTitleDoesNotContainExtension`              | 轨道标题无扩展名，下载扩展名为 `.wav`               | 落地文件名自动补齐 `.wav` 后缀                                 |
-| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldCopyMatchingFiles_FromSyncDirectory`                                    | 下载目录缺失目标文件、同步下载目录已有匹配文件      | 复用同步下载目录中的真实文件到普通下载目录，不重复请求下载接口 |
-| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldSkipDownload_WhenExistingTargetFileMatchesTrackSize`                    | 普通下载目录已存在与 track `size` 一致的目标文件    | 跳过下载请求，直接复用现有文件                                 |
-| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldRedownload_WhenExistingTargetFileSizeDiffersFromTrackSize`              | 普通下载目录已存在与 track `size` 不一致的目标文件  | 忽略旧文件并重新下载，最终落盘文件大小与 track `size` 一致     |
-| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldDownload_WhenSyncLookupFileSizeDiffersFromTrackSize`                    | 同步下载目录存在同路径但大小不一致的候选文件        | 不复制候选文件，改为真实下载并在普通下载目录重新落盘           |
-| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldFail_WhenDownloadedFileSizeDiffersFromTrackSize`                        | track `size` 与实际下载响应体大小不一致             | 下载失败并删除不完整目标文件                                   |
-| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldDownloadRealFiles_WhenNoExistingFileInEitherDirectory`                  | 普通下载目录与同步下载目录均无目标文件              | 直接调用 `mediaDownloadUrl` 下载真实文件并落盘，不写占位文本   |
+| 已创建 | 已通过 | 阶段    | 样例名                                                                                                   | 输入                                                   | 期望输出                                                                                                |
+| ------ | ------ | ------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 4  | `DirectoryNameStrategy_ShouldMatchGoCompatibilityRule`                                                   | 含非法字符标题 + SourceId                              | 目录名格式为 `[{SourceId}]{Title}`                                                                      |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldCreateCompletedTaskAndFiles`                                                       | 入队 1 个 RJID 并执行                                  | 任务 `Completed`，文件落地成功，队列清空                                                                |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldMarkTaskFailed_WhenApiThrows`                                                      | WorkInfo API 抛异常                                    | 任务状态 `Failed` 且含错误信息                                                                          |
+| [x]    | [x]    | 阶段 4  | `CancelAsync_ShouldCancelRunningTask`                                                                    | 长任务执行中调用 `CancelAsync`                         | 目标任务最终状态为 `Canceled`                                                                           |
+| [x]    | [x]    | 阶段 4  | `CancelAsync_ShouldCancelQueuedTask_BeforeWorkerStarts`                                                  | 单 worker 场景下取消排队任务                           | 排队任务状态更新为 `Canceled`                                                                           |
+| [x]    | [x]    | 阶段 4  | `RetryFailedAsync_ShouldRetryAndCompleteTask`                                                            | 首次失败后重试                                         | 重试计数 +1，任务转为 `Completed`                                                                       |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldRespectConfiguredMaxWorkers`                                                       | 入队 4 条、`MaxWorkers=2`                              | 最大观测并发不超过且达到 2                                                                              |
+| [x]    | [x]    | 阶段 4  | `StartAsync_ShouldTrackFailedTask_WhenNewTaskFails`                                                      | 新任务 `StartAsync` 失败                               | 失败任务仍可在 `GetTasks()` 中追踪                                                                      |
+| [x]    | [x]    | 阶段 4  | `StartAsync_ShouldReuseFailedTask_WhenPreferredTaskProvided`                                             | 选中失败任务立即下载（带 `preferredTaskId`）           | 复用原 `TaskId` 行并重启，不新增任务行                                                                  |
+| [x]    | [x]    | 阶段 4  | `StartAsync_ShouldReuseCanceledTask_WhenPreferredTaskProvided`                                           | 选中已取消任务立即下载（带 `preferredTaskId`）         | 复用原 `TaskId` 行并重启，不新增任务行                                                                  |
+| [x]    | [x]    | 阶段 4  | `UpsertPrefetchedWorkInfo_ShouldExposeSnapshot_ForCrossViewTitleReuse`                                   | Search 侧写入预取 WorkInfo 后读取快照                  | 快照可读且包含对应标题映射                                                                              |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldDownloadAllFormats_WhenPreferFormatsEmpty`                                         | `PreferFormats` 置空且存在多种扩展名轨道               | 不限扩展名，全部下载                                                                                    |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldUsePrefetchedWorkInfo_WithoutApiWorkInfoCall`                                      | 预先写入内存 WorkInfo 且 API 禁止 WorkInfo 调用        | 下载成功且不触发 WorkInfo API                                                                           |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldFetchWorkInfo_WhenOnlySummaryCacheExists`                                          | 仅命中摘要缓存且允许 API 继续补拉完整详情              | 下载成功，且补拉一次 Full WorkInfo                                                                      |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldReuseCanceledTask_WhenSameSourceRequeued`                                          | 已取消任务再次由 Search 入队后执行队列                 | 复用原任务并回流为待执行/完成，不新增重复行                                                             |
+| [x]    | [x]    | 阶段 4  | `CancelAsync_ShouldReturnFalse_WhenTaskDoesNotExist`                                                     | 随机 `TaskId` 调取消                                   | 返回 `false`                                                                                            |
+| [x]    | [x]    | 阶段 4  | `RetryFailedAsync_ShouldNotRetry_WhenTaskIsNotFailed`                                                    | 任务状态为 `Completed/Canceled` 调重试                 | 返回空或拒绝重试                                                                                        |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldContinueOtherTasks_WhenSingleTaskFails`                                            | 批量队列中单任务失败                                   | 其他任务继续完成                                                                                        |
+| [x]    | [x]    | 阶段 4+ | `ClearAllTasksAsync_ShouldStopRunningAndClearQueueAndTasks`                                              | 运行中任务 + 待下载队列混合场景                        | 运行任务被停止、任务列表清空、队列清空                                                                  |
+| [x]    | [x]    | 阶段 4+ | `ClearAllTasksAsync_ShouldKeepPrefetchedWorkInfoSnapshot_UntilProcessEnds`                               | 已写入作品缓存后执行 `ClearAllTasksAsync`              | 清空任务/队列后，进程内作品快照仍可读取                                                                 |
+| [x]    | [x]    | 阶段 4+ | `RunQueuedAsync_ShouldSkipTextSidecars_WhenHdAudioOnlyRemovesMp3`                                        | 同路径同名 `mp3+wav+txt/lrc/ass`                       | 保留 `wav`，移除对应 `mp3/txt/lrc/ass`                                                                  |
+| [x]    | [x]    | 阶段 4+ | `RunQueuedAsync_ShouldKeepTextSidecars_WhenHdAudioOnlyIsFalse`                                           | 同路径同名 `mp3+wav+txt/lrc/ass`，hdAudioOnly=false    | 全部文件保留并下载                                                                                      |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldUsePrefetchedWorkId_ForNonRjTrackLookup`                                           | 非 `RJ` `SourceId` + 预取 `WorkId`                     | `tracks` 查询使用数值 `WorkId` 并下载成功                                                               |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldNotAppendDuplicateExtension_WhenTrackTitleAlreadyContainsExtension`                | 轨道标题已带 `.mp3`，下载扩展名仍为 `.mp3`             | 落地文件名仅保留单个 `.mp3` 后缀                                                                        |
+| [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldAppendExtension_WhenTrackTitleDoesNotContainExtension`                             | 轨道标题无扩展名，下载扩展名为 `.wav`                  | 落地文件名自动补齐 `.wav` 后缀                                                                          |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldCopyMatchingFiles_FromSyncDirectory`                                                   | 下载目录缺失目标文件、同步下载目录已有匹配文件         | 复用同步下载目录中的真实文件到普通下载目录，不重复请求下载接口，并将 SQLite 同步记录写为 `COMPLETED`    |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldSkipDownload_WhenExistingTargetFileMatchesTrackSize`                                   | 普通下载目录已存在与 track `size` 一致的目标文件       | 跳过下载请求，直接复用现有文件                                                                          |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldRedownload_WhenExistingTargetFileSizeDiffersFromTrackSize`                             | 普通下载目录已存在与 track `size` 不一致的目标文件     | 忽略旧文件并重新下载，最终落盘文件大小与 track `size` 一致                                              |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldDownload_WhenSyncLookupFileSizeDiffersFromTrackSize`                                   | 同步下载目录存在同路径但大小不一致的候选文件           | 不复制候选文件，改为真实下载并在普通下载目录重新落盘                                                    |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldFail_WhenDownloadedFileSizeDiffersFromTrackSize`                                       | track `size` 与实际下载响应体大小不一致                | 下载失败并删除不完整目标文件                                                                            |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldDownloadRealFiles_WhenNoExistingFileInEitherDirectory`                                 | 普通下载目录与同步下载目录均无目标文件                 | 直接调用 `mediaDownloadUrl` 下载真实文件并同时镜像到同步下载目录，SQLite 写为 `COMPLETED`，不写占位文本 |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldRegisterCompletedSyncInfo_WithoutDuplicatingFiles_WhenDownloadAndSyncDirectoriesMatch` | 普通下载目录与同步下载目录相同，且两侧初始均无目标文件 | 仅落盘单份真实文件，不重复复制或处理，并将 SQLite 同步记录写为 `COMPLETED`                              |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldMirrorSubsetDownloadWithoutMarkingSyncCompleted_WhenFileFilterIsUsed`                  | 普通下载使用 `fileFilter` 仅下载子集轨道               | 只镜像实际下载的子集文件，但不会将 SQLite 同步记录写为 `COMPLETED`                                      |
 
 #### 2.1.2 Application.Tests / QueryParserServiceTests.cs
 
@@ -1785,17 +1796,17 @@ AI约束策略：章节1.5.1到1.5.100的文本不加入分析上下文
 
 #### 2.1.63 Application.Tests / SyncDownloadServiceTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                      | 输入                                                             | 期望输出                                                                                             |
-| ------ | ------ | ------ | --------------------------------------------------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldStopAfterReachingConfiguredSizeLimit`              | 3 条元数据作品 + `SyncWantedSize=120B` + 成功下载大小 `70/60/50` | 仅处理前 2 项，累计落盘 `130 B` 后停止，剩余待同步数量为 1                                           |
-| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldMarkFailedItems_AndContinueToNextCandidate`        | 2 条元数据作品，其中首项下载失败、次项成功                       | 将失败项写为 `FAILED`、成功项写为 `COMPLETED`，并继续处理后续候选作品                                |
-| [x]    | [x]    | 阶段 5 | `RetryFailedAsync_ShouldReDownloadFailedItems_AndIncrementRetryCount`       | 预置 1 条失败同步记录 + 重试后下载成功                           | 删除旧失败目录、重试成功后写回 `COMPLETED`，并将 `RetryCount` 加 1                                   |
-| [x]    | [x]    | 阶段 5 | `RetryFailedAsync_ShouldKeepFailedStatus_WhenRetryFailsAgain`               | 预置 1 条失败同步记录 + 重试后再次失败                           | 删除旧失败目录、失败状态保持为 `FAILED`，并累计重试次数与失败原因                                    |
-| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldStopAfterCurrentWork_WhenStopRequested`            | 三条同步候选作品，首项下载完成前触发 stop request                | 当前作品完成后停止，结果标记 `WasStopped=true`，UiState 保留最近处理作品与未完成状态                 |
-| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldResumeFromSavedProgress_WhenStateIsUnfinished`     | 已保存 `STOPPED` 下载进度 + 首项 `COMPLETED` 同步记录            | 继续处理剩余候选，不重下已有完成项，结果标记 `ResumedFromProgress=true`，最终进度写成 `COMPLETED`    |
-| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldRescanAllWorks_WhenPreviousRunCompleted`           | 上次进度为 `COMPLETED`，且本地全部作品已有 `COMPLETED` 同步记录  | 再次执行时从头校验全部作品，并按当前下载结果更新同步记录                                             |
-| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldPassMetadataWorkId_ToDownloadService`              | 元数据作品的 `sourceId` 与数值 `WorkId` 不一致                   | 同步下载调用普通下载入口时显式透传数值 `WorkId`，避免轨道解析漂移                                    |
-| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldUseUnifiedWorkInfoDto_WhenCreatingPendingSyncInfo` | SQLite `MetadataWork` 标题与统一 `WorkInfoDto` 标题不一致        | Sync 创建 `PENDING` 记录时使用统一 `WorkInfoDto` 的标题与字幕标记，不再直接复用存储实体作为 info DTO |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                      | 输入                                                             | 期望输出                                                                                                     |
+| ------ | ------ | ------ | --------------------------------------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldStopAfterReachingConfiguredSizeLimit`              | 3 条元数据作品 + `SyncWantedSize=120B` + 成功下载大小 `70/60/50` | 仅处理前 2 项，累计落盘 `130 B` 后停止，剩余待同步数量为 1                                                   |
+| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldMarkFailedItems_AndContinueToNextCandidate`        | 2 条元数据作品，其中首项下载失败、次项成功                       | 将失败项写为 `FAILED`、成功项写为 `COMPLETED`，并继续处理后续候选作品                                        |
+| [x]    | [x]    | 阶段 5 | `RetryFailedAsync_ShouldReDownloadFailedItems_AndIncrementRetryCount`       | 预置 1 条失败同步记录 + 重试后下载成功                           | 删除旧失败目录、重试成功后写回 `COMPLETED`，并将 `RetryCount` 加 1                                           |
+| [x]    | [x]    | 阶段 5 | `RetryFailedAsync_ShouldKeepFailedStatus_WhenRetryFailsAgain`               | 预置 1 条失败同步记录 + 重试后再次失败                           | 删除旧失败目录、失败状态保持为 `FAILED`，并累计重试次数与失败原因                                            |
+| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldStopAfterCurrentWork_WhenStopRequested`            | 三条同步候选作品，首项下载完成前触发 stop request                | 当前作品完成后停止，结果标记 `WasStopped=true`，UiState 保留最近处理作品与未完成状态                         |
+| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldResumeFromSavedProgress_WhenStateIsUnfinished`     | 已保存 `STOPPED` 下载进度 + 首项 `COMPLETED` 同步记录            | 继续处理剩余候选，不重下已有完成项，结果标记 `ResumedFromProgress=true`，最终进度写成 `COMPLETED`            |
+| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldRescanAllWorks_WhenPreviousRunCompleted`           | 上次进度为 `COMPLETED`，且本地全部作品已有 `COMPLETED` 同步记录  | 再次执行时从头校验全部作品，并按当前下载结果更新同步记录                                                     |
+| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldPassMetadataWorkId_ToDownloadService`              | 元数据作品的 `sourceId` 与数值 `WorkId` 不一致                   | 同步下载调用普通下载入口时显式透传数值 `WorkId` 并标记 `SyncManaged`，避免轨道解析漂移与普通下载自动写库路径 |
+| [x]    | [x]    | 阶段 5 | `SyncDownloadAsync_ShouldUseUnifiedWorkInfoDto_WhenCreatingPendingSyncInfo` | SQLite `MetadataWork` 标题与统一 `WorkInfoDto` 标题不一致        | Sync 创建 `PENDING` 记录时使用统一 `WorkInfoDto` 的标题与字幕标记，不再直接复用存储实体作为 info DTO         |
 
 #### 2.1.64 Infrastructure.Tests / MetadataSyncStoreTests.cs
 
@@ -1915,7 +1926,8 @@ AI约束策略：章节1.5.1到1.5.100的文本不加入分析上下文
 | 2026-04-08 | 已提交 | v0.5.3: fix endpoint probe path and clarify sync progress counts            | 1. Update runtime/docs version to v0.5.3.<br>2. Fix HTML/script fetch failures, flexible script markup, replace the candidate latency probe with a GET-safe endpoint.<br>3. Persist metadata-sync local counts plus cumulative processed-work counts.<br>4. Refactor Settings save/test-connection flow.<br>5. Add XML docs to direct control handlers in View files.<br>6. Update regression tests and progress documentation.    | 81a8fcb    |
 | 2026-04-10 | 已提交 | v0.5.4: persist published API candidates and harden endpoint discovery      | 1. Update runtime/docs version to v0.5.4.<br>2. Keep the pending metadata-sync count persistence, Settings save/test-connection flow cleanup.<br>3. Switch candidate latency probing to health api.<br>4. Expand built-in API candidates, and persist discovered candidate lists back to SQLite.<br>5. Fix test connection and the discovered candidate list logic.<br>6. Update regression tests and progress documentation.      | d6be49d    |
 | 2026-04-11 | 已提交 | v0.5.5: align runtime version and streamline anonymous endpoint probe       | 1. Update runtime/docs version to v0.5.5.<br>2. Keep `AsmrProbe` as the anonymous endpoint probe client and centralize its shared HTTP transport configuration.<br>3. Reuse one probe client across endpoint discovery and keep publish-source / health requests on the same probe header policy.<br>4. Update regression tests and progress documentation.                                                                        | 71a771a    |
-| 2026-04-11 | 待提交 | v0.5.6: validate track size before reusing existing downloads               | 1. Update runtime/docs version to v0.5.6.<br>2. Add `TrackDto.Size` to capture track api size metadata.<br>3. Reuse existing files only when the local file size matches the track size; otherwise redownload the file.<br>4. Validate downloaded file size against track metadata.<br>5. Update regression tests and progress documentation.                                                                                      | -          |
+| 2026-04-11 | 已提交 | v0.5.6: validate track size before reusing existing downloads               | 1. Update runtime/docs version to v0.5.6.<br>2. Add `TrackDto.Size` to capture track api size metadata.<br>3. Reuse existing files only when the local file size matches the track size; otherwise redownload the file.<br>4. Validate downloaded file size against track metadata.<br>5. Update regression tests and progress documentation.                                                                                      | 2d9ac15    |
+| 2026-04-12 | 待提交 | v0.5.7: mirror standard downloads into sync root                            | 1. Update runtime/docs version to v0.5.7.<br>2. Avoid duplicate file processing when the normal download root equals the sync root.<br>3. Mirror full standard downloads to the sync root when both roots start empty, and write `WorkSyncInfo` as `COMPLETED`.<br>4. Update regression tests and progress documentation.                                                                                                          | -          |
 
 ---
 
@@ -1945,7 +1957,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [ ] 当发布页入口脚本使用相对路径、查询串或单引号 `link` 配置时，“测试连接”仍可正确解析入口脚本并发现可用 BaseUrl。
 - [x] “测试连接”应通过 `GET /api/health?cache=false` 完成候选探测；当旧探测端点不可用但 health API 可达时，仍能选中可用 BaseUrl。
 - [ ] 当发布页正文直接提供 `asmr-300/200/100/one` 最新域名时，“测试连接”会按正文顺序补齐候选列表并写回 SQLite `ApiCandidateUrls`；随后再次“保存并重新初始化”不会把新候选覆盖回旧值。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.5.6。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.5.7。
 
 ### 4.2 Search 功能
 
@@ -1987,9 +1999,10 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] Download 页面操作按钮顺序应为“立即下载选中任务 -> 执行下载队列 -> 刷新任务列表”。
 - [x] “重试失败任务”在存在选中项时仅重试选中的失败任务并忽略非失败项；无选中项时会批量重试全部失败任务，并能输出正确汇总结果。
 - [x] “打开下载目录”可打开当前生效的普通下载目录。
-- [x] 普通下载目录缺失目标文件且同步下载目录已存在同路径、同大小的匹配文件时，执行下载会优先复用同步下载目录中的真实文件，不重复请求下载接口。
+- [x] 普通下载目录缺失目标文件且同步下载目录已存在同路径、同大小的匹配文件时，执行下载会优先复用同步下载目录中的真实文件，不重复请求下载接口，并将对应 SQLite 同步记录写为 `COMPLETED`。
 - [x] 当目标文件或同步下载目录候选文件已存在但大小与 track `size` 不一致时，下载流程会忽略旧文件并重新下载真实文件。
-- [x] 当普通下载目录和同步下载目录都没有匹配文件时，执行下载会直接请求 `mediaDownloadUrl` 实时落盘，不写 `source/title/url` 占位文本。
+- [x] 当普通下载目录和同步下载目录都没有匹配文件时，执行下载会直接请求 `mediaDownloadUrl` 实时落盘；完整普通下载会同时镜像一份到同步下载目录，并将 SQLite 的 `WorkSyncInfo` 写为 `COMPLETED`，不写 `source/title/url` 占位文本。
+- [x] 当普通下载目录和同步下载目录配置为同一路径时，执行下载只会在该目录落盘单份文件，不会在同一路径重复复制或重复处理，同时会将 SQLite 的 `WorkSyncInfo` 写为 `COMPLETED`。
 - [x] “清空任务列表”可停止运行中任务、清空下载队列并删除任务列表项，且清空后重启不会回流旧未完成队列。
 - [x] Download 页面会恢复上一次运行时的“只下载高清音频”“加入翻译作品”“文件筛选”与未完成队列（`Pending/Queued/Failed` 恢复为 `Pending`），并在后台补拉缺失作品标题后刷新列表显示。
 - [x] Search 页面加入下载队列后，若未切换至 Download 页面即退出并重启，未完成队列仍可恢复。
@@ -2037,7 +2050,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 当 SQLite `UiState` 中存在未完成同步下载进度时，再次点击下载同步主按钮会继续后续候选作品，且不会重下已有 `COMPLETED/FAILED` 记录。
 - [x] 点击下载同步主按钮发出 stop request 后，按钮会切换为“正在停止下载...”，并在当前作品完成后恢复为空闲态。
 - [x] 同步下载开始后的 1 秒内连续双击主按钮时，第二次点击会被防抖忽略，按钮保持“停止同步下载”，不会误切到“正在停止下载...”。
-- [ ] 当同步下载进度已完成时，再次点击下载同步主按钮会重置 UiState 进度，并从头校验已有 `WorkSyncInfo` 记录；仅对目录缺失或文件大小不一致的作品补齐，不重复写入已匹配作品。
+- [ ] 当同步下载进度已完成时，再次点击下载同步主按钮会重置 UiState 进度，并从头校验已有 `WorkSyncInfo` 记录；仅对目录缺失或文件大小不一致的作品补齐，不重复写入已匹配作品；对于已由完整普通下载写成 `COMPLETED` 的作品，会直接跳过，不重复处理。
 - [x] 点击“重试失败项”后，Sync 页面会逐项清理旧失败目录并重试全部 `FAILED` 记录。
 - [x] 失败重试完成后，页面摘要会显示本次重试数量、恢复成功数量、剩余失败数量与当前已完成总数。
 - [x] 点击“导出失败记录”后，可通过保存对话框将全部 `FAILED` 同步记录导出为 CSV 或 JSON 文件。
