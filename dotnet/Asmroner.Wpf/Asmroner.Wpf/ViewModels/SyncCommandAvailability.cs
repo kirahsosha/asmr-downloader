@@ -23,18 +23,20 @@ public sealed class SyncCommandAvailability
         bool isMetadataStopRequested,
         bool isDownloadSyncRunning,
         bool isDownloadStopRequested,
-        bool isExclusiveOperationRunning,
+        bool isRetryFailedRunning,
+        bool isExportRunning,
         bool isRefreshRunning)
     {
         var hasRunningSync = isMetadataSyncRunning || isDownloadSyncRunning;
-        var disableExclusiveActions = hasRunningSync || isExclusiveOperationRunning || isRefreshRunning;
+        var hasBlockingAuxiliaryOperation = isRetryFailedRunning || isExportRunning;
+        var disableExclusiveActions = hasRunningSync || hasBlockingAuxiliaryOperation || isRefreshRunning;
 
         var canMetadataAction = isMetadataSyncRunning
             ? !isMetadataStopRequested
-            : !hasRunningSync && !isExclusiveOperationRunning;
+            : !hasRunningSync && !hasBlockingAuxiliaryOperation;
         var canDownloadAction = isDownloadSyncRunning
             ? !isDownloadStopRequested
-            : !hasRunningSync && !isExclusiveOperationRunning;
+            : !hasRunningSync && !hasBlockingAuxiliaryOperation;
 
         return new SyncCommandAvailability
         {
@@ -49,7 +51,7 @@ public sealed class SyncCommandAvailability
             CanRetryFailed = !disableExclusiveActions,
             CanExportFailed = !disableExclusiveActions,
             CanExportCompleted = !disableExclusiveActions,
-            CanRefresh = !isExclusiveOperationRunning && !isRefreshRunning,
+            CanRefresh = !isExportRunning && !isRefreshRunning,
         };
     }
 }

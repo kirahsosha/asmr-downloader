@@ -182,8 +182,12 @@
                            Style="{StaticResource StatusInfoMutedTextStyle}"
                            Text="最近更新：元数据 暂无；同步记录 暂无"/>
                 <TextBlock x:Name="StatusTextBlock"
+                           Margin="0,0,0,6"
                            Style="{StaticResource StatusInfoTextStyle}"
-                           Text="点击同步、重试、导出或刷新统计后，这里会显示执行状态。"/>
+                           Text="同步状态：点击同步、重试、导出或刷新统计后，这里会显示元数据同步状态。"/>
+                <TextBlock x:Name="DownloadStatusTextBlock"
+                           Style="{StaticResource StatusInfoTextStyle}"
+                           Text="下载状态：点击同步、重试、导出或刷新统计后，这里会显示同步下载状态。"/>
             </StackPanel>
         </Border>
 

@@ -30,12 +30,13 @@
 
 - `docs/prompts.md`
 - `docs/legacy-go.md`
+- `docs/review/*`
 
 ### 1.4 代码审查约束
 
 - 如果任务产生了代码更改，在完成任务之前，**必须**参照`§6. 代码审查约束`的要求审查新生成的代码与相关代码。
-- 审核结果生成目录：`docs/review`。
-- 审查结果文件名格式：`YYYY-MM-DD-version-summary`
+- 审核报告生成目录：`docs/review`。
+- 审查报告文件名格式：`YYYY-MM-DD-version-summary`
 
 ---
 
@@ -237,6 +238,8 @@
 
 8. 必要时使用 `gh` CLI 在 PR 上发表评论（遵守仓库全局 CLI 规则，例如通过 `rtk` 执行）。发表评论要求：保持简洁、避免 emoji；为每个问题提供链接并引用相关文件/代码/URL；链接必须使用完整 git SHA 且包含行号范围，至少提供前后各一行上下文（行范围格式 L[start]-L[end]）。
 
+9. 生成审查报告。
+
 ### 误报示例（不作为问题）
 
 - 先前已存在的问题
@@ -255,7 +258,7 @@
 - 审查前请先建立 todo list 并按其执行。
 - 报告中必须为每个问题提供可点开的引用链接并说明理由。
 
-### 最终评论模板（必须严格遵守格式示例）
+### 最终报告模板（必须严格遵守格式示例）
 
 ---
 Code review
@@ -274,6 +277,9 @@ Found N issues:
 
     <完整文件行范围>
 
+Reviewed scope:
+- `列出本次review的文件`
+
 ---
 
 或若无问题：
@@ -283,7 +289,10 @@ Code review
 
 No issues found. Checked for bugs and prompt-file compliance.
 
-🤖 Generated with [Claude Code](https://claude.ai/code)
+Generated with GitHub Copilot
+
+Reviewed scope:
+- `列出本次review的文件`
 
 ---
 

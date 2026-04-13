@@ -21,7 +21,8 @@ public partial class SyncView : UserControl
     private bool _isMetadataStopRequested;
     private bool _isDownloadSyncRunning;
     private bool _isDownloadStopRequested;
-    private bool _isExclusiveOperationRunning;
+    private bool _isRetryFailedRunning;
+    private bool _isExportRunning;
     private bool _isRefreshRunning;
 
     private int _metadataActionInFlight;
@@ -105,7 +106,7 @@ public partial class SyncView : UserControl
                 await _syncService.RequestStopMetadataSyncAsync();
                 _isMetadataStopRequested = true;
                 RefreshCommandAvailability();
-                StatusTextBlock.Text = "已请求停止元数据同步，将在当前页完成后停止。";
+                SetMetadataStatus(SyncStatusTextBuilder.BuildMetadataActionStatus("已请求停止元数据同步，将在当前页完成后停止。"));
                 return;
             }
 
@@ -113,7 +114,7 @@ public partial class SyncView : UserControl
             _isMetadataSyncRunning = true;
             _isMetadataStopRequested = false;
             RefreshCommandAvailability();
-            StatusTextBlock.Text = "正在同步元数据，请稍候...";
+            SetMetadataStatus(SyncStatusTextBuilder.BuildMetadataActionStatus("正在同步元数据，请稍候..."));
             _ = RunMetadataSyncAsync();
         }
         finally
@@ -133,7 +134,7 @@ public partial class SyncView : UserControl
         }
         catch (Exception ex)
         {
-            StatusTextBlock.Text = $"同步失败: {ex.Message}";
+            SetMetadataStatus(SyncStatusTextBuilder.BuildMetadataActionStatus($"同步失败：{ex.Message}"));
             DetailsTextBox.Text = ex.ToString();
         }
         finally
@@ -173,7 +174,7 @@ public partial class SyncView : UserControl
                 await _syncService.RequestStopSyncDownloadAsync();
                 _isDownloadStopRequested = true;
                 RefreshCommandAvailability();
-                StatusTextBlock.Text = "已请求停止同步下载，将在当前作品完成后停止。";
+                SetDownloadStatus(SyncStatusTextBuilder.BuildDownloadActionStatus("已请求停止同步下载，将在当前作品完成后停止。"));
                 return;
             }
 
@@ -181,7 +182,7 @@ public partial class SyncView : UserControl
             _isDownloadSyncRunning = true;
             _isDownloadStopRequested = false;
             RefreshCommandAvailability();
-            StatusTextBlock.Text = "正在执行同步下载，请稍候...";
+            SetDownloadStatus(SyncStatusTextBuilder.BuildDownloadActionStatus("正在执行同步下载，请稍候..."));
             _ = RunSyncDownloadAsync();
         }
         finally
@@ -201,7 +202,7 @@ public partial class SyncView : UserControl
         }
         catch (Exception ex)
         {
-            StatusTextBlock.Text = $"同步下载失败: {ex.Message}";
+            SetDownloadStatus(SyncStatusTextBuilder.BuildDownloadActionStatus($"同步下载失败：{ex.Message}"));
             DetailsTextBox.Text = ex.ToString();
         }
         finally
@@ -217,9 +218,10 @@ public partial class SyncView : UserControl
     /// </summary>
     private async void OnRetryFailedClicked(object sender, RoutedEventArgs e)
     {
-        await RunExclusiveOperationAsync(async () =>
+        await RunRetryOperationAsync(async () =>
         {
-            StatusTextBlock.Text = "正在重试失败同步下载，请稍候...";
+            SetDownloadStatus(SyncStatusTextBuilder.BuildDownloadActionStatus("正在重试失败同步下载，请稍候..."));
+            DetailsTextBox.Text = SyncProgressDetailsBuilder.BuildRetryPendingDetails();
 
             try
             {
@@ -229,7 +231,7 @@ public partial class SyncView : UserControl
             }
             catch (Exception ex)
             {
-                StatusTextBlock.Text = $"失败重试执行失败: {ex.Message}";
+                SetDownloadStatus(SyncStatusTextBuilder.BuildDownloadActionStatus($"失败重试执行失败：{ex.Message}"));
                 DetailsTextBox.Text = ex.ToString();
             }
         });
@@ -240,7 +242,7 @@ public partial class SyncView : UserControl
     /// </summary>
     private async void OnExportFailedClicked(object sender, RoutedEventArgs e)
     {
-        await RunExclusiveOperationAsync(async () => await ExportAsync(SyncExportStatus.Failed));
+        await RunExportOperationAsync(async () => await ExportAsync(SyncExportStatus.Failed));
     }
 
     /// <summary>
@@ -248,19 +250,25 @@ public partial class SyncView : UserControl
     /// </summary>
     private async void OnExportCompletedClicked(object sender, RoutedEventArgs e)
     {
-        await RunExclusiveOperationAsync(async () => await ExportAsync(SyncExportStatus.Completed));
+        await RunExportOperationAsync(async () => await ExportAsync(SyncExportStatus.Completed));
     }
 
     private async Task RefreshSnapshotAsync(bool updateStatusText)
     {
         try
         {
-            await ApplyReportAsync();
-            await ApplyPersistedProgressSummaryAsync(updateStatusText);
+            var report = await _syncService.GetReportAsync();
+            ApplyReport(report);
+            await ApplyPersistedProgressSummaryAsync(updateStatusText, report);
         }
         catch (Exception ex)
         {
-            StatusTextBlock.Text = $"读取同步统计失败: {ex.Message}";
+            SetMetadataStatus(SyncStatusTextBuilder.BuildMetadataActionStatus($"读取同步统计失败：{ex.Message}"));
+            if (!_isRetryFailedRunning)
+            {
+                SetDownloadStatus(SyncStatusTextBuilder.BuildDownloadActionStatus($"读取同步统计失败：{ex.Message}"));
+            }
+
             DetailsTextBox.Text = ex.ToString();
         }
     }
@@ -286,7 +294,7 @@ public partial class SyncView : UserControl
 
     private void ApplyResult(MetadataSyncRunResult result)
     {
-        StatusTextBlock.Text = result.Message;
+        SetMetadataStatus(SyncStatusTextBuilder.BuildMetadataActionStatus(result.Message));
         DetailsTextBox.Text = string.Join(Environment.NewLine,
         [
             $"网站总量：{result.RemoteTotalCount.ToString(CultureInfo.InvariantCulture)}",
@@ -307,7 +315,7 @@ public partial class SyncView : UserControl
 
     private void ApplyResult(SyncDownloadRunResult result)
     {
-        StatusTextBlock.Text = result.Message;
+        SetDownloadStatus(SyncStatusTextBuilder.BuildDownloadActionStatus(result.Message));
         DetailsTextBox.Text = string.Join(Environment.NewLine,
         [
             $"本次处理：{result.ProcessedCount.ToString(CultureInfo.InvariantCulture)} 项",
@@ -326,7 +334,7 @@ public partial class SyncView : UserControl
 
     private void ApplyResult(SyncRetryRunResult result)
     {
-        StatusTextBlock.Text = result.Message;
+        SetDownloadStatus(SyncStatusTextBuilder.BuildDownloadActionStatus(result.Message));
         DetailsTextBox.Text = string.Join(Environment.NewLine,
         [
             $"本次重试：{result.RetriedCount.ToString(CultureInfo.InvariantCulture)} 项",
@@ -340,7 +348,7 @@ public partial class SyncView : UserControl
 
     private void ApplyResult(SyncExportResult result)
     {
-        StatusTextBlock.Text = result.Message;
+        SetDownloadStatus(SyncStatusTextBuilder.BuildDownloadActionStatus(result.Message));
         DetailsTextBox.Text = string.Join(Environment.NewLine,
         [
             $"导出状态：{GetStatusLabel(result.Status)}",
@@ -355,16 +363,30 @@ public partial class SyncView : UserControl
         ApplyReport(await _syncService.GetReportAsync());
     }
 
-    private async Task ApplyPersistedProgressSummaryAsync(bool updateStatusText)
+    private async Task ApplyPersistedProgressSummaryAsync(bool updateStatusText, SyncReportSnapshot report)
     {
         var metadataProgress = await _syncService.GetMetadataSyncProgressAsync();
+
+        if (_isRetryFailedRunning)
+        {
+            DetailsTextBox.Text = SyncProgressDetailsBuilder.BuildRetryRefreshDetails(report);
+
+            if (updateStatusText)
+            {
+                SetMetadataStatus(SyncStatusTextBuilder.BuildMetadataStatus(metadataProgress));
+            }
+
+            return;
+        }
+
         var downloadProgress = await _syncService.GetSyncDownloadProgressAsync();
 
-        DetailsTextBox.Text = BuildPersistedProgressDetails(metadataProgress, downloadProgress);
+        DetailsTextBox.Text = SyncProgressDetailsBuilder.BuildPersistedProgressDetails(metadataProgress, downloadProgress);
 
         if (updateStatusText)
         {
-            StatusTextBlock.Text = BuildPersistedProgressStatusText(metadataProgress, downloadProgress);
+            SetMetadataStatus(SyncStatusTextBuilder.BuildMetadataStatus(metadataProgress));
+            SetDownloadStatus(SyncStatusTextBuilder.BuildDownloadStatus(downloadProgress));
         }
     }
 
@@ -376,7 +398,7 @@ public partial class SyncView : UserControl
             var exportTarget = ShowSaveFileDialog(BuildDefaultFileName(status));
             if (exportTarget is null)
             {
-                StatusTextBlock.Text = "已取消导出。";
+                SetDownloadStatus(SyncStatusTextBuilder.BuildDownloadActionStatus("已取消导出。"));
                 return;
             }
 
@@ -390,7 +412,7 @@ public partial class SyncView : UserControl
         }
         catch (Exception ex)
         {
-            StatusTextBlock.Text = $"导出失败：{ex.Message}";
+            SetDownloadStatus(SyncStatusTextBuilder.BuildDownloadActionStatus($"导出失败：{ex.Message}"));
             DetailsTextBox.Text = ex.ToString();
         }
     }
@@ -482,7 +504,8 @@ public partial class SyncView : UserControl
             _isMetadataStopRequested,
             _isDownloadSyncRunning,
             _isDownloadStopRequested,
-            _isExclusiveOperationRunning,
+            _isRetryFailedRunning,
+            _isExportRunning,
             _isRefreshRunning);
 
         SyncMetadataButton.IsEnabled = availability.CanMetadataAction;
@@ -495,9 +518,9 @@ public partial class SyncView : UserControl
         RefreshStatusButton.IsEnabled = availability.CanRefresh;
     }
 
-    private async Task RunExclusiveOperationAsync(Func<Task> action)
+    private async Task RunRetryOperationAsync(Func<Task> action)
     {
-        _isExclusiveOperationRunning = true;
+        _isRetryFailedRunning = true;
         RefreshCommandAvailability();
 
         try
@@ -506,96 +529,35 @@ public partial class SyncView : UserControl
         }
         finally
         {
-            _isExclusiveOperationRunning = false;
+            _isRetryFailedRunning = false;
             RefreshCommandAvailability();
         }
     }
 
-    private static string BuildPersistedProgressStatusText(
-        MetadataSyncProgressState metadataProgress,
-        SyncDownloadProgressState downloadProgress)
+    private async Task RunExportOperationAsync(Func<Task> action)
     {
-        var messages = new List<string>();
+        _isExportRunning = true;
+        RefreshCommandAvailability();
 
-        if (string.Equals(metadataProgress.Status, SyncProgressStatuses.Running, StringComparison.Ordinal))
+        try
         {
-            messages.Add(metadataProgress.StopRequested
-                ? $"元数据同步正在停止：已处理 {metadataProgress.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{metadataProgress.TotalPageCount.ToString(CultureInfo.InvariantCulture)} 页，累计处理 {metadataProgress.ProcessedWorkCount.ToString(CultureInfo.InvariantCulture)} 条，本地现有 {metadataProgress.LocalTotalCount.ToString(CultureInfo.InvariantCulture)} 条，等待当前页完成。"
-                : $"元数据同步进行中：已处理 {metadataProgress.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{metadataProgress.TotalPageCount.ToString(CultureInfo.InvariantCulture)} 页，累计处理 {metadataProgress.ProcessedWorkCount.ToString(CultureInfo.InvariantCulture)} 条，本地现有 {metadataProgress.LocalTotalCount.ToString(CultureInfo.InvariantCulture)} 条，下次页码 {metadataProgress.NextPage.ToString(CultureInfo.InvariantCulture)}。"
-            );
+            await action();
         }
-        else if (string.Equals(metadataProgress.Status, SyncProgressStatuses.Stopped, StringComparison.Ordinal))
+        finally
         {
-            messages.Add($"检测到未完成元数据同步进度，累计处理 {metadataProgress.ProcessedWorkCount.ToString(CultureInfo.InvariantCulture)} 条，本地现有 {metadataProgress.LocalTotalCount.ToString(CultureInfo.InvariantCulture)} 条，下次将从第 {metadataProgress.NextPage.ToString(CultureInfo.InvariantCulture)} 页继续。");
+            _isExportRunning = false;
+            RefreshCommandAvailability();
         }
-        else if (string.Equals(metadataProgress.Status, SyncProgressStatuses.Completed, StringComparison.Ordinal)
-            && metadataProgress.TotalPageCount > 0)
-        {
-            messages.Add($"元数据同步已完成：共处理 {metadataProgress.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{metadataProgress.TotalPageCount.ToString(CultureInfo.InvariantCulture)} 页，累计处理 {metadataProgress.ProcessedWorkCount.ToString(CultureInfo.InvariantCulture)} 条，本地现有 {metadataProgress.LocalTotalCount.ToString(CultureInfo.InvariantCulture)} 条。");
-        }
-
-        if (string.Equals(downloadProgress.Status, SyncProgressStatuses.Running, StringComparison.Ordinal))
-        {
-            messages.Add(downloadProgress.StopRequested
-                ? $"同步下载正在停止：已处理 {downloadProgress.ProcessedCount.ToString(CultureInfo.InvariantCulture)} 项，等待当前作品完成。"
-                : $"同步下载进行中：已处理 {downloadProgress.ProcessedCount.ToString(CultureInfo.InvariantCulture)} 项，成功 {downloadProgress.CompletedCount.ToString(CultureInfo.InvariantCulture)} 项，失败 {downloadProgress.FailedCount.ToString(CultureInfo.InvariantCulture)} 项。"
-            );
-        }
-        else if (string.Equals(downloadProgress.Status, SyncProgressStatuses.Stopped, StringComparison.Ordinal))
-        {
-            messages.Add(string.IsNullOrWhiteSpace(downloadProgress.LastProcessedSourceId)
-                ? "检测到未完成同步下载进度，下次将继续当前任务。"
-                : $"检测到未完成同步下载进度，下次将从 {downloadProgress.LastProcessedSourceId} 之后继续。"
-            );
-        }
-        else if (string.Equals(downloadProgress.Status, SyncProgressStatuses.Completed, StringComparison.Ordinal)
-            && downloadProgress.ProcessedCount > 0)
-        {
-            messages.Add($"同步下载已完成：已处理 {downloadProgress.ProcessedCount.ToString(CultureInfo.InvariantCulture)} 项，成功 {downloadProgress.CompletedCount.ToString(CultureInfo.InvariantCulture)} 项，失败 {downloadProgress.FailedCount.ToString(CultureInfo.InvariantCulture)} 项。");
-        }
-
-        return messages.Count == 0
-            ? "已刷新本地同步统计与进度。"
-            : string.Join("；", messages);
     }
 
-    private static string BuildPersistedProgressDetails(
-        MetadataSyncProgressState metadataProgress,
-        SyncDownloadProgressState downloadProgress)
+    private void SetMetadataStatus(string text)
     {
-        return string.Join(Environment.NewLine,
-        [
-            $"元数据进度状态：{FormatProgressStatus(metadataProgress.Status)}",
-            $"元数据停止请求：{(metadataProgress.StopRequested ? "是" : "否")}",
-            $"元数据下次页码：{metadataProgress.NextPage.ToString(CultureInfo.InvariantCulture)}",
-            $"元数据已处理分页：{metadataProgress.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{metadataProgress.TotalPageCount.ToString(CultureInfo.InvariantCulture)}",
-            $"元数据当前本地总量：{metadataProgress.LocalTotalCount.ToString(CultureInfo.InvariantCulture)}",
-            $"元数据当前本地字幕量：{metadataProgress.LocalSubtitleCount.ToString(CultureInfo.InvariantCulture)}",
-            $"元数据累计处理：{metadataProgress.ProcessedWorkCount.ToString(CultureInfo.InvariantCulture)}",
-            $"元数据累计新增：{metadataProgress.InsertedCount.ToString(CultureInfo.InvariantCulture)}",
-            $"元数据最近更新时间：{FormatTimestamp(metadataProgress.UpdatedAt)}",
-            string.Empty,
-            $"同步下载进度状态：{FormatProgressStatus(downloadProgress.Status)}",
-            $"同步下载停止请求：{(downloadProgress.StopRequested ? "是" : "否")}",
-            $"同步下载最近处理作品：{FormatSourceId(downloadProgress.LastProcessedSourceId)}",
-            $"同步下载累计处理：{downloadProgress.ProcessedCount.ToString(CultureInfo.InvariantCulture)} 项",
-            $"同步下载累计成功：{downloadProgress.CompletedCount.ToString(CultureInfo.InvariantCulture)} 项",
-            $"同步下载累计失败：{downloadProgress.FailedCount.ToString(CultureInfo.InvariantCulture)} 项",
-            $"同步下载剩余待处理：{downloadProgress.RemainingMetadataCountAfter.ToString(CultureInfo.InvariantCulture)} 项",
-            $"同步下载累计大小：{SyncSizeText.FormatBytes(downloadProgress.CompletedSizeBytesAfter)} / {SyncSizeText.FormatBytes(downloadProgress.SizeLimitBytes)}",
-            $"同步下载最近更新时间：{FormatTimestamp(downloadProgress.UpdatedAt)}",
-        ]);
+        StatusTextBlock.Text = text;
     }
 
-    private static string FormatProgressStatus(string status)
+    private void SetDownloadStatus(string text)
     {
-        return status switch
-        {
-            SyncProgressStatuses.Running => "进行中",
-            SyncProgressStatuses.Stopped => "已停止",
-            SyncProgressStatuses.Completed => "已完成",
-            _ => "未开始",
-        };
+        DownloadStatusTextBlock.Text = text;
     }
 
     private static string FormatSourceId(string sourceId)

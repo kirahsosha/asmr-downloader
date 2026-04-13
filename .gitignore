@@ -55,3 +55,4 @@ asmroner.exe
 /dotnet/Asmroner.Backend/Asmroner.Infrastructure/bin
 /.agents
 /.github
+/docs/review

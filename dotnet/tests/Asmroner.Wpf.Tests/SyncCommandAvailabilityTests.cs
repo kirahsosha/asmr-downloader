@@ -12,7 +12,8 @@ public class SyncCommandAvailabilityTests
             isMetadataStopRequested: false,
             isDownloadSyncRunning: false,
             isDownloadStopRequested: false,
-            isExclusiveOperationRunning: false,
+            isRetryFailedRunning: false,
+            isExportRunning: false,
             isRefreshRunning: false);
 
         Assert.True(actual.CanMetadataAction);
@@ -30,7 +31,8 @@ public class SyncCommandAvailabilityTests
             isMetadataStopRequested: false,
             isDownloadSyncRunning: false,
             isDownloadStopRequested: false,
-            isExclusiveOperationRunning: false,
+            isRetryFailedRunning: false,
+            isExportRunning: false,
             isRefreshRunning: false);
 
         Assert.True(actual.CanMetadataAction);
@@ -50,7 +52,8 @@ public class SyncCommandAvailabilityTests
             isMetadataStopRequested: true,
             isDownloadSyncRunning: false,
             isDownloadStopRequested: false,
-            isExclusiveOperationRunning: false,
+            isRetryFailedRunning: false,
+            isExportRunning: false,
             isRefreshRunning: false);
 
         Assert.False(actual.CanMetadataAction);
@@ -67,7 +70,8 @@ public class SyncCommandAvailabilityTests
             isMetadataStopRequested: false,
             isDownloadSyncRunning: true,
             isDownloadStopRequested: true,
-            isExclusiveOperationRunning: false,
+            isRetryFailedRunning: false,
+            isExportRunning: false,
             isRefreshRunning: false);
 
         Assert.False(actual.CanMetadataAction);
@@ -84,7 +88,8 @@ public class SyncCommandAvailabilityTests
             isMetadataStopRequested: false,
             isDownloadSyncRunning: false,
             isDownloadStopRequested: false,
-            isExclusiveOperationRunning: false,
+            isRetryFailedRunning: false,
+            isExportRunning: false,
             isRefreshRunning: true);
 
         Assert.True(actual.CanMetadataAction);
@@ -97,14 +102,35 @@ public class SyncCommandAvailabilityTests
     }
 
     [Fact]
-    public void Evaluate_ShouldDisableAllActions_WhenExclusiveOperationRunning()
+    public void Evaluate_ShouldKeepRefreshEnabled_WhenRetryFailedIsRunning()
     {
         var actual = SyncCommandAvailability.Evaluate(
             isMetadataSyncRunning: false,
             isMetadataStopRequested: false,
             isDownloadSyncRunning: false,
             isDownloadStopRequested: false,
-            isExclusiveOperationRunning: true,
+            isRetryFailedRunning: true,
+            isExportRunning: false,
+            isRefreshRunning: false);
+
+        Assert.False(actual.CanMetadataAction);
+        Assert.False(actual.CanDownloadAction);
+        Assert.False(actual.CanRetryFailed);
+        Assert.False(actual.CanExportFailed);
+        Assert.False(actual.CanExportCompleted);
+        Assert.True(actual.CanRefresh);
+    }
+
+    [Fact]
+    public void Evaluate_ShouldDisableRefresh_WhenExportOperationRunning()
+    {
+        var actual = SyncCommandAvailability.Evaluate(
+            isMetadataSyncRunning: false,
+            isMetadataStopRequested: false,
+            isDownloadSyncRunning: false,
+            isDownloadStopRequested: false,
+            isRetryFailedRunning: false,
+            isExportRunning: true,
             isRefreshRunning: false);
 
         Assert.False(actual.CanMetadataAction);

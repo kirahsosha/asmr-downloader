@@ -832,14 +832,16 @@ public partial class DownloadView : UserControl
         }
     }
 
-    private void ToggleRunQueue(bool isEnabled)
+    private void SetQueueMutationRunning(bool isRunning)
     {
-        RunQueueButton.IsEnabled = isEnabled;
-        AddSingleButton.IsEnabled = isEnabled;
-        AddBatchButton.IsEnabled = isEnabled;
-        ImportFavoritesButton.IsEnabled = isEnabled;
-        OpenDownloadDirectoryButton.IsEnabled = isEnabled;
-        ClearTaskListButton.IsEnabled = isEnabled;
+        var availability = DownloadToolbarAvailability.Evaluate(isRunning);
+        RunQueueButton.IsEnabled = availability.CanRunQueue;
+        AddSingleButton.IsEnabled = availability.CanAddSingle;
+        AddBatchButton.IsEnabled = availability.CanAddBatch;
+        ImportFileButton.IsEnabled = availability.CanImportFile;
+        ImportFavoritesButton.IsEnabled = availability.CanImportFavorites;
+        OpenDownloadDirectoryButton.IsEnabled = availability.CanOpenDownloadDirectory;
+        ClearTaskListButton.IsEnabled = availability.CanClearTaskList;
     }
 
     private void ToggleSelectionActions(bool isEnabled)
@@ -1066,7 +1068,7 @@ public partial class DownloadView : UserControl
     {
         if (disableRunQueue)
         {
-            ToggleRunQueue(false);
+            SetQueueMutationRunning(true);
         }
 
         if (disableSelectionActions)
@@ -1087,7 +1089,7 @@ public partial class DownloadView : UserControl
         {
             if (disableRunQueue)
             {
-                ToggleRunQueue(true);
+                SetQueueMutationRunning(false);
             }
 
             if (updateSelectionOnFinally || disableSelectionActions)
