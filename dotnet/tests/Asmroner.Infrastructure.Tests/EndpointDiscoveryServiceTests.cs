@@ -427,11 +427,14 @@ public class EndpointDiscoveryServiceTests
     [Fact]
     public async Task EndpointDiscoveryService_ShouldSendProbeUserAgent_OnPublishAndHealthRequests()
     {
-        var observedUserAgents = new List<string>();
+        var publishUserAgents = new List<string>();
+        var publishAcceptMediaTypes = new List<string>();
+        var probeUserAgents = new List<string>();
         var factory = new RecordingHttpClientFactory();
-        factory.Register(EndpointDiscoveryHttpTransport.ProbeClientName, new RecordingHttpMessageHandler(request =>
+        factory.Register(EndpointDiscoveryHttpTransport.PublishClientName, new RecordingHttpMessageHandler(request =>
         {
-            observedUserAgents.Add(request.Headers.UserAgent.ToString());
+            publishUserAgents.Add(request.Headers.UserAgent.ToString());
+            publishAcceptMediaTypes.AddRange(request.Headers.Accept.Select(static item => item.MediaType ?? string.Empty));
 
             var uri = request.RequestUri!;
             if (uri.Host.Equals("publish.example.com", StringComparison.OrdinalIgnoreCase)
@@ -442,6 +445,15 @@ public class EndpointDiscoveryServiceTests
                     Content = new StringContent("asmr-200.com"),
                 });
             }
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+        }));
+
+        factory.Register(EndpointDiscoveryHttpTransport.ProbeClientName, new RecordingHttpMessageHandler(request =>
+        {
+            probeUserAgents.Add(request.Headers.UserAgent.ToString());
+
+            var uri = request.RequestUri!;
 
             if (uri.Host.Equals("api.asmr-200.com", StringComparison.OrdinalIgnoreCase)
                 && uri.PathAndQuery == AsmrApiPaths.Health)
@@ -466,7 +478,12 @@ public class EndpointDiscoveryServiceTests
 
         _ = await sut.DiscoverAsync();
 
-        Assert.True(observedUserAgents.Count >= 2);
-        Assert.All(observedUserAgents, userAgent => Assert.Equal(EndpointDiscoveryHttpTransport.ProbeUserAgent, userAgent));
+        Assert.Single(publishUserAgents);
+        Assert.Single(probeUserAgents);
+        Assert.All(publishUserAgents, userAgent => Assert.Equal(EndpointDiscoveryHttpTransport.ProbeUserAgent, userAgent));
+        Assert.All(probeUserAgents, userAgent => Assert.Equal(EndpointDiscoveryHttpTransport.ProbeUserAgent, userAgent));
+        Assert.Contains("text/html", publishAcceptMediaTypes, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("application/xhtml+xml", publishAcceptMediaTypes, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains("application/javascript", publishAcceptMediaTypes, StringComparer.OrdinalIgnoreCase);
     }
 }

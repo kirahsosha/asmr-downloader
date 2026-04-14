@@ -1,8 +1,8 @@
 # asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.5.8
+当前跟踪版本：v0.5.9
 
-AI约束策略：章节1.5.1到1.5.104的文本不加入分析上下文
+AI约束策略：章节1.5.1到1.5.103的文本不加入分析上下文
 
 ## 1. 项目进度跟踪清单
 
@@ -136,8 +136,8 @@ AI约束策略：章节1.5.1到1.5.104的文本不加入分析上下文
 | 2026-04-08 | 阶段 2 | 发布页入口脚本路径/引号形态解析不稳定                                                                          | 站点发现稳定性                | 已解决   | 2026-04-08    |
 | 2026-04-08 | 阶段 5 | 元数据同步本地总量/字幕量未持久化，刷新后数量不正确                                                            | Sync 统计一致性               | 已解决   | 2026-04-08    |
 | 2026-04-10 | 阶段 2 | "测试连接"不回写 `ApiCandidateUrls`，SQLite 候选集合无法随发布页更新                                           | 站点发现与配置持久化          | 已解决   | 2026-04-10    |
-| 2026-04-12 | 阶段 2 | 发布页入口脚本使用相对路径/查询串/单引号配置时解析可能失败                                                     | 站点发现兼容性                | 阻塞中   | 待确定        |
-| 2026-04-12 | 阶段 2 | 发布页正文最新域名未按顺序补齐并持久化到 `ApiCandidateUrls`                                                    | 站点发现与配置持久化          | 阻塞中   | 待确定        |
+| 2026-04-12 | 阶段 2 | 发布页入口脚本使用相对路径/查询串/单引号配置时解析可能失败                                                     | 站点发现兼容性                | 已解决   | 2026-04-14    |
+| 2026-04-12 | 阶段 2 | 发布页正文最新域名未按顺序补齐并持久化到 `ApiCandidateUrls`                                                    | 站点发现与配置持久化          | 已解决   | 2026-04-14    |
 | 2026-04-12 | 阶段 5 | 网站总量与本地一致时未提示"无需同步"，可能重复写入数据                                                         | 同步效率与用户体验            | 待验证   | 待确定        |
 | 2026-04-12 | 阶段 5 | 已完成状态下存在过期元数据时未自动执行过期刷新                                                                 | 元数据保鲜                    | 待验证   | 待确定        |
 | 2026-04-12 | 阶段 5 | 同步完成后页面摘要未完整显示累计处理/新增数量                                                                  | 同步结果展示                  | 待验证   | 待确定        |
@@ -1203,6 +1203,14 @@ AI约束策略：章节1.5.1到1.5.104的文本不加入分析上下文
 4. DoD 判定：是。用户本轮要求的 `v0.5.8` 版本对齐、Download 两处按钮状态修复、Sync 页面“重试失败项”期间刷新统计恢复可用、Sync 状态文本拆分为两行、单元测试补充与 progress 文档同步均已落地。
 5. 下次计划：由用户执行章节 4.1、4.3、4.4 与 4.5 的受影响手工回归，重点验证 Settings 页面版本文案显示 `v0.5.8`、Download 页在“立即下载选中任务/执行下载队列”期间“打开下载目录”仍可点击且“从文件导入”与其它入队入口行为一致、Sync 页在“重试失败项”期间仍可手动“刷新统计”，以及状态面板按“同步状态 / 下载状态”两行分别显示；章节 1.2/1.3 已检查且无需调整，章节 2.1 基线更新为 2026-04-14 的 `338/338`，章节 3.1 新增单一 `v0.5.8` 待提交记录，章节 4 的受影响项已重置为未勾选。
 
+### 1.5.104 2026-04-14，v0.5.9：发布页抓取链路收敛与候选集合增量持久化
+
+1. 变更摘要：运行时与 README 版本升级到 `v0.5.9`；`EndpointDiscoveryService` 不再直接创建临时 `HttpClient` 抓取发布页，而是通过 `EndpointDiscoveryHttpTransport` + `IHttpClientFactory` 新增发布页客户端，统一收敛 HTML/脚本抓取的 HTTPS 处理、HTTP/1.1 约束、请求头、超时、取消与可测试性；同时保留“正文优先提取最新域名、入口脚本回退解析”的发现链路。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/EndpointDiscoveryHttpTransport.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/EndpointDiscoveryService.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/ApiEndpointUrlService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/App.xaml.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/InfrastructureTestDoubles.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/ApiEndpointUrlServiceTests.cs`、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`。
+3. 验证结果：`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --nologo` 通过（77/77）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --nologo` 通过（168/168）；`rtk dotnet test dotnet/Asmroner.sln --nologo --no-restore` 通过（343/343）。
+4. DoD 判定：是。用户本轮要求的 `v0.5.9` 版本对齐、发布页抓取链路 review/优化、发现成功后按“新旧候选合并且总数增加”规则写回 SQLite、单元测试补齐与 progress 文档同步均已落地；当前 Windows 10 机器无法访问目标 URL 的实网限制已按要求排除在本批处理范围外。
+5. 下次计划：由用户在 Windows 11 环境执行章节 4.1 的受影响手工回归，重点验证 Settings 页面版本文案显示 `v0.5.9`、“测试连接”在发布页正文/入口脚本两条路径下均可发现最新域名，以及当发现结果与已保存候选集合合并后数量增加时，SQLite `ApiCandidateUrls` 会保留旧候选并写回合并后的集合；章节 1.2/1.3 已检查且无需调整，章节 2.1 基线更新为 2026-04-14 的 `343/343`，章节 3.1 新增单一 `v0.5.9` 待提交记录，章节 4 的受影响项已重置为未勾选。
+
 ---
 
 ## 1.6 维护规则
@@ -1223,7 +1231,7 @@ AI约束策略：章节1.5.1到1.5.104的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-14 的解决方案级回归（341/341）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-14 的解决方案级回归（343/343）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
@@ -1352,17 +1360,17 @@ AI约束策略：章节1.5.1到1.5.104的文本不加入分析上下文
 
 #### 2.1.12 Infrastructure.Tests / EndpointDiscoveryServiceTests.cs
 
-| 已创建 | 已通过 | 阶段    | 样例名                                                                                                      | 输入                                                              | 期望输出                                                  |
-| ------ | ------ | ------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------- |
-| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldPickFastestReachableCandidate`                                              | 候选域名包含 slow/fast，fast 返回 200                             | 选中 `https://fast.example.com`                           |
-| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldProbeCandidates_UsingHealthEndpoint`                                        | 健康候选对旧探测端点不可用，但 `GET /api/health?cache=false` 可达 | 候选探测改走 health 端点并正确选中健康候选                |
-| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldExtractPublishedCandidatesFromHtmlText_AndSkipEntryScriptFetch`             | 发布页正文直接包含 `asmr-300/200/100/one` 最新域名                | 按页面文本顺序解析最新候选域名，且无需再请求入口脚本      |
-| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldFallbackToConfiguredBaseUrl_WhenAllCandidatesFail`                          | 所有候选地址不可达                                                | 回退到配置基础地址或返回明确失败                          |
-| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldFallbackToConfiguredCandidate_WhenPublishAssetRequestFails`                 | 发布页可访问，但入口脚本请求 404/失败，配置地址可达               | 忽略入口脚本失败并回退到配置候选地址                      |
-| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldParseScriptTag_WhenAttributesUseDifferentOrder`                             | 发布页脚本标签属性顺序变化                                        | 仍可解析入口脚本并动态发现 API 候选地址                   |
-| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldParseRelativeEntryScript_WithQuerySuffix_AndSingleQuotedLink`               | 发布页入口脚本使用相对路径、查询串与单引号 link 配置              | 仍可解析入口脚本并动态发现 API 候选地址                   |
-| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldIgnorePublishSourceTimeoutAndHttpFailures_AndFallbackToConfiguredCandidate` | 发布源先后出现超时与 `HttpRequestException`，配置候选可达         | 发布源抓取失败不打断整条探测链路，最终回退到配置候选      |
-| [x]    | [x]    | 阶段 2+ | `EndpointDiscoveryService_ShouldSendProbeUserAgent_OnPublishAndHealthRequests`                              | 发布页正文候选抓取与 health 探测请求                              | 发布页抓取与 health 探测均携带统一的匿名 probe User-Agent |
+| 已创建 | 已通过 | 阶段    | 样例名                                                                                                      | 输入                                                              | 期望输出                                                                                        |
+| ------ | ------ | ------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldPickFastestReachableCandidate`                                              | 候选域名包含 slow/fast，fast 返回 200                             | 选中 `https://fast.example.com`                                                                 |
+| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldProbeCandidates_UsingHealthEndpoint`                                        | 健康候选对旧探测端点不可用，但 `GET /api/health?cache=false` 可达 | 候选探测改走 health 端点并正确选中健康候选                                                      |
+| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldExtractPublishedCandidatesFromHtmlText_AndSkipEntryScriptFetch`             | 发布页正文直接包含 `asmr-300/200/100/one` 最新域名                | 按页面文本顺序解析最新候选域名，且无需再请求入口脚本                                            |
+| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldFallbackToConfiguredBaseUrl_WhenAllCandidatesFail`                          | 所有候选地址不可达                                                | 回退到配置基础地址或返回明确失败                                                                |
+| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldFallbackToConfiguredCandidate_WhenPublishAssetRequestFails`                 | 发布页可访问，但入口脚本请求 404/失败，配置地址可达               | 忽略入口脚本失败并回退到配置候选地址                                                            |
+| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldParseScriptTag_WhenAttributesUseDifferentOrder`                             | 发布页脚本标签属性顺序变化                                        | 仍可解析入口脚本并动态发现 API 候选地址                                                         |
+| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldParseRelativeEntryScript_WithQuerySuffix_AndSingleQuotedLink`               | 发布页入口脚本使用相对路径、查询串与单引号 link 配置              | 仍可解析入口脚本并动态发现 API 候选地址                                                         |
+| [x]    | [x]    | 阶段 2  | `EndpointDiscoveryService_ShouldIgnorePublishSourceTimeoutAndHttpFailures_AndFallbackToConfiguredCandidate` | 发布源先后出现超时与 `HttpRequestException`，配置候选可达         | 发布源抓取失败不打断整条探测链路，最终回退到配置候选                                            |
+| [x]    | [x]    | 阶段 2+ | `EndpointDiscoveryService_ShouldSendProbeUserAgent_OnPublishAndHealthRequests`                              | 发布页正文候选抓取与 health 探测请求                              | 发布页抓取与 health 探测均携带统一的匿名 probe User-Agent，且发布页请求附带 HTML/脚本 Accept 头 |
 
 #### 2.1.13 Infrastructure.Tests / DatabaseInitializerTests.cs
 
@@ -1577,13 +1585,15 @@ AI约束策略：章节1.5.1到1.5.104的文本不加入分析上下文
 
 #### 2.1.37 Infrastructure.Tests / ApiEndpointUrlServiceTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                                    | 输入                                                      | 期望输出                                                                 |
-| ------ | ------ | ------ | ----------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------ |
-| [x]    | [x]    | 阶段 2 | `DiscoverAndPersistAsync_ShouldUpdateApiUrl_AndCandidateUrls_WhenConfigExists`            | 配置存在，发现结果返回新 BaseUrl 与最新公开候选集合       | `downloader.api_url` 与 `downloader.api_candidate_urls` 被一起更新并保存 |
-| [x]    | [x]    | 阶段 2 | `DiscoverAndPersistAsync_ShouldKeepCustomCandidateList_WhenDiscoveryAddsPublicCandidates` | 自定义候选集合 + discovery 返回公开候选与新自定义 BaseUrl | 保留自定义候选集合边界，仅把新自定义 BaseUrl 前置保存                    |
-| [x]    | [x]    | 阶段 2 | `DiscoverAndPersistAsync_ShouldSkipSave_WhenBaseUrlAndCandidatesAreUnchanged`             | 已有 BaseUrl/候选集合与发现结果一致                       | 不重复写入配置，直接返回发现结果                                         |
-| [x]    | [x]    | 阶段 2 | `DiscoverAndPersistAsync_ShouldSkipSave_WhenConfigMissing`                                | 配置不存在，发现结果返回新 BaseUrl                        | 不写入配置文件，返回发现结果                                             |
-| [x]    | [x]    | 阶段 2 | `GetCurrentBaseUrlAsync_ShouldReturnDefault_WhenConfigMissingOrEmpty`                     | 配置缺失或 `api_url` 为空白                               | 返回默认 API 基础地址                                                    |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                                     | 输入                                                      | 期望输出                                                                 |
+| ------ | ------ | ------ | ------------------------------------------------------------------------------------------ | --------------------------------------------------------- | ------------------------------------------------------------------------ |
+| [x]    | [x]    | 阶段 2 | `DiscoverAndPersistAsync_ShouldUpdateApiUrl_AndCandidateUrls_WhenConfigExists`             | 配置存在，发现结果返回新 BaseUrl 与最新公开候选集合       | `downloader.api_url` 与 `downloader.api_candidate_urls` 被一起更新并保存 |
+| [x]    | [x]    | 阶段 2 | `DiscoverAndPersistAsync_ShouldMergeDiscoveredAndSavedCandidates_WhenMergedCountIncreases` | 已保存公开候选子集 + discovery 仅返回部分新候选           | 按 discovery 优先顺序合并新旧候选，且保留旧候选后写回 SQLite             |
+| [x]    | [x]    | 阶段 2 | `DiscoverAndPersistAsync_ShouldKeepCustomCandidateList_WhenDiscoveryAddsPublicCandidates`  | 自定义候选集合 + discovery 返回公开候选与新自定义 BaseUrl | 保留自定义候选集合边界，仅把新自定义 BaseUrl 前置保存                    |
+| [x]    | [x]    | 阶段 2 | `DiscoverAndPersistAsync_ShouldSkipSave_WhenBaseUrlAndCandidatesAreUnchanged`              | 已有 BaseUrl/候选集合与发现结果一致                       | 不重复写入配置，直接返回发现结果                                         |
+| [x]    | [x]    | 阶段 2 | `DiscoverAndPersistAsync_ShouldKeepSavedCandidateList_WhenMergedCountDoesNotIncrease`      | 已保存候选集合已覆盖 discovery 结果                       | 不因 discovery 子集结果缩减或覆盖已保存候选集合                          |
+| [x]    | [x]    | 阶段 2 | `DiscoverAndPersistAsync_ShouldSkipSave_WhenConfigMissing`                                 | 配置不存在，发现结果返回新 BaseUrl                        | 不写入配置文件，返回发现结果                                             |
+| [x]    | [x]    | 阶段 2 | `GetCurrentBaseUrlAsync_ShouldReturnDefault_WhenConfigMissingOrEmpty`                      | 配置缺失或 `api_url` 为空白                               | 返回默认 API 基础地址                                                    |
 
 #### 2.1.38 Infrastructure.Tests / ConnectivityProbeServiceTests.cs
 
@@ -1965,7 +1975,8 @@ AI约束策略：章节1.5.1到1.5.104的文本不加入分析上下文
 | 2026-04-11 | 已提交 | v0.5.5: align runtime version and streamline anonymous endpoint probe       | 1. Update runtime/docs version to v0.5.5.<br>2. Keep `AsmrProbe` as the anonymous endpoint probe client and centralize its shared HTTP transport configuration.<br>3. Reuse one probe client across endpoint discovery and keep publish-source / health requests on the same probe header policy.<br>4. Update regression tests and progress documentation.                                                                        | 71a771a    |
 | 2026-04-11 | 已提交 | v0.5.6: validate track size before reusing existing downloads               | 1. Update runtime/docs version to v0.5.6.<br>2. Add `TrackDto.Size` to capture track api size metadata.<br>3. Reuse existing files only when the local file size matches the track size; otherwise redownload the file.<br>4. Validate downloaded file size against track metadata.<br>5. Update regression tests and progress documentation.                                                                                      | 2d9ac15    |
 | 2026-04-12 | 已提交 | v0.5.7: mirror standard downloads into sync root                            | 1. Update runtime/docs version to v0.5.7.<br>2. Avoid duplicate file processing when the normal download root equals the sync root.<br>3. Mirror full standard downloads to the sync root when both roots start empty, and write `WorkSyncInfo` as `COMPLETED`.<br>4. Update regression tests and progress documentation.                                                                                                          | 107b7e2    |
-| 2026-04-14 | 待提交 | v0.5.8: fix download and sync command states                                | 1. Update runtime/docs version to v0.5.8.<br>2. Fix Download toolbar state.<br>3. Allow Sync Refresh Status during Retry Failed and split the Sync status panel into separate metadata/download lines.<br>4. Update regression tests and progress documentation.                                                                                                                                                                   | -          |
+| 2026-04-14 | 已提交 | v0.5.8: fix download and sync command states                                | 1. Update runtime/docs version to v0.5.8.<br>2. Fix Download toolbar state.<br>3. Allow Sync Refresh Status during Retry Failed and split the Sync status panel into separate metadata/download lines.<br>4. Update regression tests and progress documentation.                                                                                                                                                                   | 97e3dc4    |
+| 2026-04-14 | 待提交 | v0.5.9: harden publish-source discovery and merge candidate persistence     | 1. Update runtime/docs version to v0.5.9.<br>2. Refactor publish-source HTML/script fetching to use a dedicated client with shared transport rules, timeout, cancellation and test seams.<br>3. Persist merged discovered-plus-saved API candidates only when the merged candidate count grows, while keeping current BaseUrl synchronization.<br>4. Update regression tests and progress documentation.                           | -          |
 
 ---
 
@@ -1992,10 +2003,11 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] Settings 页面输入无效配置（含非法 `SyncWantedSize`）时，可给出可读错误提示，且应用不崩溃。
 - [x] “测试连接”可完成站点发现与登录校验；成功时回填当前 BaseUrl 并显示延迟与鉴权结果，失败时显示明确原因。
 - [x] 当发布源 HTML 或入口脚本抓取失败时，“测试连接”仍会回退到可用 BaseUrl，不因 `GetStringWithTimeoutAsync` 的非 2xx / 超时失败而中断整条探测链路。
-- [ ] 当发布页入口脚本使用相对路径、查询串或单引号 `link` 配置时，“测试连接”仍可正确解析入口脚本并发现可用 BaseUrl。
+- [x] 当发布页入口脚本使用相对路径、查询串或单引号 `link` 配置时，“测试连接”仍可正确解析入口脚本并发现可用 BaseUrl。
 - [x] “测试连接”应通过 `GET /api/health?cache=false` 完成候选探测；当旧探测端点不可用但 health API 可达时，仍能选中可用 BaseUrl。
-- [ ] 当发布页正文直接提供 `asmr-300/200/100/one` 最新域名时，“测试连接”会按正文顺序补齐候选列表并写回 SQLite `ApiCandidateUrls`；随后再次“保存并重新初始化”不会把新候选覆盖回旧值。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.5.8。
+- [x] 当发布页正文直接提供 `asmr-300/200/100/one` 最新域名时，“测试连接”会按正文顺序补齐候选列表并写回 SQLite `ApiCandidateUrls`；随后再次“保存并重新初始化”不会把新候选覆盖回旧值。
+- [x] 当发布页 discovery 仅返回部分新候选时，若与已保存候选集合合并后的总数更大，“测试连接”会保留旧候选并把合并后的 `ApiCandidateUrls` 写回 SQLite。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.5.9。
 
 ### 4.2 Search 功能
 

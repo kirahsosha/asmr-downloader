@@ -95,17 +95,43 @@ public sealed class ApiEndpointUrlService : IApiEndpointUrlService
         IReadOnlyList<string> discoveredCandidates)
     {
         var normalizedDiscoveredCandidates = NormalizeUrlList(discoveredCandidates);
-        if (ShouldPersistDiscoveredCandidates(currentCandidates, currentBaseUrl, discoveredBaseUrl))
+        if (currentCandidates.Count == 0)
         {
             return EnsureBaseUrlIncluded(normalizedDiscoveredCandidates, discoveredBaseUrl);
         }
 
-        if (currentCandidates.Count == 0)
+        if (ShouldPersistDiscoveredCandidates(currentCandidates, currentBaseUrl, discoveredBaseUrl))
         {
-            return new[] { discoveredBaseUrl };
+            var mergedCandidates = MergeCandidateBaseUrls(normalizedDiscoveredCandidates, currentCandidates);
+
+            if (mergedCandidates.Count > currentCandidates.Count)
+            {
+                return EnsureBaseUrlIncluded(mergedCandidates, discoveredBaseUrl);
+            }
         }
 
         return EnsureBaseUrlIncluded(currentCandidates, discoveredBaseUrl);
+    }
+
+    private static IReadOnlyList<string> MergeCandidateBaseUrls(
+        IReadOnlyList<string> discoveredCandidates,
+        IReadOnlyList<string> currentCandidates)
+    {
+        var merged = new List<string>();
+        AppendMissingCandidates(merged, discoveredCandidates);
+        AppendMissingCandidates(merged, currentCandidates);
+        return merged;
+    }
+
+    private static void AppendMissingCandidates(List<string> merged, IEnumerable<string> candidates)
+    {
+        foreach (var candidate in candidates)
+        {
+            if (!merged.Contains(candidate, StringComparer.OrdinalIgnoreCase))
+            {
+                merged.Add(candidate);
+            }
+        }
     }
 
     private static EndpointDiscoveryResult CreateResult(string baseUrl, long latencyMs, IReadOnlyList<string> candidates)

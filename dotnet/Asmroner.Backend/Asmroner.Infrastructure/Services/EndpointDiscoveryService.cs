@@ -9,8 +9,8 @@ public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
 {
     private const string ProbeRequestPath = AsmrApiPaths.Health;
 
-    private static readonly Regex ScriptTagRegex = new("<script\\b[^>]*\\bsrc=[\"'](?<path>[^\"']+)[\"'][^>]*>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    private static readonly Regex LinkRegex = new("link\\s*:\\s*[\"'](?<url>[^\"']+)[\"']", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex ScriptTagRegex = new("<script\\b[^>]*\\bsrc=[\"'](?<path>[^\"']*index[^\"']*\\.js(?:\\?[^\"']*)?)[\"'][^>]*>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex LinkRegex = new("link\\s*:\\s*[\"'](?<url>https://[^\"']+)[\"']", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex PublishedHostRegex = new("(?<![A-Za-z0-9.-])(?<host>(?:api\\.)?asmr(?:-[A-Za-z0-9]+)*\\.(?:com|one))(?![A-Za-z0-9.-])", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     private readonly IHttpClientFactory _httpClientFactory;
@@ -26,7 +26,8 @@ public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
     {
         var options = await _optionsProvider.GetOptionsAsync(cancellationToken);
         var probeClient = _httpClientFactory.CreateClient(EndpointDiscoveryHttpTransport.ProbeClientName);
-        var candidates = new List<string>(await GetPublishedCandidatesAsync(probeClient, options, cancellationToken));
+        var publishClient = _httpClientFactory.CreateClient(EndpointDiscoveryHttpTransport.PublishClientName);
+        var candidates = new List<string>(await GetPublishedCandidatesAsync(publishClient, options, cancellationToken));
         candidates.AddRange(options.CandidateBaseUrls);
 
         var uniqueCandidates = candidates
@@ -61,11 +62,16 @@ public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
         };
     }
 
-    private async Task<IReadOnlyList<string>> GetPublishedCandidatesAsync(HttpClient probeClient, AsmrApiOptions options, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<string>> GetPublishedCandidatesAsync(HttpClient publishClient, AsmrApiOptions options, CancellationToken cancellationToken)
     {
         foreach (var publishUrl in options.PublishSourceUrls)
         {
-            var html = await GetStringWithTimeoutAsync(probeClient, publishUrl, options.Timeout, cancellationToken);
+            var html = await GetStringWithTimeoutAsync(
+                publishClient,
+                publishUrl,
+                options.Timeout,
+                cancellationToken,
+                EndpointDiscoveryHttpTransport.ApplyPublishRequestHeaders);
             if (string.IsNullOrWhiteSpace(html))
             {
                 continue;
@@ -79,7 +85,12 @@ public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
 
             foreach (var scriptUrl in ExtractEntryScriptUrls(publishUrl, html))
             {
-                var scriptText = await GetStringWithTimeoutAsync(probeClient, scriptUrl, options.Timeout, cancellationToken);
+                var scriptText = await GetStringWithTimeoutAsync(
+                    publishClient,
+                    scriptUrl,
+                    options.Timeout,
+                    cancellationToken,
+                    EndpointDiscoveryHttpTransport.ApplyPublishRequestHeaders);
                 if (string.IsNullOrWhiteSpace(scriptText))
                 {
                     continue;
@@ -117,17 +128,25 @@ public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
         }
     }
 
-    private static async Task<string?> GetStringWithTimeoutAsync(HttpClient client, string requestUri, TimeSpan timeout, CancellationToken cancellationToken)
+    private static async Task<string?> GetStringWithTimeoutAsync(
+        HttpClient client,
+        string requestUri,
+        TimeSpan timeout,
+        CancellationToken cancellationToken,
+        Action<HttpRequestMessage> applyHeaders)
     {
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-            EndpointDiscoveryHttpTransport.ApplyProbeRequestHeaders(request);
+            applyHeaders(request);
 
             using var timeoutCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutCancellation.CancelAfter(timeout);
 
-            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseContentRead, timeoutCancellation.Token);
+            using var response = await client.SendAsync(
+                request,
+                HttpCompletionOption.ResponseContentRead,
+                timeoutCancellation.Token);
             if (!response.IsSuccessStatusCode)
             {
                 return null;
@@ -140,6 +159,10 @@ public sealed class EndpointDiscoveryService : IEndpointDiscoveryService
             return null;
         }
         catch (HttpRequestException)
+        {
+            return null;
+        }
+        catch (TaskCanceledException)
         {
             return null;
         }

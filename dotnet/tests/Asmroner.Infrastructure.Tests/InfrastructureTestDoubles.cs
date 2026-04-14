@@ -2,6 +2,7 @@ using System.Net;
 using Asmroner.Core.Api;
 using Asmroner.Core.Configuration;
 using Asmroner.Core.Interfaces;
+using Asmroner.Infrastructure.Services;
 
 namespace Asmroner.Infrastructure.Tests;
 
@@ -19,6 +20,12 @@ internal sealed class RecordingHttpClientFactory : IHttpClientFactory
         if (_clients.TryGetValue(name, out var client))
         {
             return client;
+        }
+
+        if (string.Equals(name, EndpointDiscoveryHttpTransport.PublishClientName, StringComparison.OrdinalIgnoreCase)
+            && _clients.TryGetValue(EndpointDiscoveryHttpTransport.ProbeClientName, out var probeClient))
+        {
+            return probeClient;
         }
 
         throw new InvalidOperationException($"No client registered for {name}.");

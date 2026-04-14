@@ -1,5 +1,5 @@
-﻿using Asmroner.Core.Interfaces;
-using Asmroner.Application.Services;
+﻿using Asmroner.Application.Services;
+using Asmroner.Core.Interfaces;
 using Asmroner.Infrastructure.Services;
 using Asmroner.Wpf.Services;
 using Asmroner.Wpf.Views;
@@ -42,6 +42,8 @@ public partial class App : System.Windows.Application
 
                 services.AddTransient<AsmrAuthorizationHandler>();
                 services.AddHttpClient(EndpointDiscoveryHttpTransport.ProbeClientName, EndpointDiscoveryHttpTransport.ConfigureProbeClient);
+                services.AddHttpClient(EndpointDiscoveryHttpTransport.PublishClientName, EndpointDiscoveryHttpTransport.ConfigurePublishClient)
+                    .ConfigurePrimaryHttpMessageHandler(EndpointDiscoveryHttpTransport.CreatePublishHandler);
                 services.AddHttpClient("AsmrApi")
                     .AddHttpMessageHandler<AsmrAuthorizationHandler>();
 

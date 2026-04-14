@@ -56,3 +56,6 @@ asmroner.exe
 /.agents
 /.github
 /docs/review
+/docs/ai_research
+/dotnet/tools
+/docs/api_sample
