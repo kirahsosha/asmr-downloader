@@ -65,6 +65,7 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<ISearchImportService, SearchImportService>();
                 services.AddSingleton<ILibraryScannerService, LibraryScannerService>();
                 services.AddSingleton<ILibraryQueryService, LibraryQueryService>();
+                services.AddSingleton<IMediaLauncher, ShellMediaLauncher>();
                 services.AddSingleton<IPlayerService, PlayerService>();
                 services.AddSingleton<IEnqueueWorkInfoResolver, EnqueueWorkInfoResolver>();
                 services.AddSingleton<IMetadataWorkInfoResolver, MetadataWorkInfoResolver>();

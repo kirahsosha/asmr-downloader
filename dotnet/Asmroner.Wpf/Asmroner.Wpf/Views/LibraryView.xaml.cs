@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using Asmroner.Core.Interfaces;
 using Asmroner.Core.Library;
+using Asmroner.Core.Playback;
 
 namespace Asmroner.Wpf.Views;
 
@@ -26,6 +27,7 @@ public partial class LibraryView : UserControl
 
         InitializeComponent();
         Loaded += OnLoaded;
+        _playerService.ContextChanged += OnPlayerContextChanged;
 
         UpdatePlaybackContext();
         UpdateCommandAvailability();
@@ -83,7 +85,7 @@ public partial class LibraryView : UserControl
 
     private void OnLoadContextClicked(object sender, RoutedEventArgs e)
     {
-        if (_selectedWork is null)
+        if (_selectedWork is null || _selectedFile is null)
         {
             return;
         }
@@ -93,9 +95,46 @@ public partial class LibraryView : UserControl
         UpdateCommandAvailability();
     }
 
+    private void OnPlayClicked(object sender, RoutedEventArgs e)
+    {
+        if (_selectedWork is null || _selectedFile is null)
+        {
+            return;
+        }
+
+        var current = _playerService.GetCurrentContext();
+        if (ShouldLoadSelectionBeforePlay(current))
+        {
+            _playerService.LoadContext(_selectedWork, _selectedFile);
+            current = _playerService.GetCurrentContext();
+            if (current.File is null || current.State == PlaybackState.Failed)
+            {
+                UpdatePlaybackContext();
+                UpdateCommandAvailability();
+                return;
+            }
+        }
+
+        _playerService.Play();
+        UpdatePlaybackContext();
+        UpdateCommandAvailability();
+    }
+
     private void OnClearContextClicked(object sender, RoutedEventArgs e)
     {
         _playerService.ClearContext();
+        UpdatePlaybackContext();
+        UpdateCommandAvailability();
+    }
+
+    private void OnPlayerContextChanged(object? sender, EventArgs e)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.Invoke(() => OnPlayerContextChanged(sender, e));
+            return;
+        }
+
         UpdatePlaybackContext();
         UpdateCommandAvailability();
     }
@@ -164,17 +203,20 @@ public partial class LibraryView : UserControl
             return;
         }
 
-        ContextTextBlock.Text = $"状态：{context.State}\n作品：{context.Work.SourceId} {context.Work.Title}\n文件：{context.File.RelativePath}\n说明：{context.Message}";
+        ContextTextBlock.Text = $"状态：{BuildPlaybackStateText(context.State)}\n作品：{context.Work.SourceId} {context.Work.Title}\n文件：{context.File.RelativePath}\n说明：{context.Message}";
     }
 
     private void UpdateCommandAvailability()
     {
+        var context = _playerService.GetCurrentContext();
+        var hasSelectedPlayableTarget = _selectedWork is not null && _selectedFile is not null;
+
         RefreshLibraryButton.IsEnabled = !_isRefreshing;
         PrevPageButton.IsEnabled = !_isRefreshing && _currentPage > 1;
         NextPageButton.IsEnabled = !_isRefreshing && _currentPage < _totalPages;
-        LoadContextButton.IsEnabled = !_isRefreshing && _selectedWork is not null
-            && (_selectedFile is not null || _selectedWork.AudioFileCount > 0);
-        ClearContextButton.IsEnabled = !_isRefreshing && _playerService.GetCurrentContext().Work is not null;
+        LoadContextButton.IsEnabled = !_isRefreshing && hasSelectedPlayableTarget;
+        PlayButton.IsEnabled = !_isRefreshing && hasSelectedPlayableTarget;
+        ClearContextButton.IsEnabled = !_isRefreshing && context.Work is not null;
     }
 
     private static string BuildWorkDetailsText(LibraryWorkItem? work)
@@ -213,5 +255,22 @@ public partial class LibraryView : UserControl
         }
 
         return builder.ToString();
+    }
+
+    private bool ShouldLoadSelectionBeforePlay(PlaybackContext current)
+    {
+        return LibraryPlaybackSelectionPolicy.ShouldReloadContext(current, _selectedWork, _selectedFile);
+    }
+
+    private static string BuildPlaybackStateText(PlaybackState state)
+    {
+        return state switch
+        {
+            PlaybackState.None => "未载入",
+            PlaybackState.Ready => "已载入",
+            PlaybackState.Launched => "已调用系统打开",
+            PlaybackState.Failed => "打开失败",
+            _ => state.ToString(),
+        };
     }
 }

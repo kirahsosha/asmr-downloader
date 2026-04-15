@@ -12,7 +12,7 @@ public class LibraryViewXamlTests
 
         Assert.Contains("x:Class=\"Asmroner.Wpf.Views.LibraryView\"", content, StringComparison.Ordinal);
         Assert.Contains("Text=\"Library\"", content, StringComparison.Ordinal);
-        Assert.Contains("Text=\"阶段 6 首批：本地资源扫描、列表浏览与播放上下文装载。\"", content, StringComparison.Ordinal);
+        Assert.Contains("Text=\"阶段 6 第二批：本地资源扫描、列表浏览与系统默认程序打开。\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"KeywordTextBox\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"SubtitleOnlyCheckBox\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"AudioOnlyCheckBox\"", content, StringComparison.Ordinal);
@@ -20,12 +20,19 @@ public class LibraryViewXamlTests
         Assert.Contains("x:Name=\"LibraryWorksDataGrid\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"FileTreeView\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"LoadContextButton\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"PlayButton\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"ClearContextButton\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"ContextTextBlock\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"StatusTextBlock\"", content, StringComparison.Ordinal);
         Assert.Contains("Content=\"刷新资源库\"", content, StringComparison.Ordinal);
-        Assert.Contains("Content=\"载入选中文件\"", content, StringComparison.Ordinal);
+        Assert.Contains("Content=\"载入/切换文件\"", content, StringComparison.Ordinal);
+        Assert.Contains("Content=\"播放\"", content, StringComparison.Ordinal);
         Assert.Contains("Content=\"清空上下文\"", content, StringComparison.Ordinal);
+        Assert.Contains("Text=\"文件树与系统打开\"", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("PauseButton", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("StopButton", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("Content=\"暂停\"", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("Content=\"停止\"", content, StringComparison.Ordinal);
         Assert.Contains("Style=\"{StaticResource ResultGridStyle}\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
