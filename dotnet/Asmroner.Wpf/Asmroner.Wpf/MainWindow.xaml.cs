@@ -12,12 +12,14 @@ public partial class MainWindow : Window
 
     private readonly IApplicationBootstrapper _bootstrapper;
     private readonly DownloadView _downloadView;
+    private readonly LibraryView _libraryView;
     private readonly SyncView _syncView;
     private readonly SettingsView _settingsView;
 
     public MainWindow(
         SearchView searchView,
         DownloadView downloadView,
+        LibraryView libraryView,
         SyncView syncView,
         SettingsView settingsView,
         IApplicationBootstrapper bootstrapper)
@@ -26,11 +28,13 @@ public partial class MainWindow : Window
 
         _bootstrapper = bootstrapper;
         _downloadView = downloadView;
+        _libraryView = libraryView;
         _syncView = syncView;
         _settingsView = settingsView;
 
         SearchHost.Content = searchView;
         DownloadHost.Content = downloadView;
+        LibraryHost.Content = libraryView;
         SyncHost.Content = syncView;
         SettingsHost.Content = settingsView;
         _settingsView.InitializationCompleted += (_, result) => ApplyBootstrapResult(result, navigateToSearchOnSuccess: false);
@@ -52,6 +56,7 @@ public partial class MainWindow : Window
         {
             SearchTab.IsEnabled = true;
             DownloadTab.IsEnabled = true;
+            LibraryTab.IsEnabled = true;
             SyncTab.IsEnabled = true;
             MainTabControl.SelectedItem = navigateToSearchOnSuccess ? SearchTab : SettingsTab;
             StatusTextBlock.Text = "初始化完成，可进入主页面。";
@@ -66,6 +71,7 @@ public partial class MainWindow : Window
         {
             SearchTab.IsEnabled = false;
             DownloadTab.IsEnabled = false;
+            LibraryTab.IsEnabled = false;
             SyncTab.IsEnabled = false;
             StatusTextBlock.Text = string.IsNullOrWhiteSpace(result.ErrorMessage)
                 ? "检测到配置缺失，请先完成设置。"
@@ -76,6 +82,7 @@ public partial class MainWindow : Window
 
         SearchTab.IsEnabled = false;
         DownloadTab.IsEnabled = false;
+        LibraryTab.IsEnabled = false;
         SyncTab.IsEnabled = false;
         StatusTextBlock.Text = string.IsNullOrWhiteSpace(result.ErrorMessage)
             ? "初始化失败，请检查设置页后重试。"

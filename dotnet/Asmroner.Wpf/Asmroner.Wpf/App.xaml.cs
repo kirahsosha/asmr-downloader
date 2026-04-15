@@ -63,6 +63,9 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<ISearchService, Asmroner.Application.Services.SearchService>();
                 services.AddSingleton<ISearchExportService, SearchExportService>();
                 services.AddSingleton<ISearchImportService, SearchImportService>();
+                services.AddSingleton<ILibraryScannerService, LibraryScannerService>();
+                services.AddSingleton<ILibraryQueryService, LibraryQueryService>();
+                services.AddSingleton<IPlayerService, PlayerService>();
                 services.AddSingleton<IEnqueueWorkInfoResolver, EnqueueWorkInfoResolver>();
                 services.AddSingleton<IMetadataWorkInfoResolver, MetadataWorkInfoResolver>();
                 services.AddSingleton<ISyncWorkInfoResolver, SyncWorkInfoResolver>();
@@ -80,6 +83,7 @@ public partial class App : System.Windows.Application
 
                 services.AddSingleton<SearchView>();
                 services.AddSingleton<DownloadView>();
+                services.AddSingleton<LibraryView>();
                 services.AddSingleton<SyncView>();
                 services.AddSingleton<SettingsView>();
                 services.AddSingleton<MainWindow>();

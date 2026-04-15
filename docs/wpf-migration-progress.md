@@ -1,8 +1,8 @@
 # asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.5.9
+当前跟踪版本：v0.6.0
 
-AI约束策略：章节1.5.1到1.5.103的文本不加入分析上下文
+AI约束策略：章节1.5.1到1.5.106的文本不加入分析上下文
 
 ## 1. 项目进度跟踪清单
 
@@ -25,7 +25,7 @@ AI约束策略：章节1.5.1到1.5.103的文本不加入分析上下文
 | 阶段 3 | 搜索能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成查询解析、分页聚合、搜索导出、入队与高级筛选/分页 UI 交互；补齐“无关键词调整排序类控件触发查询”修复。                             |
 | 阶段 4 | 下载能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成下载入口、并发/重试控制与状态可视化复核，并补齐 SQLite 状态持久化能力。                                                           |
 | 阶段 5 | 同步能力迁移           | 已完成 | AI + 用户 | 2026-04-02 | 2026-04-03   | 2026-04-03   | 已补齐 SQLite UiState 同步进度持久化、断点继续、合并式开始/停止按钮与同步运行中手动刷新统计；阶段 5 增强回归已闭环。                    |
-| 阶段 6 | 资源库与播放能力迁移   | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                       |
+| 阶段 6 | 资源库与播放能力迁移   | 进行中 | AI + 用户 | 2026-04-15 | 待填写       | 待填写       | 已完成首批资源扫描/索引、Library 页签与播放上下文抽象；真实播放器与实际播放控制待后续批次接入。                                         |
 | 阶段 7 | UI 集成与体验收口      | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                       |
 | 阶段 8 | 最终验收与发布准备     | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                       |
 
@@ -84,8 +84,8 @@ AI约束策略：章节1.5.1到1.5.103的文本不加入分析上下文
 
 ### 阶段 6：资源库与播放能力迁移
 
-- [ ] 本地资源扫描与索引可用。
-- [ ] 资源库页面浏览与筛选可用。
+- [x] 本地资源扫描与索引可用。
+- [x] 资源库页面浏览与筛选可用。
 - [ ] 播放控制（播放/暂停/停止/切换）可用。
 - [ ] 异常文件处理不导致应用崩溃。
 - [ ] 阶段 6 DoD 已满足并记录证据。
@@ -110,6 +110,7 @@ AI约束策略：章节1.5.1到1.5.103的文本不加入分析上下文
 
 ### 说明
 - **当前状态**：`已解决` / `待验证` / `阻塞中`
+- **填写规则**：只添加用户明确添加的项目，或者测试发现的**非本次改动**引入的明确bug。
 - **日期规则**：已解决项填写实际解决日期；待验证/阻塞中项填写计划解决日期
 
 ### 风险与缺陷登记
@@ -1211,6 +1212,14 @@ AI约束策略：章节1.5.1到1.5.103的文本不加入分析上下文
 4. DoD 判定：是。用户本轮要求的 `v0.5.9` 版本对齐、发布页抓取链路 review/优化、发现成功后按“新旧候选合并且总数增加”规则写回 SQLite、单元测试补齐与 progress 文档同步均已落地；当前 Windows 10 机器无法访问目标 URL 的实网限制已按要求排除在本批处理范围外。
 5. 下次计划：由用户在 Windows 11 环境执行章节 4.1 的受影响手工回归，重点验证 Settings 页面版本文案显示 `v0.5.9`、“测试连接”在发布页正文/入口脚本两条路径下均可发现最新域名，以及当发现结果与已保存候选集合合并后数量增加时，SQLite `ApiCandidateUrls` 会保留旧候选并写回合并后的集合；章节 1.2/1.3 已检查且无需调整，章节 2.1 基线更新为 2026-04-14 的 `343/343`，章节 3.1 新增单一 `v0.5.9` 待提交记录，章节 4 的受影响项已重置为未勾选。
 
+### 1.5.105 2026-04-15，v0.6.0：阶段 6 首批资源库扫描、Library 页签与播放上下文抽象
+
+1. 变更摘要：运行时、README 与 progress 文档版本升级到 `v0.6.0`；启动阶段 6 首批迁移，新增资源库目录双格式解析、Library 扫描/查询服务、播放上下文抽象服务，并在主窗口接入 `Library` 页签与资源库页面骨架。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Library/LibraryModels.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Playback/PlaybackContext.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/ILibraryScannerService.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/ILibraryQueryService.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IPlayerService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/LibraryScannerService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/LibraryQueryService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/PlayerService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/LibraryView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/LibraryView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/MainWindow.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/MainWindow.xaml.cs`、新增阶段 6 测试文件、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`。
+3. 验证结果：`rtk dotnet test dotnet/tests/Asmroner.Core.Tests/Asmroner.Core.Tests.csproj --nologo --no-restore` 通过（14/14）；`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --nologo --no-restore` 通过（90/90）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --nologo --no-restore` 通过（171/171）；`rtk dotnet test dotnet/Asmroner.sln --nologo --no-restore` 通过（355/355）。
+4. DoD 判定：否。阶段 6 当前仅完成首批资源扫描/索引、列表/筛选与播放上下文装载骨架；真实播放器接入、播放控制与更完整的异常场景验证仍待后续批次完成。
+5. 下次计划：由用户执行章节 4.1 与 4.6 的受影响手工回归，重点验证主窗口新增 `Library` 页签、Settings 版本文案 `v0.6.0`、双格式目录扫描、筛选/分页、文件树与上下文装载提示；随后继续阶段 6 下一批真实播放器接入与异常处理补强。
+
 ---
 
 ## 1.6 维护规则
@@ -1231,7 +1240,7 @@ AI约束策略：章节1.5.1到1.5.103的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-14 的解决方案级回归（343/343）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-15 的解决方案级回归（356/356）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
@@ -1418,10 +1427,11 @@ AI约束策略：章节1.5.1到1.5.103的文本不加入分析上下文
 
 #### 2.1.18 Wpf.Tests / MainWindowXamlTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                | 输入                            | 期望输出                                                                                       |
-| ------ | ------ | ------ | ----------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 5 | `MainWindowXaml_ShouldUse1280x720DefaultWindowSize`   | 解析 `MainWindow.xaml` 文本/XML | 默认与最小窗口尺寸为 `1280x720`，主窗口标题为 `Asmroner`，并包含 `Sync` 页签且 XAML 可被解析。 |
-| [x]    | [x]    | 阶段 4 | `MainWindowXaml_ShouldNotContainVersionInWindowTitle` | 解析 `MainWindow.xaml` 文本     | 标题不包含版本号前缀（例如 `Asmroner v`）。                                                    |
+| 已创建 | 已通过 | 阶段   | 样例名                                                        | 输入                            | 期望输出                                                                                               |
+| ------ | ------ | ------ | ------------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| [x]    | [x]    | 阶段 5 | `MainWindowXaml_ShouldUse1280x720DefaultWindowSize`           | 解析 `MainWindow.xaml` 文本/XML | 默认与最小窗口尺寸为 `1280x720`，主窗口标题为 `Asmroner`，并包含 `Library/Sync` 页签且 XAML 可被解析。 |
+| [x]    | [x]    | 阶段 4 | `MainWindowXaml_ShouldNotContainVersionInWindowTitle`         | 解析 `MainWindow.xaml` 文本     | 标题不包含版本号前缀（例如 `Asmroner v`）。                                                            |
+| [x]    | [x]    | 阶段 6 | `MainWindowXaml_ShouldPlaceLibraryTab_BetweenDownloadAndSync` | 解析 `MainWindow.xaml` 文本     | `Library` 页签位于 `Download` 与 `Sync` 之间，且存在 `LibraryHost` 宿主控件。                          |
 
 #### 2.1.19 Wpf.Tests / SearchViewXamlTests.cs
 
@@ -1899,6 +1909,43 @@ AI约束策略：章节1.5.1到1.5.103的文本不加入分析上下文
 | [x]    | [x]    | 阶段 5 | `BuildPersistedProgressDetails_ShouldDescribeMetadataAndDownloadProgress` | 已持久化的元数据进度 + 已持久化的同步下载进度 | 返回包含元数据与同步下载两组累计状态、容量与最近更新时间的详情区文本     |
 | [x]    | [x]    | 阶段 5 | `BuildRetryRefreshDetails_ShouldDescribeCurrentRetrySnapshot`             | 重试运行中的报表快照                          | 返回当前重试态摘要，保留下载状态上下文，不再回退为旧的持久化下载进度详情 |
 
+#### 2.1.72 Core.Tests / LibraryDirectoryNameParserTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                            | 输入                                                | 期望输出                                                                     |
+| ------ | ------ | ------ | ----------------------------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 6 | `TryParse_ShouldParseBracketedDirectoryName`                      | 目录名 `[{SourceId}]{Title}`                        | 可正确解析 `SourceId/Title/Scheme=Bracketed`。                               |
+| [x]    | [x]    | 阶段 6 | `TryParse_ShouldParseLegacyDirectoryName`                         | 目录名 `sourceId-date-sub/nosub-title`              | 可正确解析 `SourceId/Title/Release/HasSubtitle/Scheme=LegacyListen`。        |
+| [x]    | [x]    | 阶段 6 | `TryParse_ShouldParseLegacyDirectoryName_WhenTitleContainsHyphen` | 目录名 `sourceId-date-sub/nosub-legacy-title-part2` | 标题部分即使包含连字符，也会被完整保留并正确解析为 `LegacyListen` 作品目录。 |
+| [x]    | [x]    | 阶段 6 | `TryParse_ShouldReturnFalse_ForInvalidDirectoryName`              | 非法资源目录名                                      | 返回 `false` 且结果对象保持空值，不把非法目录误识别为作品目录。              |
+
+#### 2.1.73 Application.Tests / LibraryScannerServiceTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                    | 输入                                                      | 期望输出                                                                                                   |
+| ------ | ------ | ------ | ------------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 6 | `ScanAsync_ShouldCollectBracketedAndLegacyDirectories_AndOverlayMetadata` | 下载目录含 bracketed/legacy 目录、非法目录与本地 metadata | 扫描结果可同时识别两种目录格式，非法目录进入 skipped 列表，metadata 可覆盖标题/日期/字幕并统计音频文件数。 |
+| [x]    | [x]    | 阶段 6 | `ScanAsync_ShouldPreferDuplicateWorkEntry_WithMorePlayableFiles`          | 下载根与同步根同时存在同一 `SourceId` 的目录              | 合并后优先保留音频文件更多的目录项，避免同一作品在资源库中重复展示。                                       |
+
+#### 2.1.74 Application.Tests / LibraryQueryServiceTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                     | 输入                                               | 期望输出                                                                                     |
+| ------ | ------ | ------ | -------------------------------------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 6 | `QueryAsync_ShouldFilterByKeywordSubtitleAndAudio_AndReturnPagingMetadata` | 预置扫描结果 + 关键字/字幕/音频筛选 + `pageSize=1` | 仅返回满足条件的作品，并保留 `SkippedDirectories/Errors/ScannedRootCount/ScannedWorkCount`。 |
+| [x]    | [x]    | 阶段 6 | `QueryAsync_ShouldClampPageToLastPage_WhenRequestedPageExceedsRange`       | 预置 3 条扫描结果，请求超出范围的页码              | 查询页码会被钳制到最后一页，且返回按日期倒序后的尾页数据。                                   |
+
+#### 2.1.75 Application.Tests / PlayerServiceTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                              | 输入                                        | 期望输出                                                                                         |
+| ------ | ------ | ------ | ----------------------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| [x]    | [x]    | 阶段 6 | `LoadContext_ShouldSelectFirstPlayableFile_FromNestedTree_WhenFileIsNotSpecified`   | 含嵌套目录与首个可播放音频文件的作品树      | 自动选中首个可播放文件，播放上下文状态为 `Ready`，并提示“播放器将在后续批次接入”。               |
+| [x]    | [x]    | 阶段 6 | `LoadContext_ShouldRemainEmpty_WhenNoPlayableFileExists_AndClearContextShouldReset` | 仅含文本文件的作品树，再执行 `ClearContext` | 无可播放文件时保持 `None` 状态，随后 `ClearContext` 可恢复到“尚未载入任何本地音频。”初始上下文。 |
+
+#### 2.1.76 Wpf.Tests / LibraryViewXamlTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                 | 输入                             | 期望输出                                                                                       |
+| ------ | ------ | ------ | ---------------------------------------------------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 6 | `LibraryViewXaml_ShouldContainCoreLibraryControls_AndStatusBlocks`     | 解析 `LibraryView.xaml` 文本/XML | `Library` 页包含关键筛选控件、作品列表、文件树、上下文区、状态区与主按钮，且 XAML 可被解析。   |
+| [x]    | [x]    | 阶段 6 | `LibraryViewXaml_ShouldContainExpectedGridColumns_AndFileTreeTemplate` | 解析 `LibraryView.xaml` 文本/XML | 作品表格包含 `SourceId/标题/日期/字幕/音频/文件` 列，且文件树使用 `LibraryFileItem` 层级模板。 |
+
 ### 2.2 测试覆盖分析
 
 - Core（模型/配置）：默认值完整性，✅ 已覆盖。
@@ -1915,6 +1962,7 @@ AI约束策略：章节1.5.1到1.5.103的文本不加入分析上下文
 - 未完成队列快照构建：Search/Download 共用快照规则并在入队后持久化，✅ 已覆盖。
 - 启动未完成队列元数据补拉：非阻塞启动、仅补拉缺失标题并刷新 Download 列表，✅ 已覆盖。
 - 版本文案动态化：Settings 页面与启动日志共用程序集三段式版本号，✅ 已覆盖。
+- 阶段 6 首批资源库：目录名双格式解析、扫描去重、关键字/字幕/音频过滤、播放上下文装载与 Library XAML 骨架，✅ 已覆盖。
 - 翻译作品优先入队：当前语言识别、关联版本优先级选择、UI 勾选持久化与 Search/Download 四类入口回归，✅ 已覆盖。
 - `source_id/workId` 双键兼容：BJ 等非 `RJ` 作品的详情/轨道解析、Search WorkId 透传与作品页链接生成，✅ 已覆盖。
 - 启动补拉失败可视化：补拉超时/单项失败后在 Download 列表中显示 `Failed` 占位与错误信息，✅ 已覆盖。
@@ -1976,13 +2024,14 @@ AI约束策略：章节1.5.1到1.5.103的文本不加入分析上下文
 | 2026-04-11 | 已提交 | v0.5.6: validate track size before reusing existing downloads               | 1. Update runtime/docs version to v0.5.6.<br>2. Add `TrackDto.Size` to capture track api size metadata.<br>3. Reuse existing files only when the local file size matches the track size; otherwise redownload the file.<br>4. Validate downloaded file size against track metadata.<br>5. Update regression tests and progress documentation.                                                                                      | 2d9ac15    |
 | 2026-04-12 | 已提交 | v0.5.7: mirror standard downloads into sync root                            | 1. Update runtime/docs version to v0.5.7.<br>2. Avoid duplicate file processing when the normal download root equals the sync root.<br>3. Mirror full standard downloads to the sync root when both roots start empty, and write `WorkSyncInfo` as `COMPLETED`.<br>4. Update regression tests and progress documentation.                                                                                                          | 107b7e2    |
 | 2026-04-14 | 已提交 | v0.5.8: fix download and sync command states                                | 1. Update runtime/docs version to v0.5.8.<br>2. Fix Download toolbar state.<br>3. Allow Sync Refresh Status during Retry Failed and split the Sync status panel into separate metadata/download lines.<br>4. Update regression tests and progress documentation.                                                                                                                                                                   | 97e3dc4    |
-| 2026-04-14 | 待提交 | v0.5.9: harden publish-source discovery and merge candidate persistence     | 1. Update runtime/docs version to v0.5.9.<br>2. Refactor publish-source HTML/script fetching to use a dedicated client with shared transport rules, timeout, cancellation and test seams.<br>3. Persist merged discovered-plus-saved API candidates only when the merged candidate count grows, while keeping current BaseUrl synchronization.<br>4. Update regression tests and progress documentation.                           | -          |
+| 2026-04-14 | 已提交 | v0.5.9: harden publish-source discovery and merge candidate persistence     | 1. Update runtime/docs version to v0.5.9.<br>2. Refactor publish-source HTML/script fetching to use a dedicated client with shared transport rules, timeout, cancellation and test seams.<br>3. Persist merged discovered-plus-saved API candidates only when the merged candidate count grows, while keeping current BaseUrl synchronization.<br>4. Update regression tests and progress documentation.                           | 116c8ad    |
+| 2026-04-15 | 待提交 | v0.6.0: kick off phase 6 library scan/query shell                           | 1. Update runtime/docs version to v0.6.0.<br>2. Start phase 6 with dual-format local library scanning, metadata overlay, query/paging and playback-context abstraction.<br>3. Add the `Library` tab and WPF library page shell.<br>4. Add Core/Application/WPF regression tests for the stage 6 first batch.<br>5. Update regression tests and progress documentation.                                                             | -          |
 
 ---
 
 ## 4. 功能测试验证清单
 
-本章用于指导测试人员对当前已交付的 WPF 客户端执行功能测试与回归测试。当前范围覆盖阶段 1 到阶段 4，以及阶段 5 已落地的元数据同步、同步下载、失败重试、状态导出、统计报表、同步进度持久化、断点继续与温和停止入口。
+本章用于指导测试人员对当前已交付的 WPF 客户端执行功能测试与回归测试。当前范围覆盖阶段 1 到阶段 5，以及阶段 6 首批已落地的本地资源扫描、资源库列表/筛选与播放上下文装载骨架。
 
 AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可见行为的改动时，必须先检查本章并将受影响的测试项重置为未勾选；待对应的功能测试或回归测试通过后，再重新勾选，并在必要时同步更新第 1.4 节和第 1.5 节记录。
 
@@ -1994,7 +2043,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 
 ### 4.1 启动、配置与连接
 
-- [x] 应用可正常启动，主窗口可显示 Search、Download、Sync、Settings 四个页签，且启动过程不因站点发现流程长时间阻塞。
+- [x] 应用可正常启动，主窗口可显示 Search、Download、Library、Sync、Settings 五个页签，且启动过程不因站点发现流程长时间阻塞。
 - [x] Settings 页面可正确加载现有配置；下载目录、同步下载目录、元数据有效期与格式优先级等字段显示完整。
 - [x] 程序目录 `config.json` 可作为默认配置来源；当 SQLite 中无配置记录时，应用可读取该默认配置并完成设置页加载。
 - [x] 在 Settings 页面修改有效配置后，“保存并重新初始化”可成功完成，状态提示明确，应用进入可用状态。
@@ -2007,7 +2056,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] “测试连接”应通过 `GET /api/health?cache=false` 完成候选探测；当旧探测端点不可用但 health API 可达时，仍能选中可用 BaseUrl。
 - [x] 当发布页正文直接提供 `asmr-300/200/100/one` 最新域名时，“测试连接”会按正文顺序补齐候选列表并写回 SQLite `ApiCandidateUrls`；随后再次“保存并重新初始化”不会把新候选覆盖回旧值。
 - [x] 当发布页 discovery 仅返回部分新候选时，若与已保存候选集合合并后的总数更大，“测试连接”会保留旧候选并把合并后的 `ApiCandidateUrls` 写回 SQLite。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.5.9。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.6.0。
 
 ### 4.2 Search 功能
 
@@ -2097,7 +2146,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 同步完成后，页面摘要与详情区会显示网站总量、本地总量、累计处理条数、累计新增数量与分页处理结果。
 - [x] 下载同步主按钮在空闲态显示“开始同步下载”，点击后会切换为“停止同步下载”。
 - [x] 点击下载同步主按钮开始同步后，可按 `SyncWantedSize` 逐项处理待同步作品、下载真实媒体文件，并将 `WorkSyncInfo` 写为 `COMPLETED/FAILED`。
-- [x] 当累计落盘大小达到 `SyncWantedSize` 后，Sync 页面会提示已达到容量上限，且停止后续候选作品处理。
+- [ ] 当累计落盘大小达到 `SyncWantedSize` 后，Sync 页面会提示已达到容量上限，且停止后续候选作品处理。
 - [x] 同步下载完成后，页面摘要会显示成功数、失败数、同步前后已落盘大小与剩余待同步数量。
 - [x] 当 SQLite `UiState` 中存在未完成同步下载进度时，再次点击下载同步主按钮会继续后续候选作品，且不会重下已有 `COMPLETED/FAILED` 记录。
 - [x] 点击下载同步主按钮发出 stop request 后，按钮会切换为“正在停止下载...”，并在当前作品完成后恢复为空闲态。
@@ -2115,3 +2164,12 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] Sync 状态面板以两行分别显示“同步状态”和“下载状态”，且元数据同步与同步下载的状态文本不会互相覆盖。
 - [x] “刷新统计”在自身执行期间会临时禁用，但不会把当前同步主按钮从 stop 语义切回 start 语义。
 - [x] 点击“刷新统计”或完成同步/重试后，统计卡片与摘要面板需同步刷新，最近更新时间应同时反映元数据与同步记录的最新时间。
+
+### 4.6 Library 功能
+
+- [x] Library 页签可成功显示资源库页面；首次刷新后可看到作品总数、页码信息与状态文本更新。
+- [x] 当下载目录/同步目录中同时存在 `[{SourceId}]{Title}` 与 `sourceId-date-sub/nosub-title` 两种命名格式时，Library 页面都能识别作品；其中 legacy 标题包含连字符时也不会漏显；非法目录会被跳过并在状态中体现，不导致应用崩溃。
+- [x] 首次刷新或切换上一页/下一页期间，窗口保持可响应；刷新/翻页/上下文按钮在扫描完成前会临时禁用，完成后恢复。
+- [x] Library 页的关键字筛选、“仅显示带字幕作品”“仅显示含音频作品”与上一页/下一页切换均可正确更新列表结果。
+- [x] 选中作品后，右侧详情区与文件树会同步更新；选中文件后点击“载入选中文件”可更新上下文文本，点击“清空上下文”可恢复初始提示。
+- [x] 当前批次未接入真实播放器时，载入上下文后界面会明确提示“播放器将在后续批次接入”，且不会误显示播放中/暂停中等假状态。

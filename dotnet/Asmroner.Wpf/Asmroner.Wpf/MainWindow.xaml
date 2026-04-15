@@ -36,6 +36,10 @@
                      Header="Download">
                 <ContentControl x:Name="DownloadHost"/>
             </TabItem>
+            <TabItem x:Name="LibraryTab"
+                     Header="Library">
+                <ContentControl x:Name="LibraryHost"/>
+            </TabItem>
             <TabItem x:Name="SyncTab"
                      Header="Sync">
                 <ContentControl x:Name="SyncHost"/>
