@@ -1,8 +1,8 @@
 # asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.6.1
+当前跟踪版本：v0.6.2
 
-AI约束策略：章节1.5.1到1.5.109的文本不加入分析上下文
+AI约束策略：章节1.5.1到1.5.110的文本不加入分析上下文
 
 ## 1. 项目进度跟踪清单
 
@@ -17,17 +17,17 @@ AI约束策略：章节1.5.1到1.5.109的文本不加入分析上下文
 
 ## 1.2 阶段总览清单
 
-| 阶段   | 名称                   | 状态   | 负责人    | 开始日期   | 目标完成日期 | 实际完成日期 | 备注                                                                                                                                    |
-| ------ | ---------------------- | ------ | --------- | ---------- | ------------ | ------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| 阶段 0 | 创建 .NET 解决方案骨架 | 已完成 | AI + 用户 | 2026-03-14 | 2026-03-14   | 2026-03-14   | 已确认 9 项目在解决方案中；`dotnet build dotnet/Asmroner.sln` 成功。                                                                    |
-| 阶段 1 | 配置与初始化迁移       | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成配置模型、程序目录 `config.json` 默认配置加载、SQLite读写与旧结构迁移、初始化编排、首次启动设置向导分支与“保存后重新初始化”闭环。 |
-| 阶段 2 | API 与认证迁移         | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已修复 `HttpClient` 配置时机问题并完成回归。                                                                                            |
-| 阶段 3 | 搜索能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成查询解析、分页聚合、搜索导出、入队与高级筛选/分页 UI 交互；补齐“无关键词调整排序类控件触发查询”修复。                             |
-| 阶段 4 | 下载能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成下载入口、并发/重试控制与状态可视化复核，并补齐 SQLite 状态持久化能力。                                                           |
-| 阶段 5 | 同步能力迁移           | 已完成 | AI + 用户 | 2026-04-02 | 2026-04-03   | 2026-04-03   | 已补齐 SQLite UiState 同步进度持久化、断点继续、合并式开始/停止按钮与同步运行中手动刷新统计；阶段 5 增强回归已闭环。                    |
-| 阶段 6 | 资源库与播放能力迁移   | 进行中 | AI + 用户 | 2026-04-15 | 待填写       | 待填写       | 已完成资源库扫描/索引、Library 页签与显式选中文件后的系统默认程序打开；更完整的异常/格式兼容验证与阶段 DoD 仍待后续批次补齐。           |
-| 阶段 7 | UI 集成与体验收口      | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                       |
-| 阶段 8 | 最终验收与发布准备     | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                       |
+| 阶段   | 名称                   | 状态   | 负责人    | 开始日期   | 目标完成日期 | 实际完成日期 | 备注                                                                                                                                                     |
+| ------ | ---------------------- | ------ | --------- | ---------- | ------------ | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 阶段 0 | 创建 .NET 解决方案骨架 | 已完成 | AI + 用户 | 2026-03-14 | 2026-03-14   | 2026-03-14   | 已确认 9 项目在解决方案中；`dotnet build dotnet/Asmroner.sln` 成功。                                                                                     |
+| 阶段 1 | 配置与初始化迁移       | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成配置模型、程序目录 `config.json` 默认配置加载、SQLite读写与旧结构迁移、初始化编排、首次启动设置向导分支与“保存后重新初始化”闭环。                  |
+| 阶段 2 | API 与认证迁移         | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已修复 `HttpClient` 配置时机问题并完成回归。                                                                                                             |
+| 阶段 3 | 搜索能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成查询解析、分页聚合、搜索导出、入队与高级筛选/分页 UI 交互；补齐“无关键词调整排序类控件触发查询”修复。                                              |
+| 阶段 4 | 下载能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成下载入口、并发/重试控制与状态可视化复核，并补齐 SQLite 状态持久化能力。                                                                            |
+| 阶段 5 | 同步能力迁移           | 已完成 | AI + 用户 | 2026-04-02 | 2026-04-03   | 2026-04-03   | 已补齐 SQLite UiState 同步进度持久化、断点继续、合并式开始/停止按钮与同步运行中手动刷新统计；阶段 5 增强回归已闭环。                                     |
+| 阶段 6 | 资源库与播放能力迁移   | 进行中 | AI + 用户 | 2026-04-15 | 待填写       | 待填写       | 已完成资源库扫描/索引、Library 页签、显式选中文件后的系统默认程序打开，以及异常扫描容错与选择反馈补强；更完整的格式兼容验证与阶段 DoD 仍待后续批次补齐。 |
+| 阶段 7 | UI 集成与体验收口      | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                                        |
+| 阶段 8 | 最终验收与发布准备     | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                                        |
 
 ## 1.3 阶段执行勾选清单
 
@@ -87,7 +87,7 @@ AI约束策略：章节1.5.1到1.5.109的文本不加入分析上下文
 - [x] 本地资源扫描与索引可用。
 - [x] 资源库页面浏览与筛选可用。
 - [x] 显式选中可播放媒体文件后，可载入并通过系统默认程序打开。
-- [ ] 异常文件处理不导致应用崩溃。
+- [x] 异常文件处理不导致应用崩溃。
 - [ ] 阶段 6 DoD 已满足并记录证据。
 
 ### 阶段 7：UI 集成与体验收口
@@ -1245,6 +1245,14 @@ AI约束策略：章节1.5.1到1.5.109的文本不加入分析上下文
 4. DoD 判定：否。阶段 6 当前已完成资源库扫描/索引、列表/筛选与显式选中文件后的系统默认程序打开，并修复成功打开误报失败问题；更完整的异常/格式兼容验证与阶段 6 完整 DoD 仍待后续批次完成。
 5. 下次计划：由用户执行章节 4.6 的受影响手工回归，重点验证系统默认程序已成功拉起但底层 Shell 调用返回 `null` 时不再误报失败，以及真实打开失败时仍显示明确错误提示；随后继续阶段 6 的异常处理与体验补强。
 
+### 1.5.110 2026-04-16，v0.6.2：补强 Library 异常扫描容错与选择反馈
+
+1. 变更摘要：继续推进阶段 6，在保留系统默认程序打开方案的前提下补强资源库链路；`LibraryScannerService` 新增可测试的文件系统枚举 seam，并将嵌套目录/文件读取失败收敛为局部错误记录，避免单个异常目录拖垮整项扫描；`LibraryView` 新增显式选择反馈策略，对目录、不可播放文件、缺失媒体文件与可播放文件分别给出明确提示，并收紧“载入/切换文件”“播放”按钮可用性；同步将运行时/UI/README 版本对齐到 `v0.6.2`。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Application/Services/LibraryScannerService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/LibrarySelectionFeedbackPolicy.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/LibraryView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/LibraryView.xaml.cs`、`dotnet/tests/Asmroner.Application.Tests/LibraryScannerServiceTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/LibrarySelectionFeedbackPolicyTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/LibraryViewXamlTests.cs`、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`。
+3. 验证结果：`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --no-restore` 通过（98/98）；`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --no-restore` 通过（77/77）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --no-restore` 通过（178/178）；`rtk dotnet test dotnet/Asmroner.sln --no-restore` 通过（371/371）。
+4. DoD 判定：否。当前已完成资源库扫描/索引、列表/筛选、显式选中文件后的系统默认程序打开，以及异常扫描容错与选择反馈补强；更完整的格式兼容验证与阶段 6 完整 DoD 仍待后续批次完成。
+5. 下次计划：由用户执行章节 4.6 的受影响手工回归，重点验证目录/不可播放文件/缺失媒体文件的明确提示、按钮禁用状态，以及可播放文件仍能完成载入与系统默认程序打开；随后继续阶段 6 的格式兼容与体验收口。
+
 ---
 
 ## 1.6 维护规则
@@ -1265,7 +1273,7 @@ AI约束策略：章节1.5.1到1.5.109的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-15 的解决方案级回归（365/365）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-16 的解决方案级回归（371/371）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
@@ -1949,6 +1957,8 @@ AI约束策略：章节1.5.1到1.5.109的文本不加入分析上下文
 | ------ | ------ | ------ | ------------------------------------------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | [x]    | [x]    | 阶段 6 | `ScanAsync_ShouldCollectBracketedAndLegacyDirectories_AndOverlayMetadata` | 下载目录含 bracketed/legacy 目录、非法目录与本地 metadata | 扫描结果可同时识别两种目录格式，非法目录进入 skipped 列表，metadata 可覆盖标题/日期/字幕并统计音频文件数。 |
 | [x]    | [x]    | 阶段 6 | `ScanAsync_ShouldPreferDuplicateWorkEntry_WithMorePlayableFiles`          | 下载根与同步根同时存在同一 `SourceId` 的目录              | 合并后优先保留音频文件更多的目录项，避免同一作品在资源库中重复展示。                                       |
+| [x]    | [x]    | 阶段 6 | `ScanAsync_ShouldKeepReadableFiles_WhenNestedDirectoryEnumerationThrows`  | 嵌套目录子目录枚举抛异常，但当前目录文件仍可读取          | 扫描结果保留可读文件树并记录错误，不因单个嵌套目录异常而放弃整项作品。                                     |
+| [x]    | [x]    | 阶段 6 | `ScanAsync_ShouldSkipUnreadableFile_WhenFileInspectionThrows`             | 单个媒体文件长度探测抛异常                                | 跳过不可读文件、保留其余文件并记录错误，不因单文件异常导致整项扫描失败。                                   |
 
 #### 2.1.74 Application.Tests / LibraryQueryServiceTests.cs
 
@@ -1989,6 +1999,15 @@ AI约束策略：章节1.5.1到1.5.109的文本不加入分析上下文
 | ------ | ------ | ------ | ----------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------ |
 | [x]    | [x]    | 阶段 6 | `Open_ShouldTreatNullProcessAsSuccess_WhenShellStartDoesNotThrow` | Shell 启动器底层调用返回 `null` 且未抛异常 | 仍视为成功打开，不抛出异常，并保持 `UseShellExecute=true` 与目标文件路径不变。 |
 | [x]    | [x]    | 阶段 6 | `Open_ShouldRethrow_WhenShellStartThrows`                         | Shell 启动器底层调用直接抛出异常           | `Open()` 继续抛出原始异常，供上层 `PlayerService` 转换成失败提示。             |
+
+#### 2.1.79 Wpf.Tests / LibrarySelectionFeedbackPolicyTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                   | 输入                             | 期望输出                                                       |
+| ------ | ------ | ------ | -------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 6 | `Evaluate_ShouldWarn_WhenDirectoryIsSelected`            | 选中文件树中的目录节点           | 返回“当前选择是目录”提示，且不允许载入上下文或播放。           |
+| [x]    | [x]    | 阶段 6 | `Evaluate_ShouldWarn_WhenFileIsNotPlayable`              | 选中文件树中的不可播放文件       | 返回“当前选择的文件不可播放”提示，且不允许载入上下文或播放。   |
+| [x]    | [x]    | 阶段 6 | `Evaluate_ShouldWarn_WhenPlayableFileDoesNotExist`       | 选中一个路径缺失的可播放媒体文件 | 返回“当前选择的媒体文件不存在”提示，且不允许载入上下文或播放。 |
+| [x]    | [x]    | 阶段 6 | `Evaluate_ShouldAllowLoadAndPlay_WhenPlayableFileExists` | 选中一个实际存在的可播放媒体文件 | 返回“已选择可播放媒体文件”提示，并允许载入上下文与播放。       |
 
 ### 2.2 测试覆盖分析
 
@@ -2070,7 +2089,8 @@ AI约束策略：章节1.5.1到1.5.109的文本不加入分析上下文
 | 2026-04-14 | 已提交 | v0.5.8: fix download and sync command states                                | 1. Update runtime/docs version to v0.5.8.<br>2. Fix Download toolbar state.<br>3. Allow Sync Refresh Status during Retry Failed and split the Sync status panel into separate metadata/download lines.<br>4. Update regression tests and progress documentation.                                                                                                                                                                   | 97e3dc4    |
 | 2026-04-14 | 已提交 | v0.5.9: harden publish-source discovery and merge candidate persistence     | 1. Update runtime/docs version to v0.5.9.<br>2. Refactor publish-source HTML/script fetching to use a dedicated client with shared transport rules, timeout, cancellation and test seams.<br>3. Persist merged discovered-plus-saved API candidates only when the merged candidate count grows, while keeping current BaseUrl synchronization.<br>4. Update regression tests and progress documentation.                           | 116c8ad    |
 | 2026-04-15 | 已提交 | v0.6.0: kick off phase 6 library scan/query shell                           | 1. Update runtime/docs version to v0.6.0.<br>2. Start phase 6 with dual-format local library scanning, metadata overlay, query/paging and playback-context abstraction.<br>3. Add the `Library` tab and WPF library page shell.<br>4. Add Core/Application/WPF regression tests for the stage 6 first batch.<br>5. Update regression tests and progress documentation.                                                             | 04dea2f    |
-| 2026-04-15 | 待提交 | v0.6.1: switch Library playback to shell-open selected media                | 1. Update runtime/docs version to v0.6.1.<br>2. Replace the MediaPlayer-based Library playback flow with explicit selected-media loading plus system-default-app open behavior.<br>3. Remove pause/stop and inline progress UI.<br>4. Update regression tests and progress documentation.                                                                                                                                          | -          |
+| 2026-04-15 | 已提交 | v0.6.1: switch Library playback to shell-open selected media                | 1. Update runtime/docs version to v0.6.1.<br>2. Replace the MediaPlayer-based Library playback flow with explicit selected-media loading plus system-default-app open behavior.<br>3. Remove pause/stop and inline progress UI.<br>4. Update regression tests and progress documentation.                                                                                                                                          | 994ba3c    |
+| 2026-04-16 | 待提交 | v0.6.2: harden Library scan tolerance and selection feedback                | 1. Update runtime/docs version to v0.6.2.<br>2. Harden Library scan tolerance so nested directory/file errors become local error records instead of failing the whole work item.<br>3. Add explicit Library selection feedback for directory, non-playable, missing and playable file states, and tighten action-button availability.<br>4. Update regression tests and progress documentation.                                    | -          |
 
 ---
 
@@ -2101,7 +2121,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] “测试连接”应通过 `GET /api/health?cache=false` 完成候选探测；当旧探测端点不可用但 health API 可达时，仍能选中可用 BaseUrl。
 - [x] 当发布页正文直接提供 `asmr-300/200/100/one` 最新域名时，“测试连接”会按正文顺序补齐候选列表并写回 SQLite `ApiCandidateUrls`；随后再次“保存并重新初始化”不会把新候选覆盖回旧值。
 - [x] 当发布页 discovery 仅返回部分新候选时，若与已保存候选集合合并后的总数更大，“测试连接”会保留旧候选并把合并后的 `ApiCandidateUrls` 写回 SQLite。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.6.1。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.6.2。
 
 ### 4.2 Search 功能
 
@@ -2182,7 +2202,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] Sync 页面可显示同步下载完成/失败/待处理数量、队列中数量与当前已落盘大小摘要。
 - [x] 元数据同步主按钮在空闲态显示“开始同步元数据”，点击后会切换为“停止同步元数据”。
 - [x] 点击元数据同步主按钮开始同步后，可成功拉取网站元数据并写入 SQLite `MetadataWork` 表。
-- [ ] 当网站总量与本地一致且不存在过期元数据时，Sync 页面会提示“无需同步”，且不会重复写入数据。
+- [x] 当网站总量与本地一致且不存在过期元数据时，Sync 页面会提示“无需同步”，且不会重复写入数据。
 - [ ] 当上次元数据同步状态为已完成且存在超过“元数据有效期”的本地记录时，再次点击“开始同步元数据”会执行过期刷新，并在摘要中显示过期刷新结果。
 - [x] 当 SQLite `UiState` 中存在未完成元数据同步进度时，再次点击元数据同步主按钮会从记录页码继续执行，而不是从第一页重新开始。
 - [x] 点击元数据同步主按钮发出 stop request 后，按钮会切换为“正在停止元数据...”，并在当前页完成后恢复为空闲态。
@@ -2217,6 +2237,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 首次刷新或切换上一页/下一页期间，窗口保持可响应；刷新/翻页/打开相关按钮在扫描完成前会临时禁用，完成后恢复。
 - [x] Library 页的关键字筛选、“仅显示带字幕作品”“仅显示含音频作品”与上一页/下一页切换均可正确更新列表结果。
 - [x] 选中作品后，右侧详情区与文件树会同步更新；选中文件后点击“载入/切换文件”可更新当前打开目标，点击“清空上下文”可恢复初始提示。
+- [x] 当在文件树中选中目录、不可播放文件、缺失媒体文件与可播放媒体文件时，Library 页会分别显示明确提示，并正确更新“载入/切换文件”“播放”按钮可用性。
 - [x] 显式选中可播放媒体文件后，Library 页可点击“播放”调用系统默认关联程序打开；未选中文件时“播放”不可点击。
 - [x] 当选中文件缺失或系统默认关联程序打开失败时，Library 页会显示明确失败提示，不导致应用崩溃。
 - [x] 当系统默认关联程序已成功拉起但底层 Shell 调用返回 `null` 时，Library 页不应误报“打开失败”。

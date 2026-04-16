@@ -18,7 +18,9 @@ public partial class LibraryView : UserControl
     private int _totalPages = 1;
     private bool _isRefreshing;
     private LibraryWorkItem? _selectedWork;
+    private LibraryFileItem? _selectedTreeItem;
     private LibraryFileItem? _selectedFile;
+    private LibrarySelectionFeedbackResult _selectionFeedback = new();
 
     public LibraryView(ILibraryQueryService libraryQueryService, IPlayerService playerService)
     {
@@ -69,17 +71,22 @@ public partial class LibraryView : UserControl
     private void OnLibrarySelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         _selectedWork = LibraryWorksDataGrid.SelectedItem as LibraryWorkItem;
+        _selectedTreeItem = null;
         _selectedFile = null;
+        _selectionFeedback = new LibrarySelectionFeedbackResult();
 
         FileTreeView.ItemsSource = _selectedWork?.Files;
         WorkDetailsTextBlock.Text = BuildWorkDetailsText(_selectedWork);
+        UpdatePlaybackContext();
         UpdateCommandAvailability();
     }
 
     private void OnFileTreeSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
-        var selectedItem = e.NewValue as LibraryFileItem;
-        _selectedFile = selectedItem is { IsDirectory: false, IsPlayable: true } ? selectedItem : null;
+        _selectedTreeItem = e.NewValue as LibraryFileItem;
+        _selectionFeedback = LibrarySelectionFeedbackPolicy.Evaluate(_selectedTreeItem);
+        _selectedFile = _selectionFeedback.PlayableTarget;
+        UpdatePlaybackContext();
         UpdateCommandAvailability();
     }
 
@@ -174,7 +181,9 @@ public partial class LibraryView : UserControl
             StatusTextBlock.Text = BuildStatusText(result);
 
             _selectedWork = null;
+            _selectedTreeItem = null;
             _selectedFile = null;
+            _selectionFeedback = new LibrarySelectionFeedbackResult();
             FileTreeView.ItemsSource = null;
             WorkDetailsTextBlock.Text = "请选择左侧作品查看详情。";
             UpdatePlaybackContext();
@@ -197,19 +206,32 @@ public partial class LibraryView : UserControl
     private void UpdatePlaybackContext()
     {
         var context = _playerService.GetCurrentContext();
+        var selectionMessage = BuildSelectionFeedbackMessage(context);
         if (context.Work is null || context.File is null)
         {
-            ContextTextBlock.Text = context.Message;
+            ContextTextBlock.Text = string.IsNullOrWhiteSpace(selectionMessage)
+                ? context.Message
+                : selectionMessage;
             return;
         }
 
-        ContextTextBlock.Text = $"状态：{BuildPlaybackStateText(context.State)}\n作品：{context.Work.SourceId} {context.Work.Title}\n文件：{context.File.RelativePath}\n说明：{context.Message}";
+        var builder = new StringBuilder();
+        builder.Append($"状态：{BuildPlaybackStateText(context.State)}\n作品：{context.Work.SourceId} {context.Work.Title}\n文件：{context.File.RelativePath}\n说明：{context.Message}");
+
+        if (!string.IsNullOrWhiteSpace(selectionMessage))
+        {
+            builder.Append($"\n当前选择：{selectionMessage}");
+        }
+
+        ContextTextBlock.Text = builder.ToString();
     }
 
     private void UpdateCommandAvailability()
     {
         var context = _playerService.GetCurrentContext();
-        var hasSelectedPlayableTarget = _selectedWork is not null && _selectedFile is not null;
+        var hasSelectedPlayableTarget = _selectedWork is not null
+            && _selectedFile is not null
+            && _selectionFeedback.CanLoadContext;
 
         RefreshLibraryButton.IsEnabled = !_isRefreshing;
         PrevPageButton.IsEnabled = !_isRefreshing && _currentPage > 1;
@@ -260,6 +282,23 @@ public partial class LibraryView : UserControl
     private bool ShouldLoadSelectionBeforePlay(PlaybackContext current)
     {
         return LibraryPlaybackSelectionPolicy.ShouldReloadContext(current, _selectedWork, _selectedFile);
+    }
+
+    private string BuildSelectionFeedbackMessage(PlaybackContext current)
+    {
+        if (_selectedTreeItem is null || string.IsNullOrWhiteSpace(_selectionFeedback.Message))
+        {
+            return string.Empty;
+        }
+
+        if (_selectedFile is not null
+            && current.File is not null
+            && string.Equals(_selectedFile.FullPath, current.File.FullPath, StringComparison.OrdinalIgnoreCase))
+        {
+            return string.Empty;
+        }
+
+        return _selectionFeedback.Message;
     }
 
     private static string BuildPlaybackStateText(PlaybackState state)

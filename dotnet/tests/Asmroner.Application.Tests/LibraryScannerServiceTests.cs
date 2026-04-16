@@ -128,6 +128,109 @@ public class LibraryScannerServiceTests
         }
     }
 
+    [Fact]
+    public async Task ScanAsync_ShouldKeepReadableFiles_WhenNestedDirectoryEnumerationThrows()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var tempRoot = CreateTempRoot();
+        try
+        {
+            var downloadRoot = Path.Combine(tempRoot, "download");
+            var syncRoot = Path.Combine(tempRoot, "sync");
+            Directory.CreateDirectory(downloadRoot);
+            Directory.CreateDirectory(syncRoot);
+
+            var workDirectory = Path.Combine(downloadRoot, "[RJ3001]Partial Work");
+            var brokenDirectory = Path.Combine(workDirectory, "disc2");
+            Directory.CreateDirectory(workDirectory);
+            Directory.CreateDirectory(brokenDirectory);
+            await File.WriteAllTextAsync(Path.Combine(workDirectory, "track01.mp3"), "audio", cancellationToken);
+            await File.WriteAllTextAsync(Path.Combine(brokenDirectory, "track02.flac"), "audio", cancellationToken);
+
+            var sut = new LibraryScannerService(
+                new StaticConfigurationService(downloadRoot, syncRoot),
+                new StaticMetadataSyncStore(Array.Empty<MetadataWorkItem>()),
+                Directory.Exists,
+                path =>
+                {
+                    if (string.Equals(path, brokenDirectory, StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new IOException("拒绝访问。");
+                    }
+
+                    return Directory.GetDirectories(path, "*", SearchOption.TopDirectoryOnly);
+                },
+                static path => Directory.GetFiles(path, "*", SearchOption.TopDirectoryOnly),
+                static path => new FileInfo(path).Length);
+
+            var result = await sut.ScanAsync(cancellationToken);
+
+            var item = Assert.Single(result.Items);
+            Assert.Equal("RJ3001", item.SourceId);
+            Assert.Equal(2, item.TotalFileCount);
+            Assert.Equal(2, item.AudioFileCount);
+            var nestedDirectory = Assert.Single(item.Files.Where(static file => file.IsDirectory && file.Name == "disc2"));
+            Assert.Contains(item.Files, static file => !file.IsDirectory && file.Name == "track01.mp3");
+            Assert.Contains(nestedDirectory.Children, static file => !file.IsDirectory && file.Name == "track02.flac");
+            Assert.Contains(result.Errors, error => error.Contains("读取目录失败：disc2", StringComparison.Ordinal));
+        }
+        finally
+        {
+            CleanupTempRoot(tempRoot);
+        }
+    }
+
+    [Fact]
+    public async Task ScanAsync_ShouldSkipUnreadableFile_WhenFileInspectionThrows()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var tempRoot = CreateTempRoot();
+        try
+        {
+            var downloadRoot = Path.Combine(tempRoot, "download");
+            var syncRoot = Path.Combine(tempRoot, "sync");
+            Directory.CreateDirectory(downloadRoot);
+            Directory.CreateDirectory(syncRoot);
+
+            var workDirectory = Path.Combine(downloadRoot, "[RJ3002]Unreadable File Work");
+            Directory.CreateDirectory(workDirectory);
+            var readableFile = Path.Combine(workDirectory, "track01.mp3");
+            var unreadableFile = Path.Combine(workDirectory, "track02.flac");
+            await File.WriteAllTextAsync(readableFile, "audio", cancellationToken);
+            await File.WriteAllTextAsync(unreadableFile, "audio", cancellationToken);
+
+            var sut = new LibraryScannerService(
+                new StaticConfigurationService(downloadRoot, syncRoot),
+                new StaticMetadataSyncStore(Array.Empty<MetadataWorkItem>()),
+                Directory.Exists,
+                static path => Directory.GetDirectories(path, "*", SearchOption.TopDirectoryOnly),
+                static path => Directory.GetFiles(path, "*", SearchOption.TopDirectoryOnly),
+                path =>
+                {
+                    if (string.Equals(path, unreadableFile, StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new IOException("文件被占用。");
+                    }
+
+                    return new FileInfo(path).Length;
+                });
+
+            var result = await sut.ScanAsync(cancellationToken);
+
+            var item = Assert.Single(result.Items);
+            Assert.Equal("RJ3002", item.SourceId);
+            Assert.Equal(1, item.TotalFileCount);
+            Assert.Equal(1, item.AudioFileCount);
+            Assert.Contains(item.Files, static file => file.Name == "track01.mp3");
+            Assert.DoesNotContain(item.Files, static file => file.Name == "track02.flac");
+            Assert.Contains(result.Errors, error => error.Contains("读取文件失败：track02.flac", StringComparison.Ordinal));
+        }
+        finally
+        {
+            CleanupTempRoot(tempRoot);
+        }
+    }
+
     private static string CreateTempRoot()
     {
         var path = Path.Combine(Path.GetTempPath(), "asmroner-library-scanner-tests", Guid.NewGuid().ToString("N"));

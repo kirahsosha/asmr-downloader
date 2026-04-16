@@ -151,7 +151,7 @@
                        Text="Library"/>
             <TextBlock Margin="0,8,0,12"
                        Foreground="#FF5A6A80"
-                       Text="阶段 6 第二批：本地资源扫描、列表浏览与系统默认程序打开。"/>
+                       Text="阶段 6 第三批：资源库异常兼容与系统默认程序打开补强。"/>
 
             <Border Style="{StaticResource CardBorderStyle}">
                 <StackPanel>

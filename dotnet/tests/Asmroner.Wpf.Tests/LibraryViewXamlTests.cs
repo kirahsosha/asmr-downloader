@@ -12,7 +12,7 @@ public class LibraryViewXamlTests
 
         Assert.Contains("x:Class=\"Asmroner.Wpf.Views.LibraryView\"", content, StringComparison.Ordinal);
         Assert.Contains("Text=\"Library\"", content, StringComparison.Ordinal);
-        Assert.Contains("Text=\"阶段 6 第二批：本地资源扫描、列表浏览与系统默认程序打开。\"", content, StringComparison.Ordinal);
+        Assert.Contains("Text=\"阶段 6 第三批：资源库异常兼容与系统默认程序打开补强。\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"KeywordTextBox\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"SubtitleOnlyCheckBox\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"AudioOnlyCheckBox\"", content, StringComparison.Ordinal);

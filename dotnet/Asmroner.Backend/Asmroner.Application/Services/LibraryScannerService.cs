@@ -22,11 +22,36 @@ public sealed class LibraryScannerService : ILibraryScannerService
 
     private readonly IConfigurationService _configurationService;
     private readonly IMetadataSyncStore _metadataSyncStore;
+    private readonly Func<string, bool> _directoryExists;
+    private readonly Func<string, IReadOnlyList<string>> _getDirectories;
+    private readonly Func<string, IReadOnlyList<string>> _getFiles;
+    private readonly Func<string, long> _getFileSize;
 
     public LibraryScannerService(IConfigurationService configurationService, IMetadataSyncStore metadataSyncStore)
+        : this(
+            configurationService,
+            metadataSyncStore,
+            Directory.Exists,
+            static path => Directory.GetDirectories(path, "*", SearchOption.TopDirectoryOnly),
+            static path => Directory.GetFiles(path, "*", SearchOption.TopDirectoryOnly),
+            static path => new FileInfo(path).Length)
+    {
+    }
+
+    public LibraryScannerService(
+        IConfigurationService configurationService,
+        IMetadataSyncStore metadataSyncStore,
+        Func<string, bool> directoryExists,
+        Func<string, IReadOnlyList<string>> getDirectories,
+        Func<string, IReadOnlyList<string>> getFiles,
+        Func<string, long> getFileSize)
     {
         _configurationService = configurationService;
         _metadataSyncStore = metadataSyncStore;
+        _directoryExists = directoryExists ?? throw new ArgumentNullException(nameof(directoryExists));
+        _getDirectories = getDirectories ?? throw new ArgumentNullException(nameof(getDirectories));
+        _getFiles = getFiles ?? throw new ArgumentNullException(nameof(getFiles));
+        _getFileSize = getFileSize ?? throw new ArgumentNullException(nameof(getFileSize));
     }
 
     public async Task<LibraryScanResult> ScanAsync(CancellationToken cancellationToken = default)
@@ -50,7 +75,7 @@ public sealed class LibraryScannerService : ILibraryScannerService
             cancellationToken);
     }
 
-    private static LibraryScanResult ScanRoots(
+    private LibraryScanResult ScanRoots(
         IReadOnlyList<string> roots,
         IReadOnlyDictionary<string, MetadataWorkItem> metadataBySourceId,
         CancellationToken cancellationToken)
@@ -65,7 +90,7 @@ public sealed class LibraryScannerService : ILibraryScannerService
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (!Directory.Exists(root))
+            if (!_directoryExists(root))
             {
                 errors.Add($"资源目录不存在：{root}");
                 continue;
@@ -73,10 +98,10 @@ public sealed class LibraryScannerService : ILibraryScannerService
 
             scannedRootCount++;
 
-            string[] directories;
+            IReadOnlyList<string> directories;
             try
             {
-                directories = Directory.GetDirectories(root, "*", SearchOption.TopDirectoryOnly);
+                directories = _getDirectories(root);
             }
             catch (Exception ex)
             {
@@ -98,7 +123,7 @@ public sealed class LibraryScannerService : ILibraryScannerService
                 try
                 {
                     metadataBySourceId.TryGetValue(parsed.SourceId, out var metadataItem);
-                    var files = BuildFileTree(workDirectory, workDirectory);
+                    var files = BuildFileTree(workDirectory, workDirectory, errors);
                     var workItem = CreateWorkItem(root, workDirectory, parsed, metadataItem, files);
 
                     if (!mergedWorks.TryGetValue(workItem.SourceId, out var existingWork)
@@ -190,11 +215,24 @@ public sealed class LibraryScannerService : ILibraryScannerService
         return false;
     }
 
-    private static IReadOnlyList<LibraryFileItem> BuildFileTree(string currentDirectory, string rootDirectory)
+    private IReadOnlyList<LibraryFileItem> BuildFileTree(
+        string currentDirectory,
+        string rootDirectory,
+        ICollection<string> errors)
     {
         var items = new List<LibraryFileItem>();
 
-        foreach (var directory in Directory.GetDirectories(currentDirectory).OrderBy(static path => path, StringComparer.OrdinalIgnoreCase))
+        IReadOnlyList<string> directories = Array.Empty<string>();
+        try
+        {
+            directories = _getDirectories(currentDirectory);
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"读取目录失败：{BuildTreeLocation(rootDirectory, currentDirectory)} ({ex.Message})");
+        }
+
+        foreach (var directory in directories.OrderBy(static path => path, StringComparer.OrdinalIgnoreCase))
         {
             items.Add(new LibraryFileItem
             {
@@ -202,26 +240,51 @@ public sealed class LibraryScannerService : ILibraryScannerService
                 RelativePath = NormalizeRelativePath(rootDirectory, directory),
                 FullPath = directory,
                 IsDirectory = true,
-                Children = BuildFileTree(directory, rootDirectory),
+                Children = BuildFileTree(directory, rootDirectory, errors),
             });
         }
 
-        foreach (var file in Directory.GetFiles(currentDirectory).OrderBy(static path => path, StringComparer.OrdinalIgnoreCase))
+        IReadOnlyList<string> files = Array.Empty<string>();
+        try
         {
-            var extension = Path.GetExtension(file);
-            items.Add(new LibraryFileItem
+            files = _getFiles(currentDirectory);
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"读取目录文件失败：{BuildTreeLocation(rootDirectory, currentDirectory)} ({ex.Message})");
+        }
+
+        foreach (var file in files.OrderBy(static path => path, StringComparer.OrdinalIgnoreCase))
+        {
+            try
             {
-                Name = Path.GetFileName(file),
-                RelativePath = NormalizeRelativePath(rootDirectory, file),
-                FullPath = file,
-                Extension = extension,
-                IsDirectory = false,
-                IsPlayable = PlayableExtensions.Contains(extension),
-                SizeBytes = new FileInfo(file).Length,
-            });
+                var extension = Path.GetExtension(file);
+                items.Add(new LibraryFileItem
+                {
+                    Name = Path.GetFileName(file),
+                    RelativePath = NormalizeRelativePath(rootDirectory, file),
+                    FullPath = file,
+                    Extension = extension,
+                    IsDirectory = false,
+                    IsPlayable = PlayableExtensions.Contains(extension),
+                    SizeBytes = _getFileSize(file),
+                });
+            }
+            catch (Exception ex)
+            {
+                errors.Add($"读取文件失败：{BuildTreeLocation(rootDirectory, file)} ({ex.Message})");
+            }
         }
 
         return items;
+    }
+
+    private static string BuildTreeLocation(string rootDirectory, string targetPath)
+    {
+        var relativePath = NormalizeRelativePath(rootDirectory, targetPath);
+        return string.Equals(relativePath, ".", StringComparison.Ordinal)
+            ? Path.GetFileName(targetPath)
+            : relativePath;
     }
 
     private static string NormalizeRelativePath(string rootDirectory, string targetPath)
