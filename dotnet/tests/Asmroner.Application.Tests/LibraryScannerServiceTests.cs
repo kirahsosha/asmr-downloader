@@ -231,6 +231,48 @@ public class LibraryScannerServiceTests
         }
     }
 
+    [Fact]
+    public async Task ScanAsync_ShouldTreatSupportedExtensionsAsPlayable_IgnoringCase()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var tempRoot = CreateTempRoot();
+        try
+        {
+            var downloadRoot = Path.Combine(tempRoot, "download");
+            var syncRoot = Path.Combine(tempRoot, "sync");
+            Directory.CreateDirectory(downloadRoot);
+            Directory.CreateDirectory(syncRoot);
+
+            var workDirectory = Path.Combine(downloadRoot, "[RJ3003]Case Extension Work");
+            var nestedDirectory = Path.Combine(workDirectory, "disc1");
+            Directory.CreateDirectory(workDirectory);
+            Directory.CreateDirectory(nestedDirectory);
+            await File.WriteAllTextAsync(Path.Combine(workDirectory, "track01.FLAC"), "audio", cancellationToken);
+            await File.WriteAllTextAsync(Path.Combine(nestedDirectory, "TRACK02.OpUs"), "audio", cancellationToken);
+            await File.WriteAllTextAsync(Path.Combine(workDirectory, "note.TXT"), "text", cancellationToken);
+
+            var sut = new LibraryScannerService(
+                new StaticConfigurationService(downloadRoot, syncRoot),
+                new StaticMetadataSyncStore(Array.Empty<MetadataWorkItem>()));
+
+            var result = await sut.ScanAsync(cancellationToken);
+
+            var item = Assert.Single(result.Items);
+            Assert.Equal("RJ3003", item.SourceId);
+            Assert.Equal(3, item.TotalFileCount);
+            Assert.Equal(2, item.AudioFileCount);
+            Assert.Empty(result.Errors);
+            Assert.Contains(item.Files, static file => !file.IsDirectory && file.Name == "track01.FLAC" && file.IsPlayable);
+            var nestedDirectoryItem = Assert.Single(item.Files.Where(static file => file.IsDirectory && file.Name == "disc1"));
+            Assert.Contains(nestedDirectoryItem.Children, static file => !file.IsDirectory && file.Name == "TRACK02.OpUs" && file.IsPlayable);
+            Assert.Contains(item.Files, static file => !file.IsDirectory && file.Name == "note.TXT" && !file.IsPlayable);
+        }
+        finally
+        {
+            CleanupTempRoot(tempRoot);
+        }
+    }
+
     private static string CreateTempRoot()
     {
         var path = Path.Combine(Path.GetTempPath(), "asmroner-library-scanner-tests", Guid.NewGuid().ToString("N"));

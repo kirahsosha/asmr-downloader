@@ -7,19 +7,6 @@ namespace Asmroner.Application.Services;
 
 public sealed class LibraryScannerService : ILibraryScannerService
 {
-    private static readonly HashSet<string> PlayableExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ".mp3",
-        ".wav",
-        ".flac",
-        ".m4a",
-        ".ogg",
-        ".aac",
-        ".opus",
-        ".wma",
-        ".webm",
-    };
-
     private readonly IConfigurationService _configurationService;
     private readonly IMetadataSyncStore _metadataSyncStore;
     private readonly Func<string, bool> _directoryExists;
@@ -195,7 +182,7 @@ public sealed class LibraryScannerService : ILibraryScannerService
             SourceRoot = sourceRoot,
             DirectoryScheme = parsed.Scheme,
             TotalFileCount = CountFiles(files),
-            AudioFileCount = CountPlayableFiles(files),
+            AudioFileCount = LibraryPlayableMediaPolicy.CountPlayableFiles(files),
             Files = files,
         };
     }
@@ -266,7 +253,7 @@ public sealed class LibraryScannerService : ILibraryScannerService
                     FullPath = file,
                     Extension = extension,
                     IsDirectory = false,
-                    IsPlayable = PlayableExtensions.Contains(extension),
+                    IsPlayable = LibraryPlayableMediaPolicy.IsPlayableExtension(extension),
                     SizeBytes = _getFileSize(file),
                 });
             }
@@ -298,19 +285,6 @@ public sealed class LibraryScannerService : ILibraryScannerService
         foreach (var item in items)
         {
             count += item.IsDirectory ? CountFiles(item.Children) : 1;
-        }
-
-        return count;
-    }
-
-    private static int CountPlayableFiles(IReadOnlyList<LibraryFileItem> items)
-    {
-        var count = 0;
-        foreach (var item in items)
-        {
-            count += item.IsDirectory
-                ? CountPlayableFiles(item.Children)
-                : item.IsPlayable ? 1 : 0;
         }
 
         return count;

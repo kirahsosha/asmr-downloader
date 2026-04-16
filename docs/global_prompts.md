@@ -18,6 +18,19 @@
 - **Fallback 策略**：写代码时**不考虑** fallback 逻辑。
 - **字符规范**：代码中**禁止**出现 emoji。
 - **`rtk`检查**：所有命令行语句均执行SKILL `rtk`
+- **CRG 构建触发**：满足以下任一条件时，**必须**执行 `rtk code-review-graph build`：
+  - 首次进入仓库
+  - 切换分支后
+  - 执行 `git pull` 后
+  - 进行大规模重构（跨目录移动、重命名、批量改函数签名）
+- **CRG 命令约束**：所有 `code-review-graph` 相关命令**必须**通过 `rtk` 执行，允许的命令白名单：
+  - `rtk code-review-graph build`
+  - `rtk code-review-graph install --platform codex`
+  - `rtk code-review-graph serve`（仅在显式需要时）
+- **CRG 新项目初始化**：对尚未配置 MCP 的新项目，首次使用**必须**按顺序执行：
+  1. `rtk code-review-graph install --platform codex`
+  2. `rtk code-review-graph build`
+  完成后再进入常规任务流程。
 
 ### 1.2 任务规划
 
@@ -212,6 +225,8 @@
 用途：用 Copilot 流程审查任意代码（例如 Pull Request）。严格按下列步骤执行，不得更改语义或约束。
 
 ### 步骤
+
+0. CRG 前置构建：执行 `rtk code-review-graph build`；若构建失败，停止审查并报告错误，**禁止**继续后续步骤。
 
 1. 资格检查（轻量）：确认代码/PR 不是已关闭、草稿、不需审查（如自动 PR、极小改动）、或已由你审查；若任一成立则停止。
 

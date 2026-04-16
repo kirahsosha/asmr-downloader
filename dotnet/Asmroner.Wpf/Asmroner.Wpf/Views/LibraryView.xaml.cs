@@ -73,7 +73,7 @@ public partial class LibraryView : UserControl
         _selectedWork = LibraryWorksDataGrid.SelectedItem as LibraryWorkItem;
         _selectedTreeItem = null;
         _selectedFile = null;
-        _selectionFeedback = new LibrarySelectionFeedbackResult();
+        _selectionFeedback = LibrarySelectionFeedbackPolicy.Evaluate(_selectedWork, selectedItem: null);
 
         FileTreeView.ItemsSource = _selectedWork?.Files;
         WorkDetailsTextBlock.Text = BuildWorkDetailsText(_selectedWork);
@@ -84,7 +84,7 @@ public partial class LibraryView : UserControl
     private void OnFileTreeSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
         _selectedTreeItem = e.NewValue as LibraryFileItem;
-        _selectionFeedback = LibrarySelectionFeedbackPolicy.Evaluate(_selectedTreeItem);
+        _selectionFeedback = LibrarySelectionFeedbackPolicy.Evaluate(_selectedWork, _selectedTreeItem);
         _selectedFile = _selectionFeedback.PlayableTarget;
         UpdatePlaybackContext();
         UpdateCommandAvailability();
@@ -206,24 +206,10 @@ public partial class LibraryView : UserControl
     private void UpdatePlaybackContext()
     {
         var context = _playerService.GetCurrentContext();
-        var selectionMessage = BuildSelectionFeedbackMessage(context);
-        if (context.Work is null || context.File is null)
-        {
-            ContextTextBlock.Text = string.IsNullOrWhiteSpace(selectionMessage)
-                ? context.Message
-                : selectionMessage;
-            return;
-        }
+        var texts = LibraryPlaybackContextTextBuilder.Build(context, _selectionFeedback);
 
-        var builder = new StringBuilder();
-        builder.Append($"状态：{BuildPlaybackStateText(context.State)}\n作品：{context.Work.SourceId} {context.Work.Title}\n文件：{context.File.RelativePath}\n说明：{context.Message}");
-
-        if (!string.IsNullOrWhiteSpace(selectionMessage))
-        {
-            builder.Append($"\n当前选择：{selectionMessage}");
-        }
-
-        ContextTextBlock.Text = builder.ToString();
+        SelectionFeedbackTextBlock.Text = texts.SelectionText;
+        ContextTextBlock.Text = texts.LoadedContextText;
     }
 
     private void UpdateCommandAvailability()
@@ -284,32 +270,4 @@ public partial class LibraryView : UserControl
         return LibraryPlaybackSelectionPolicy.ShouldReloadContext(current, _selectedWork, _selectedFile);
     }
 
-    private string BuildSelectionFeedbackMessage(PlaybackContext current)
-    {
-        if (_selectedTreeItem is null || string.IsNullOrWhiteSpace(_selectionFeedback.Message))
-        {
-            return string.Empty;
-        }
-
-        if (_selectedFile is not null
-            && current.File is not null
-            && string.Equals(_selectedFile.FullPath, current.File.FullPath, StringComparison.OrdinalIgnoreCase))
-        {
-            return string.Empty;
-        }
-
-        return _selectionFeedback.Message;
-    }
-
-    private static string BuildPlaybackStateText(PlaybackState state)
-    {
-        return state switch
-        {
-            PlaybackState.None => "未载入",
-            PlaybackState.Ready => "已载入",
-            PlaybackState.Launched => "已调用系统打开",
-            PlaybackState.Failed => "打开失败",
-            _ => state.ToString(),
-        };
-    }
 }

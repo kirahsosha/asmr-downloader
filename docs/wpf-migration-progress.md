@@ -1,8 +1,8 @@
 # asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.6.2
+当前跟踪版本：v0.6.3
 
-AI约束策略：章节1.5.1到1.5.110的文本不加入分析上下文
+AI约束策略：章节1.5.1到1.5.113的文本不加入分析上下文
 
 ## 1. 项目进度跟踪清单
 
@@ -17,17 +17,17 @@ AI约束策略：章节1.5.1到1.5.110的文本不加入分析上下文
 
 ## 1.2 阶段总览清单
 
-| 阶段   | 名称                   | 状态   | 负责人    | 开始日期   | 目标完成日期 | 实际完成日期 | 备注                                                                                                                                                     |
-| ------ | ---------------------- | ------ | --------- | ---------- | ------------ | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 阶段 0 | 创建 .NET 解决方案骨架 | 已完成 | AI + 用户 | 2026-03-14 | 2026-03-14   | 2026-03-14   | 已确认 9 项目在解决方案中；`dotnet build dotnet/Asmroner.sln` 成功。                                                                                     |
-| 阶段 1 | 配置与初始化迁移       | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成配置模型、程序目录 `config.json` 默认配置加载、SQLite读写与旧结构迁移、初始化编排、首次启动设置向导分支与“保存后重新初始化”闭环。                  |
-| 阶段 2 | API 与认证迁移         | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已修复 `HttpClient` 配置时机问题并完成回归。                                                                                                             |
-| 阶段 3 | 搜索能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成查询解析、分页聚合、搜索导出、入队与高级筛选/分页 UI 交互；补齐“无关键词调整排序类控件触发查询”修复。                                              |
-| 阶段 4 | 下载能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成下载入口、并发/重试控制与状态可视化复核，并补齐 SQLite 状态持久化能力。                                                                            |
-| 阶段 5 | 同步能力迁移           | 已完成 | AI + 用户 | 2026-04-02 | 2026-04-03   | 2026-04-03   | 已补齐 SQLite UiState 同步进度持久化、断点继续、合并式开始/停止按钮与同步运行中手动刷新统计；阶段 5 增强回归已闭环。                                     |
-| 阶段 6 | 资源库与播放能力迁移   | 进行中 | AI + 用户 | 2026-04-15 | 待填写       | 待填写       | 已完成资源库扫描/索引、Library 页签、显式选中文件后的系统默认程序打开，以及异常扫描容错与选择反馈补强；更完整的格式兼容验证与阶段 DoD 仍待后续批次补齐。 |
-| 阶段 7 | UI 集成与体验收口      | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                                        |
-| 阶段 8 | 最终验收与发布准备     | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                                        |
+| 阶段   | 名称                   | 状态   | 负责人    | 开始日期   | 目标完成日期 | 实际完成日期 | 备注                                                                                                                                    |
+| ------ | ---------------------- | ------ | --------- | ---------- | ------------ | ------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 阶段 0 | 创建 .NET 解决方案骨架 | 已完成 | AI + 用户 | 2026-03-14 | 2026-03-14   | 2026-03-14   | 已确认 9 项目在解决方案中；`dotnet build dotnet/Asmroner.sln` 成功。                                                                    |
+| 阶段 1 | 配置与初始化迁移       | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成配置模型、程序目录 `config.json` 默认配置加载、SQLite读写与旧结构迁移、初始化编排、首次启动设置向导分支与“保存后重新初始化”闭环。 |
+| 阶段 2 | API 与认证迁移         | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已修复 `HttpClient` 配置时机问题并完成回归。                                                                                            |
+| 阶段 3 | 搜索能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成查询解析、分页聚合、搜索导出、入队与高级筛选/分页 UI 交互；补齐“无关键词调整排序类控件触发查询”修复。                             |
+| 阶段 4 | 下载能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成下载入口、并发/重试控制与状态可视化复核，并补齐 SQLite 状态持久化能力。                                                           |
+| 阶段 5 | 同步能力迁移           | 已完成 | AI + 用户 | 2026-04-02 | 2026-04-03   | 2026-04-03   | 已补齐 SQLite UiState 同步进度持久化、断点继续、合并式开始/停止按钮与同步运行中手动刷新统计；阶段 5 增强回归已闭环。                    |
+| 阶段 6 | 资源库与播放能力迁移   | 已完成 | AI + 用户 | 2026-04-15 | 2026-04-16   | 2026-04-16   | 已完成资源库扫描/索引、Library 页签、显式选中文件后的系统默认程序打开、异常扫描容错、共享可播放格式规则；阶段 6 DoD 已闭环。            |
+| 阶段 7 | UI 集成与体验收口      | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                       |
+| 阶段 8 | 最终验收与发布准备     | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                       |
 
 ## 1.3 阶段执行勾选清单
 
@@ -88,7 +88,7 @@ AI约束策略：章节1.5.1到1.5.110的文本不加入分析上下文
 - [x] 资源库页面浏览与筛选可用。
 - [x] 显式选中可播放媒体文件后，可载入并通过系统默认程序打开。
 - [x] 异常文件处理不导致应用崩溃。
-- [ ] 阶段 6 DoD 已满足并记录证据。
+- [x] 阶段 6 DoD 已满足并记录证据。
 
 ### 阶段 7：UI 集成与体验收口
 
@@ -1253,6 +1253,30 @@ AI约束策略：章节1.5.1到1.5.110的文本不加入分析上下文
 4. DoD 判定：否。当前已完成资源库扫描/索引、列表/筛选、显式选中文件后的系统默认程序打开，以及异常扫描容错与选择反馈补强；更完整的格式兼容验证与阶段 6 完整 DoD 仍待后续批次完成。
 5. 下次计划：由用户执行章节 4.6 的受影响手工回归，重点验证目录/不可播放文件/缺失媒体文件的明确提示、按钮禁用状态，以及可播放文件仍能完成载入与系统默认程序打开；随后继续阶段 6 的格式兼容与体验收口。
 
+### 1.5.111 2026-04-16，v0.6.3：收口 Library 可播放格式规则与作品级选择引导
+
+1. 变更摘要：继续推进阶段 6，在保持系统默认程序打开方案不变的前提下，把可播放扩展名判断抽到共享 `LibraryPlayableMediaPolicy`，统一扫描层与 UI 侧的格式规则；`LibraryView` / `LibrarySelectionFeedbackPolicy` 在仅选中作品、尚未选中文件时新增作品级引导，可提示当前作品是否包含可播放媒体文件、首个候选路径，以及无可播放文件时的支持格式说明；同步将运行时/UI/README 版本对齐到 `v0.6.3`。
+2. 关键文件：`dotnet/Asmroner.Backend/Asmroner.Core/Library/LibraryPlayableMediaPolicy.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/LibraryScannerService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/LibrarySelectionFeedbackPolicy.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/LibraryView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/LibraryView.xaml.cs`、`dotnet/tests/Asmroner.Core.Tests/LibraryPlayableMediaPolicyTests.cs`、`dotnet/tests/Asmroner.Application.Tests/LibraryScannerServiceTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/LibrarySelectionFeedbackPolicyTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/LibraryViewXamlTests.cs`、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`。
+3. 验证结果：`rtk dotnet test dotnet/tests/Asmroner.Core.Tests/Asmroner.Core.Tests.csproj --no-restore` 通过（19/19）；`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --no-restore` 通过（99/99）；`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --no-restore` 通过（77/77）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --no-restore` 通过（180/180）；`rtk dotnet test dotnet/Asmroner.sln --no-restore` 通过（378/378）。
+4. DoD 判定：否。当前已补齐共享可播放格式规则与作品级选择引导，阶段 6 在代码与自动化测试层面已进一步收口；但章节 4.1 / 4.6 的受影响手工项已按规则重置为未勾选，完整 DoD 证据仍待用户手工回归确认。
+5. 下次计划：由用户执行章节 4.1 与 4.6 的受影响手工回归，重点验证 Settings 版本文案 `v0.6.3`、仅选中作品时的首个候选提示、无可播放文件时的支持格式说明，以及大小写混合支持扩展名文件仍可被识别并完成载入与系统默认程序打开；随后视人工验证结果决定是否关闭阶段 6。
+
+### 1.5.112 2026-04-16，v0.6.3：收口 Library 播放上下文表达与 DoD 闭环准备
+
+1. 变更摘要：继续推进阶段 6，在保持 `v0.6.3` 与当前 shell-open 方案不变的前提下，新增 `LibraryPlaybackContextTextBuilder`，把 Library 右侧的“当前选择”与“当前已载入上下文”拆开显示；`LibraryView` 保留“载入/切换文件”“播放”“清空上下文”三按钮，但上下文区不再混写当前选择反馈与已载入状态，便于人工验证清空上下文、重新载入和系统默认程序打开的真实状态。
+2. 关键文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/LibraryPlaybackContextTextBuilder.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/LibraryView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/LibraryView.xaml.cs`、`dotnet/tests/Asmroner.Wpf.Tests/LibraryPlaybackContextTextBuilderTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/LibraryViewXamlTests.cs`、`docs/wpf-migration-progress.md`。
+3. 验证结果：`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --no-restore` 通过（99/99）；`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --no-restore` 通过（77/77）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --no-restore` 通过（183/183）；`rtk dotnet test dotnet/Asmroner.sln --no-restore` 通过（381/381）。
+4. DoD 判定：否。当前已补齐播放上下文表达与自动化证据，阶段 6 在代码层面进一步收口；但章节 4.6 的受影响 Library 手工项仍待用户执行，阶段 6 DoD 仍不能由 AI 单方面闭环。
+5. 下次计划：由用户执行章节 4.1 与 4.6 的受影响手工回归，重点验证 Settings 版本文案 `v0.6.3`、“当前选择 / 当前已载入上下文”分离展示、清空上下文后的保留选择提示、以及显式选中文件后的系统默认程序打开；若人工验证通过，再回写阶段 6 完成状态。
+
+### 1.5.113 2026-04-16，v0.6.3：确认阶段 6 手工回归通过并关闭 DoD
+
+1. 变更摘要：用户已完成并确认章节 4.1 与 4.6 的受影响手工回归通过，本次据此回写阶段 6 完成状态；阶段总览切换为“已完成”，阶段执行勾选中的“阶段 6 DoD 已满足并记录证据”同步闭环，并将待提交行整理为包含共享格式规则、作品级引导、播放上下文分离展示与手工回归确认的单一 v0.6.3 提交说明。
+2. 关键文件：`docs/wpf-migration-progress.md`。
+3. 验证结果：用户已明确确认章节 4.1 / 4.6 的受影响手工回归通过；最近一次自动化回归基线保持为 `rtk dotnet test dotnet/Asmroner.sln --no-restore` 通过（381/381）。
+4. DoD 判定：是。阶段 6 的代码、自动化测试与用户手工回归证据已闭环。
+5. 下次计划：进入阶段 7（UI 集成与体验收口）的方案制定与实施准备。
+
 ---
 
 ## 1.6 维护规则
@@ -1273,7 +1297,7 @@ AI约束策略：章节1.5.1到1.5.110的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-16 的解决方案级回归（371/371）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-16 的解决方案级回归（381/381）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
@@ -1959,6 +1983,7 @@ AI约束策略：章节1.5.1到1.5.110的文本不加入分析上下文
 | [x]    | [x]    | 阶段 6 | `ScanAsync_ShouldPreferDuplicateWorkEntry_WithMorePlayableFiles`          | 下载根与同步根同时存在同一 `SourceId` 的目录              | 合并后优先保留音频文件更多的目录项，避免同一作品在资源库中重复展示。                                       |
 | [x]    | [x]    | 阶段 6 | `ScanAsync_ShouldKeepReadableFiles_WhenNestedDirectoryEnumerationThrows`  | 嵌套目录子目录枚举抛异常，但当前目录文件仍可读取          | 扫描结果保留可读文件树并记录错误，不因单个嵌套目录异常而放弃整项作品。                                     |
 | [x]    | [x]    | 阶段 6 | `ScanAsync_ShouldSkipUnreadableFile_WhenFileInspectionThrows`             | 单个媒体文件长度探测抛异常                                | 跳过不可读文件、保留其余文件并记录错误，不因单文件异常导致整项扫描失败。                                   |
+| [x]    | [x]    | 阶段 6 | `ScanAsync_ShouldTreatSupportedExtensionsAsPlayable_IgnoringCase`         | 目录内存在 `.FLAC`、`.OpUs` 等大小写混合支持扩展名文件    | 扫描结果会按共享可播放格式规则识别大小写混合扩展名文件，并正确统计 `AudioFileCount/IsPlayable`。           |
 
 #### 2.1.74 Application.Tests / LibraryQueryServiceTests.cs
 
@@ -2002,12 +2027,31 @@ AI约束策略：章节1.5.1到1.5.110的文本不加入分析上下文
 
 #### 2.1.79 Wpf.Tests / LibrarySelectionFeedbackPolicyTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                   | 输入                             | 期望输出                                                       |
-| ------ | ------ | ------ | -------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 6 | `Evaluate_ShouldWarn_WhenDirectoryIsSelected`            | 选中文件树中的目录节点           | 返回“当前选择是目录”提示，且不允许载入上下文或播放。           |
-| [x]    | [x]    | 阶段 6 | `Evaluate_ShouldWarn_WhenFileIsNotPlayable`              | 选中文件树中的不可播放文件       | 返回“当前选择的文件不可播放”提示，且不允许载入上下文或播放。   |
-| [x]    | [x]    | 阶段 6 | `Evaluate_ShouldWarn_WhenPlayableFileDoesNotExist`       | 选中一个路径缺失的可播放媒体文件 | 返回“当前选择的媒体文件不存在”提示，且不允许载入上下文或播放。 |
-| [x]    | [x]    | 阶段 6 | `Evaluate_ShouldAllowLoadAndPlay_WhenPlayableFileExists` | 选中一个实际存在的可播放媒体文件 | 返回“已选择可播放媒体文件”提示，并允许载入上下文与播放。       |
+| 已创建 | 已通过 | 阶段   | 样例名                                                              | 输入                             | 期望输出                                                                 |
+| ------ | ------ | ------ | ------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------ |
+| [x]    | [x]    | 阶段 6 | `Evaluate_ShouldGuide_WhenWorkIsSelectedWithoutTreeItem`            | 仅选中作品、尚未选中文件树节点   | 返回作品级引导，提示当前作品包含可播放媒体文件数量与首个候选路径。       |
+| [x]    | [x]    | 阶段 6 | `Evaluate_ShouldExplainSupportedFormats_WhenWorkHasNoPlayableFiles` | 仅选中一个无可播放文件的作品     | 返回“未发现可播放媒体文件”提示，并附带共享支持格式列表。                 |
+| [x]    | [x]    | 阶段 6 | `Evaluate_ShouldWarn_WhenDirectoryIsSelected`                       | 选中文件树中的目录节点           | 返回“当前选择是目录”提示，并在存在候选时给出建议选择的媒体文件。         |
+| [x]    | [x]    | 阶段 6 | `Evaluate_ShouldWarn_WhenNonPlayableFileIsSelected`                 | 选中文件树中的不可播放文件       | 返回“当前选择的文件不可播放”提示，并在存在候选时给出建议选择的媒体文件。 |
+| [x]    | [x]    | 阶段 6 | `Evaluate_ShouldWarn_WhenPlayableFileDoesNotExist`                  | 选中一个路径缺失的可播放媒体文件 | 返回“当前选择的媒体文件不存在”提示，并在存在其它候选时给出可改选文件。   |
+| [x]    | [x]    | 阶段 6 | `Evaluate_ShouldEnableActions_WhenPlayableFileExists`               | 选中一个实际存在的可播放媒体文件 | 返回“已选择可播放媒体文件”提示，并允许载入上下文与播放。                 |
+
+#### 2.1.80 Core.Tests / LibraryPlayableMediaPolicyTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                            | 输入                             | 期望输出                                                   |
+| ------ | ------ | ------ | --------------------------------------------------------------------------------- | -------------------------------- | ---------------------------------------------------------- |
+| [x]    | [x]    | 阶段 6 | `IsPlayableExtension_ShouldTreatSupportedExtensionsAsPlayable_IgnoringCaseAndDot` | 支持扩展名的大写/缺少点号输入    | 共享格式规则会忽略大小写，并兼容带点或不带点的扩展名判断。 |
+| [x]    | [x]    | 阶段 6 | `CountPlayableFiles_ShouldCountNestedPlayableMediaFiles`                          | 含嵌套目录与多种媒体文件的作品树 | 可递归统计作品树中的可播放媒体文件数量。                   |
+| [x]    | [x]    | 阶段 6 | `FindFirstPlayableFile_ShouldReturnFirstDepthFirstPlayableFile`                   | 目录优先展示的嵌套作品树         | 会按当前树结构的深度优先顺序返回首个可播放媒体文件。       |
+| [x]    | [x]    | 阶段 6 | `FindFirstPlayableFile_ShouldReturnNull_WhenNoPlayableFileExists`                 | 不含任何支持扩展名文件的作品树   | 返回 `null`，供上层显示“未发现可播放媒体文件”的明确提示。  |
+
+#### 2.1.81 Wpf.Tests / LibraryPlaybackContextTextBuilderTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                           | 输入                           | 期望输出                                                                               |
+| ------ | ------ | ------ | ---------------------------------------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 6 | `Build_ShouldProvideDefaultTexts_WhenNothingIsSelectedOrLoaded`  | 无当前选择、无已载入上下文     | “当前选择”区显示显式选择引导，“当前已载入上下文”区显示未载入状态与默认说明。           |
+| [x]    | [x]    | 阶段 6 | `Build_ShouldKeepSelectionFeedbackSeparated_FromLoadedContext`   | 有作品级选择提示，尚未载入文件 | “当前选择”区保留作品级候选提示，“当前已载入上下文”区仍显示未载入状态，不与选择区混写。 |
+| [x]    | [x]    | 阶段 6 | `Build_ShouldIncludeLoadedWorkAndFileDetails_WhenContextIsReady` | 已载入一个可播放媒体文件       | “当前已载入上下文”区显示状态、作品、文件与说明，“当前选择”区保持当前选择反馈。         |
 
 ### 2.2 测试覆盖分析
 
@@ -2025,7 +2069,7 @@ AI约束策略：章节1.5.1到1.5.110的文本不加入分析上下文
 - 未完成队列快照构建：Search/Download 共用快照规则并在入队后持久化，✅ 已覆盖。
 - 启动未完成队列元数据补拉：非阻塞启动、仅补拉缺失标题并刷新 Download 列表，✅ 已覆盖。
 - 版本文案动态化：Settings 页面与启动日志共用程序集三段式版本号，✅ 已覆盖。
-- 阶段 6 资源库与系统默认程序打开：目录名双格式解析、扫描去重、关键字/字幕/音频过滤、显式选中文件后的系统打开、刷新后跨根目录同相对路径文件的重载判定、Shell `null` 返回成功判定、失败提示与 Library 打开控件，✅ 已覆盖。
+- 阶段 6 资源库与系统默认程序打开：目录名双格式解析、扫描去重、关键字/字幕/音频过滤、显式选中文件后的系统打开、刷新后跨根目录同相对路径文件的重载判定、Shell `null` 返回成功判定、失败提示、Library 打开控件与播放上下文分离展示，✅ 已覆盖。
 - 翻译作品优先入队：当前语言识别、关联版本优先级选择、UI 勾选持久化与 Search/Download 四类入口回归，✅ 已覆盖。
 - `source_id/workId` 双键兼容：BJ 等非 `RJ` 作品的详情/轨道解析、Search WorkId 透传与作品页链接生成，✅ 已覆盖。
 - 启动补拉失败可视化：补拉超时/单项失败后在 Download 列表中显示 `Failed` 占位与错误信息，✅ 已覆盖。
@@ -2090,7 +2134,8 @@ AI约束策略：章节1.5.1到1.5.110的文本不加入分析上下文
 | 2026-04-14 | 已提交 | v0.5.9: harden publish-source discovery and merge candidate persistence     | 1. Update runtime/docs version to v0.5.9.<br>2. Refactor publish-source HTML/script fetching to use a dedicated client with shared transport rules, timeout, cancellation and test seams.<br>3. Persist merged discovered-plus-saved API candidates only when the merged candidate count grows, while keeping current BaseUrl synchronization.<br>4. Update regression tests and progress documentation.                           | 116c8ad    |
 | 2026-04-15 | 已提交 | v0.6.0: kick off phase 6 library scan/query shell                           | 1. Update runtime/docs version to v0.6.0.<br>2. Start phase 6 with dual-format local library scanning, metadata overlay, query/paging and playback-context abstraction.<br>3. Add the `Library` tab and WPF library page shell.<br>4. Add Core/Application/WPF regression tests for the stage 6 first batch.<br>5. Update regression tests and progress documentation.                                                             | 04dea2f    |
 | 2026-04-15 | 已提交 | v0.6.1: switch Library playback to shell-open selected media                | 1. Update runtime/docs version to v0.6.1.<br>2. Replace the MediaPlayer-based Library playback flow with explicit selected-media loading plus system-default-app open behavior.<br>3. Remove pause/stop and inline progress UI.<br>4. Update regression tests and progress documentation.                                                                                                                                          | 994ba3c    |
-| 2026-04-16 | 待提交 | v0.6.2: harden Library scan tolerance and selection feedback                | 1. Update runtime/docs version to v0.6.2.<br>2. Harden Library scan tolerance so nested directory/file errors become local error records instead of failing the whole work item.<br>3. Add explicit Library selection feedback for directory, non-playable, missing and playable file states, and tighten action-button availability.<br>4. Update regression tests and progress documentation.                                    | -          |
+| 2026-04-16 | 已提交 | v0.6.2: harden Library scan tolerance and selection feedback                | 1. Update runtime/docs version to v0.6.2.<br>2. Harden Library scan tolerance so nested directory/file errors become local error records instead of failing the whole work item.<br>3. Add explicit Library selection feedback for directory, non-playable, missing and playable file states, and tighten action-button availability.<br>4. Update regression tests and progress documentation.                                    | f3e6443    |
+| 2026-04-16 | 待提交 | v0.6.3: close phase 6 Library DoD                                           | 1. Update runtime/docs version to v0.6.3.<br>2. Extract shared playable-media rules for Library scanning and selection guidance.<br>3. Add work-level Library guidance plus separated current-selection and loaded-context messaging in the existing Library page while keeping explicit file selection before load/play.<br>4. Update regression tests and progress documentation.                                                | -          |
 
 ---
 
@@ -2121,7 +2166,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] “测试连接”应通过 `GET /api/health?cache=false` 完成候选探测；当旧探测端点不可用但 health API 可达时，仍能选中可用 BaseUrl。
 - [x] 当发布页正文直接提供 `asmr-300/200/100/one` 最新域名时，“测试连接”会按正文顺序补齐候选列表并写回 SQLite `ApiCandidateUrls`；随后再次“保存并重新初始化”不会把新候选覆盖回旧值。
 - [x] 当发布页 discovery 仅返回部分新候选时，若与已保存候选集合合并后的总数更大，“测试连接”会保留旧候选并把合并后的 `ApiCandidateUrls` 写回 SQLite。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.6.2。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.6.3。
 
 ### 4.2 Search 功能
 
@@ -2236,9 +2281,12 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 当下载目录/同步目录中同时存在 `[{SourceId}]{Title}` 与 `sourceId-date-sub/nosub-title` 两种命名格式时，Library 页面都能识别作品；其中 legacy 标题包含连字符时也不会漏显；非法目录会被跳过并在状态中体现，不导致应用崩溃。
 - [x] 首次刷新或切换上一页/下一页期间，窗口保持可响应；刷新/翻页/打开相关按钮在扫描完成前会临时禁用，完成后恢复。
 - [x] Library 页的关键字筛选、“仅显示带字幕作品”“仅显示含音频作品”与上一页/下一页切换均可正确更新列表结果。
-- [x] 选中作品后，右侧详情区与文件树会同步更新；选中文件后点击“载入/切换文件”可更新当前打开目标，点击“清空上下文”可恢复初始提示。
+- [x] 选中作品后，右侧详情区与文件树会同步更新；选中文件后点击“载入/切换文件”可更新当前打开目标；点击“清空上下文”会清除当前播放器状态，并按当前保留的作品/文件选择显示对应提示。
+- [x] 仅选中作品但未选中文件时，Library 页会提示当前作品是否包含可播放媒体文件，并给出首个候选路径或“未发现可播放媒体文件”的明确说明。
 - [x] 当在文件树中选中目录、不可播放文件、缺失媒体文件与可播放媒体文件时，Library 页会分别显示明确提示，并正确更新“载入/切换文件”“播放”按钮可用性。
+- [x] 当作品文件使用大小写混合的支持扩展名（如 `.FLAC`、`.OpUs`）时，Library 页仍会识别为可播放媒体文件，并允许后续载入与播放。
 - [x] 显式选中可播放媒体文件后，Library 页可点击“播放”调用系统默认关联程序打开；未选中文件时“播放”不可点击。
 - [x] 当选中文件缺失或系统默认关联程序打开失败时，Library 页会显示明确失败提示，不导致应用崩溃。
 - [x] 当系统默认关联程序已成功拉起但底层 Shell 调用返回 `null` 时，Library 页不应误报“打开失败”。
-- [x] Library 页不再显示“暂停 / 停止”按钮和时间进度文本，上下文区显示状态、作品、当前文件与最近一次打开结果。
+- [x] Library 页不再显示“暂停 / 停止”按钮和时间进度文本；“当前选择”与“当前已载入上下文”会分开展示，且已载入区会显示状态、作品、当前文件与最近一次打开结果。
+- [x] 清空上下文后，“当前已载入上下文”应恢复为未载入状态，但“当前选择”区仍保留当前作品或文件对应的提示，不与已载入状态混淆。
