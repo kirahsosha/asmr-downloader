@@ -1,8 +1,8 @@
 # asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.6.3
+当前跟踪版本：v0.6.4
 
-AI约束策略：章节1.5.1到1.5.113的文本不加入分析上下文
+AI约束策略：章节1.5.1到1.5.114的文本不加入分析上下文
 
 ## 1. 项目进度跟踪清单
 
@@ -149,6 +149,9 @@ AI约束策略：章节1.5.1到1.5.113的文本不加入分析上下文
 | 2026-04-14 | 阶段 4 | Download 页面在“立即下载选中任务/执行下载队列”期间未将 `ImportFileButton` 纳入与其它入队入口一致的运行态禁用组 | Download 页面导入入口一致性   | 已解决   | 2026-04-14    |
 | 2026-04-14 | 阶段 5 | Sync 页面把“重试失败项”与导出共用独占状态，导致重试期间 `RefreshStatusButton` 被连带禁用                       | Sync 页面实时可观测性         | 已解决   | 2026-04-14    |
 | 2026-04-14 | 阶段 5 | Sync 页面在“重试失败项”期间点击“刷新统计”会用旧的持久化下载进度覆盖当前重试状态与详情                          | Sync 页面重试态可观测性       | 已解决   | 2026-04-14    |
+| 2026-04-16 | 阶段 6 | Library 页右侧详情区与文件树使用自然高度布局，选中作品后长文本与文件树内容会超出窗口范围                       | Library 页面详情与文件树显示  | 已解决   | 2026-04-16    |
+| 2026-04-16 | 阶段 6 | Library 页右侧文件树固定高度且右栏未随窗口拉高同步伸展，导致放大窗口后左侧作品列表与右侧文件树下边沿失衡       | Library 页面缩放对齐          | 已解决   | 2026-04-16    |
+| 2026-04-16 | 阶段 6 | Library 页左右内容区缺少受限高度容器，缩小窗口时列表、详情与文件树内容会继续外溢而非使用内部滚动承载           | Library 页面缩放与滚动边界    | 已解决   | 2026-04-16    |
 
 ## 1.5 变更与验证记录
 
@@ -1279,6 +1282,13 @@ AI约束策略：章节1.5.1到1.5.113的文本不加入分析上下文
 
 ---
 
+### 1.5.114 2026-04-16，v0.6.4：补齐 Library 分页并修正资源库页缩放布局
+
+1. 本次变更摘要：Library 页面补齐跳页与 `page size` 控件，并将作品列表、详情区、文件树与上下文区改为受限高度 + 内部滚动布局，修复选中作品后右侧内容越界、窗口放大后左右下边沿错位、窗口缩小时内容溢出的三个界面问题。
+2. 关键修改文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/LibraryView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/LibraryView.xaml.cs`、`dotnet/tests/Asmroner.Wpf.Tests/LibraryViewXamlTests.cs`、`dotnet/tests/Asmroner.Application.Tests/LibraryQueryServiceTests.cs`、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`。
+3. 构建与测试结果：`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --no-restore` 通过（100/100）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --no-restore` 通过（184/184）；`rtk dotnet test dotnet/Asmroner.sln --no-restore` 通过（383/383）。
+4. DoD 判定：是。阶段 6 状态保持“已完成”，本次作为阶段 6 后续维护收口；自动化回归通过，手工验证项已重置为待验证。
+
 ## 1.6 维护规则
 
 - 每次代码提交后更新第 16.2 节状态表。
@@ -1297,7 +1307,7 @@ AI约束策略：章节1.5.1到1.5.113的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-16 的解决方案级回归（381/381）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-16 的解决方案级回归（383/383）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
@@ -1492,16 +1502,16 @@ AI约束策略：章节1.5.1到1.5.113的文本不加入分析上下文
 
 #### 2.1.19 Wpf.Tests / SearchViewXamlTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                     | 输入                            | 期望输出                                                                                       |
-| ------ | ------ | ------ | -------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldContainUnifiedCardStyles_AndCoreControls`            | 解析 `SearchView.xaml` 文本/XML | 卡片化样式资源、核心控件、“导出到文件”“收藏作品”按钮与统一状态面板样式存在，且 XAML 可被解析。 |
-| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldUseAlignedComboBoxStyles`                            | 解析 `SearchView.xaml` 文本/XML | 下拉框与选项项样式包含对齐设置，且 XAML 可被解析。                                             |
-| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldNotContainStagePrefixText`                           | 解析 `SearchView.xaml` 文本     | 页面不再包含“阶段 ”前缀文案。                                                                  |
-| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldUseHeaderBorders_AndLockSubtitleAndDateColumnWidths` | 解析 `SearchView.xaml` 文本/XML | 列头显示边框；字幕/日期列宽保持 `42/75` 且不可拖拽改宽；数据过宽时支持横向滚动与列重排。       |
-| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldUseSearchViewClassName`                              | 解析 `SearchView.xaml` 文本     | `x:Class` 为 `Asmroner.Wpf.Views.SearchView`。                                                 |
-| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldWireSelectionChangedHandlersForQueryOptions`         | 解析 `SearchView.xaml` 文本     | 排序/方向/字幕/页大小下拉均绑定 `SelectionChanged`                                             |
-| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldContainResultsGridContextMenuItems`                  | 解析 `SearchView.xaml` 文本     | 结果表格包含右键菜单四项操作及对应事件绑定                                                     |
-| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldContainSeparateQueueTranslationCheckbox`             | 解析 `SearchView.xaml` 文本     | 搜索筛选用“包含翻译作品”与入队用“加入翻译作品”两个复选框并存，且后者位于前者右侧并默认勾选。   |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                     | 输入                            | 期望输出                                                                                                                     |
+| ------ | ------ | ------ | -------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldContainUnifiedCardStyles_AndCoreControls`            | 解析 `SearchView.xaml` 文本/XML | 卡片化样式资源、核心控件、“导出到文件”“收藏作品”按钮与统一状态面板样式存在，且 XAML 可被解析。                               |
+| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldUseAlignedComboBoxStyles`                            | 解析 `SearchView.xaml` 文本/XML | 下拉框与选项项样式包含对齐设置，且 XAML 可被解析。                                                                           |
+| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldNotContainStagePrefixText`                           | 解析 `SearchView.xaml` 文本     | 页面不再包含“阶段 ”前缀文案。                                                                                                |
+| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldUseHeaderBorders_AndLockSubtitleAndDateColumnWidths` | 解析 `SearchView.xaml` 文本/XML | 结果列表列头显示边框；首列标题使用本地化“作品ID”；字幕/日期列宽保持 `42/75` 且不可拖拽改宽；数据过宽时支持横向滚动与列重排。 |
+| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldUseSearchViewClassName`                              | 解析 `SearchView.xaml` 文本     | `x:Class` 为 `Asmroner.Wpf.Views.SearchView`。                                                                               |
+| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldWireSelectionChangedHandlersForQueryOptions`         | 解析 `SearchView.xaml` 文本     | 排序/方向/字幕/页大小下拉均绑定 `SelectionChanged`                                                                           |
+| [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldContainResultsGridContextMenuItems`                  | 解析 `SearchView.xaml` 文本     | 结果表格包含右键菜单四项操作及对应事件绑定                                                                                   |
+| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldContainSeparateQueueTranslationCheckbox`             | 解析 `SearchView.xaml` 文本     | 搜索筛选用“包含翻译作品”与入队用“加入翻译作品”两个复选框并存，且后者位于前者右侧并默认勾选。                                 |
 
 #### 2.1.20 Wpf.Tests / SettingsViewXamlTests.cs
 
@@ -1786,7 +1796,7 @@ AI约束策略：章节1.5.1到1.5.113的文本不加入分析上下文
 
 | 已创建 | 已通过 | 阶段    | 样例名                                                                            | 输入                     | 期望输出                                    |
 | ------ | ------ | ------- | --------------------------------------------------------------------------------- | ------------------------ | ------------------------------------------- |
-| [x]    | [x]    | 阶段 5  | `GetDisplayVersion_ShouldReturnThreePartAssemblyVersion`                          | 当前程序集版本 `0.5.8.0` | 返回三段式版本文本 `0.5.8`                  |
+| [x]    | [x]    | 阶段 5  | `GetDisplayVersion_ShouldReturnThreePartAssemblyVersion`                          | 当前程序集版本 `0.6.4.0` | 返回三段式版本文本 `0.6.4`                  |
 | [x]    | [x]    | 阶段 1+ | `BuildSettingsVersionText_AndStartupMessage_ShouldUseDisplayVersionWithoutSuffix` | 动态版本文案构建         | Settings 文案与启动日志共用相同三段式版本号 |
 
 #### 2.1.52 Wpf.Tests / StartupUnfinishedQueueMetadataRefreshServiceTests.cs
@@ -1991,6 +2001,7 @@ AI约束策略：章节1.5.1到1.5.113的文本不加入分析上下文
 | ------ | ------ | ------ | -------------------------------------------------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | [x]    | [x]    | 阶段 6 | `QueryAsync_ShouldFilterByKeywordSubtitleAndAudio_AndReturnPagingMetadata` | 预置扫描结果 + 关键字/字幕/音频筛选 + `pageSize=1` | 仅返回满足条件的作品，并保留 `SkippedDirectories/Errors/ScannedRootCount/ScannedWorkCount`。 |
 | [x]    | [x]    | 阶段 6 | `QueryAsync_ShouldClampPageToLastPage_WhenRequestedPageExceedsRange`       | 预置 3 条扫描结果，请求超出范围的页码              | 查询页码会被钳制到最后一页，且返回按日期倒序后的尾页数据。                                   |
+| [x]    | [x]    | 阶段 6 | `QueryAsync_ShouldHonorRequestedPageSize_WhenBuildingPagedItems`           | 预置 5 条扫描结果，请求 `page=2,pageSize=2`        | 返回第 2 页的 2 条数据，并正确输出 `PageSize/TotalPages/TotalCount` 等分页元数据。           |
 
 #### 2.1.75 Application.Tests / PlayerServiceTests.cs
 
@@ -2007,10 +2018,11 @@ AI约束策略：章节1.5.1到1.5.113的文本不加入分析上下文
 
 #### 2.1.76 Wpf.Tests / LibraryViewXamlTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                 | 输入                             | 期望输出                                                                                           |
-| ------ | ------ | ------ | ---------------------------------------------------------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 6 | `LibraryViewXaml_ShouldContainCoreLibraryControls_AndStatusBlocks`     | 解析 `LibraryView.xaml` 文本/XML | `Library` 页包含关键筛选控件、作品列表、文件树、系统打开区、状态区与播放主按钮，且 XAML 可被解析。 |
-| [x]    | [x]    | 阶段 6 | `LibraryViewXaml_ShouldContainExpectedGridColumns_AndFileTreeTemplate` | 解析 `LibraryView.xaml` 文本/XML | 作品表格包含 `SourceId/标题/日期/字幕/音频/文件` 列，且文件树使用 `LibraryFileItem` 层级模板。     |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                 | 输入                             | 期望输出                                                                                                                                                      |
+| ------ | ------ | ------ | ---------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 6 | `LibraryViewXaml_ShouldContainCoreLibraryControls_AndStatusBlocks`     | 解析 `LibraryView.xaml` 文本/XML | `Library` 页包含当前副标题文案、关键筛选控件、上一页/下一页/跳页/page size 控件、独立“作品详情”区、文件树、系统打开区、状态区与播放主按钮，且 XAML 可被解析。 |
+| [x]    | [x]    | 阶段 6 | `LibraryViewXaml_ShouldContainExpectedGridColumns_AndFileTreeTemplate` | 解析 `LibraryView.xaml` 文本/XML | 作品表格包含本地化列头 `作品ID/标题/日期/字幕/音频/文件`，且文件树使用 `LibraryFileItem` 层级模板。                                                           |
+| [x]    | [x]    | 阶段 6 | `LibraryViewXaml_ShouldUseScrollableLayout_ForPagingAndRightPane`      | 解析 `LibraryView.xaml` 文本/XML | 右侧详情/文件树/上下文区采用受限高度与内部滚动布局，`FileTreeView` 不再固定 `220` 高度，且跳页/page size 事件绑定存在。                                       |
 
 #### 2.1.77 Wpf.Tests / LibraryPlaybackSelectionPolicyTests.cs
 
@@ -2135,7 +2147,8 @@ AI约束策略：章节1.5.1到1.5.113的文本不加入分析上下文
 | 2026-04-15 | 已提交 | v0.6.0: kick off phase 6 library scan/query shell                           | 1. Update runtime/docs version to v0.6.0.<br>2. Start phase 6 with dual-format local library scanning, metadata overlay, query/paging and playback-context abstraction.<br>3. Add the `Library` tab and WPF library page shell.<br>4. Add Core/Application/WPF regression tests for the stage 6 first batch.<br>5. Update regression tests and progress documentation.                                                             | 04dea2f    |
 | 2026-04-15 | 已提交 | v0.6.1: switch Library playback to shell-open selected media                | 1. Update runtime/docs version to v0.6.1.<br>2. Replace the MediaPlayer-based Library playback flow with explicit selected-media loading plus system-default-app open behavior.<br>3. Remove pause/stop and inline progress UI.<br>4. Update regression tests and progress documentation.                                                                                                                                          | 994ba3c    |
 | 2026-04-16 | 已提交 | v0.6.2: harden Library scan tolerance and selection feedback                | 1. Update runtime/docs version to v0.6.2.<br>2. Harden Library scan tolerance so nested directory/file errors become local error records instead of failing the whole work item.<br>3. Add explicit Library selection feedback for directory, non-playable, missing and playable file states, and tighten action-button availability.<br>4. Update regression tests and progress documentation.                                    | f3e6443    |
-| 2026-04-16 | 待提交 | v0.6.3: close phase 6 Library DoD                                           | 1. Update runtime/docs version to v0.6.3.<br>2. Extract shared playable-media rules for Library scanning and selection guidance.<br>3. Add work-level Library guidance plus separated current-selection and loaded-context messaging in the existing Library page while keeping explicit file selection before load/play.<br>4. Update regression tests and progress documentation.                                                | -          |
+| 2026-04-16 | 已提交 | v0.6.3: close phase 6 Library DoD                                           | 1. Update runtime/docs version to v0.6.3.<br>2. Extract shared playable-media rules for Library scanning and selection guidance.<br>3. Add work-level Library guidance plus separated current-selection and loaded-context messaging in the existing Library page while keeping explicit file selection before load/play.<br>4. Update regression tests and progress documentation.                                                | 1a35bc6    |
+| 2026-04-17 | 待提交 | v0.6.4: polish Library styles                                               | 1. Update runtime/docs version to v0.6.4.<br>2. Polish the Library page styles by simplifying the subtitle copy, splitting the filter and details cards, localizing the works-grid header text, and aligning the top-level visual layout.<br>3. Localize the Search results first-column header text to match the current UI wording.<br>4. Update regression tests and progress documentation.                                    | -          |
 
 ---
 
@@ -2166,12 +2179,12 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] “测试连接”应通过 `GET /api/health?cache=false` 完成候选探测；当旧探测端点不可用但 health API 可达时，仍能选中可用 BaseUrl。
 - [x] 当发布页正文直接提供 `asmr-300/200/100/one` 最新域名时，“测试连接”会按正文顺序补齐候选列表并写回 SQLite `ApiCandidateUrls`；随后再次“保存并重新初始化”不会把新候选覆盖回旧值。
 - [x] 当发布页 discovery 仅返回部分新候选时，若与已保存候选集合合并后的总数更大，“测试连接”会保留旧候选并把合并后的 `ApiCandidateUrls` 写回 SQLite。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.6.3。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.6.4。
 
 ### 4.2 Search 功能
 
 - [x] 仅输入基础关键词即可成功搜索，并展示结果列表（含标签列）、总数和页码信息。
-- [x] Search 结果列表列头应显示完整边框；字幕列与日期列宽保持 `42/75` 且不可拖拽改宽，拖拽仅改变列顺序；当标题或标签过宽时可通过横向滚动查看完整数据。
+- [x] Search 结果列表列头应显示完整边框；首列标题显示“作品ID”；字幕列与日期列宽保持 `42/75` 且不可拖拽改宽，拖拽仅改变列顺序；当标题或标签过宽时可通过横向滚动查看完整数据。
 - [x] 高级筛选 `tag/circle/va/duration/rate/price/sell/age/lang` 可单独或组合生效，`反选` 语义正确。
 - [x] Search 的排序、方向、字幕、“包含翻译作品”“加入翻译作品”等选项生效，翻页后条件保持不丢失。
 - [x] 上一页、下一页、跳页、页大小切换均可用，分页结果与页码信息正确。
@@ -2277,11 +2290,15 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 
 ### 4.6 Library 功能
 
-- [x] Library 页签可成功显示资源库页面；首次刷新后可看到作品总数、页码信息与状态文本更新。
+- [x] Library 页签可成功显示资源库页面；顶部副标题显示为“本地资源库，文件查看与播放。”，首次刷新后可看到作品总数、页码信息与状态文本更新。
 - [x] 当下载目录/同步目录中同时存在 `[{SourceId}]{Title}` 与 `sourceId-date-sub/nosub-title` 两种命名格式时，Library 页面都能识别作品；其中 legacy 标题包含连字符时也不会漏显；非法目录会被跳过并在状态中体现，不导致应用崩溃。
-- [x] 首次刷新或切换上一页/下一页期间，窗口保持可响应；刷新/翻页/打开相关按钮在扫描完成前会临时禁用，完成后恢复。
-- [x] Library 页的关键字筛选、“仅显示带字幕作品”“仅显示含音频作品”与上一页/下一页切换均可正确更新列表结果。
-- [x] 选中作品后，右侧详情区与文件树会同步更新；选中文件后点击“载入/切换文件”可更新当前打开目标；点击“清空上下文”会清除当前播放器状态，并按当前保留的作品/文件选择显示对应提示。
+- [x] 首次刷新或切换分页期间，窗口保持可响应；刷新/翻页/跳页/page size 切换期间相关按钮在扫描完成前会临时禁用，完成后恢复。
+- [x] Library 页的关键字筛选、“仅显示带字幕作品”“仅显示含音频作品”与上一页/下一页/跳页/page size 切换均可正确更新列表结果。
+- [x] 选中作品后，右侧独立“作品详情”区与文件树会同步更新；选中文件后点击“载入/切换文件”可更新当前打开目标；点击“清空上下文”会清除当前播放器状态，并按当前保留的作品/文件选择显示对应提示。
+- [x] Library 作品列表首列标题显示“作品ID”；当标题、路径或结果较多时可通过横向与纵向滚动条查看完整内容，不会把显示内容撑出窗口范围。
+- [x] Library 页面支持上一页、下一页、跳页与 page size 切换，页码输入、结果数量与页码信息保持一致。
+- [x] 手动拉高窗口时，左侧作品列表与右侧文件树会随可用高度同步扩展，下边沿保持对齐，不再因固定高度出现错位。
+- [x] 手动压低窗口时，作品列表、详情区、文件树与上下文文本都保持在窗口范围内显示，超出部分通过各自滚动区域承载。
 - [x] 仅选中作品但未选中文件时，Library 页会提示当前作品是否包含可播放媒体文件，并给出首个候选路径或“未发现可播放媒体文件”的明确说明。
 - [x] 当在文件树中选中目录、不可播放文件、缺失媒体文件与可播放媒体文件时，Library 页会分别显示明确提示，并正确更新“载入/切换文件”“播放”按钮可用性。
 - [x] 当作品文件使用大小写混合的支持扩展名（如 `.FLAC`、`.OpUs`）时，Library 页仍会识别为可播放媒体文件，并允许后续载入与播放。

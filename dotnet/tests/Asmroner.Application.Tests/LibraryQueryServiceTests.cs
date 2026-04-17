@@ -72,6 +72,36 @@ public class LibraryQueryServiceTests
         Assert.Equal("RJ3103", item.SourceId);
     }
 
+    [Fact]
+    public async Task QueryAsync_ShouldHonorRequestedPageSize_WhenBuildingPagedItems()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var sut = new LibraryQueryService(new StubLibraryScannerService(new LibraryScanResult
+        {
+            Items =
+            [
+                CreateWorkItem("RJ3201", "Newest", "2024-05-05", hasSubtitle: true, audioFileCount: 1),
+                CreateWorkItem("RJ3202", "Second", "2024-05-04", hasSubtitle: true, audioFileCount: 1),
+                CreateWorkItem("RJ3203", "Third", "2024-05-03", hasSubtitle: true, audioFileCount: 1),
+                CreateWorkItem("RJ3204", "Fourth", "2024-05-02", hasSubtitle: true, audioFileCount: 1),
+                CreateWorkItem("RJ3205", "Fifth", "2024-05-01", hasSubtitle: true, audioFileCount: 1),
+            ],
+            ScannedRootCount = 1,
+        }));
+
+        var result = await sut.QueryAsync(new LibraryQuery
+        {
+            Page = 2,
+            PageSize = 2,
+        }, cancellationToken);
+
+        Assert.Equal(2, result.Page);
+        Assert.Equal(2, result.PageSize);
+        Assert.Equal(3, result.TotalPages);
+        Assert.Equal(5, result.TotalCount);
+        Assert.Equal(["RJ3203", "RJ3204"], result.Items.Select(static item => item.SourceId).ToArray());
+    }
+
     private static LibraryWorkItem CreateWorkItem(
         string sourceId,
         string title,

@@ -12,11 +12,14 @@ public class LibraryViewXamlTests
 
         Assert.Contains("x:Class=\"Asmroner.Wpf.Views.LibraryView\"", content, StringComparison.Ordinal);
         Assert.Contains("Text=\"Library\"", content, StringComparison.Ordinal);
-        Assert.Contains("Text=\"阶段 6 第四批：资源库格式兼容与作品级选择引导。\"", content, StringComparison.Ordinal);
+        Assert.Contains("Text=\"本地资源库，文件查看与播放。\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"KeywordTextBox\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"SubtitleOnlyCheckBox\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"AudioOnlyCheckBox\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"RefreshLibraryButton\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"CurrentPageTextBox\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"GoPageButton\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"PageSizeComboBox\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"LibraryWorksDataGrid\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"FileTreeView\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"SelectionFeedbackTextBlock\"", content, StringComparison.Ordinal);
@@ -29,6 +32,7 @@ public class LibraryViewXamlTests
         Assert.Contains("Content=\"载入/切换文件\"", content, StringComparison.Ordinal);
         Assert.Contains("Content=\"播放\"", content, StringComparison.Ordinal);
         Assert.Contains("Content=\"清空上下文\"", content, StringComparison.Ordinal);
+        Assert.Contains("Text=\"作品详情\"", content, StringComparison.Ordinal);
         Assert.Contains("Text=\"文件树与播放上下文\"", content, StringComparison.Ordinal);
         Assert.Contains("Text=\"当前选择\"", content, StringComparison.Ordinal);
         Assert.Contains("Text=\"当前已载入上下文\"", content, StringComparison.Ordinal);
@@ -50,7 +54,7 @@ public class LibraryViewXamlTests
         var xamlPath = XamlTestPathLocator.Locate("LibraryView.xaml", "dotnet", "Asmroner.Wpf", "Asmroner.Wpf", "Views");
         var content = File.ReadAllText(xamlPath);
 
-        Assert.Contains("Header=\"SourceId\"", content, StringComparison.Ordinal);
+        Assert.Contains("Header=\"作品ID\"", content, StringComparison.Ordinal);
         Assert.Contains("Header=\"标题\"", content, StringComparison.Ordinal);
         Assert.Contains("Header=\"日期\"", content, StringComparison.Ordinal);
         Assert.Contains("Header=\"字幕\"", content, StringComparison.Ordinal);
@@ -64,5 +68,27 @@ public class LibraryViewXamlTests
         var dataGridColumns = doc.Descendants(presentation + "DataGridTextColumn").ToArray();
 
         Assert.True(dataGridColumns.Length >= 5);
+    }
+
+    [Fact]
+    public void LibraryViewXaml_ShouldUseScrollableLayout_ForPagingAndRightPane()
+    {
+        var xamlPath = XamlTestPathLocator.Locate("LibraryView.xaml", "dotnet", "Asmroner.Wpf", "Asmroner.Wpf", "Views");
+        var content = File.ReadAllText(xamlPath);
+
+        Assert.Contains("Click=\"OnGoPageClicked\"", content, StringComparison.Ordinal);
+        Assert.Contains("SelectionChanged=\"OnPageSizeChanged\"", content, StringComparison.Ordinal);
+        Assert.Contains("ScrollViewer.HorizontalScrollBarVisibility=\"Auto\"", content, StringComparison.Ordinal);
+        Assert.Contains("ScrollViewer.VerticalScrollBarVisibility=\"Auto\"", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("Height=\"220\"", content, StringComparison.Ordinal);
+
+        var doc = XDocument.Parse(content);
+        XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+        var fileTree = doc.Descendants(presentation + "TreeView")
+            .Single(node => string.Equals((string?)node.Attribute(XName.Get("Name", "http://schemas.microsoft.com/winfx/2006/xaml")), "FileTreeView", StringComparison.Ordinal));
+
+        Assert.Null(fileTree.Attribute("Height"));
+        Assert.Equal("2", (string?)fileTree.Attribute("Grid.Row"));
+        Assert.True(doc.Descendants(presentation + "ScrollViewer").Any());
     }
 }

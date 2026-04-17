@@ -15,8 +15,11 @@ public partial class LibraryView : UserControl
     private readonly IPlayerService _playerService;
 
     private int _currentPage = 1;
+    private int _pageSize = DefaultPageSize;
     private int _totalPages = 1;
+    private int _totalCount;
     private bool _isRefreshing;
+    private bool _suppressPageSizeSelectionChanged = true;
     private LibraryWorkItem? _selectedWork;
     private LibraryFileItem? _selectedTreeItem;
     private LibraryFileItem? _selectedFile;
@@ -28,6 +31,9 @@ public partial class LibraryView : UserControl
         _playerService = playerService;
 
         InitializeComponent();
+        _pageSize = ReadPageSize();
+        UpdatePaginationInfo();
+        _suppressPageSizeSelectionChanged = false;
         Loaded += OnLoaded;
         _playerService.ContextChanged += OnPlayerContextChanged;
 
@@ -66,6 +72,35 @@ public partial class LibraryView : UserControl
 
         _currentPage++;
         await RefreshLibraryAsync(resetPage: false);
+    }
+
+    private async void OnGoPageClicked(object sender, RoutedEventArgs e)
+    {
+        if (!int.TryParse(CurrentPageTextBox.Text.Trim(), out var page) || page <= 0)
+        {
+            StatusTextBlock.Text = "页码必须为正整数。";
+            return;
+        }
+
+        _currentPage = page;
+        await RefreshLibraryAsync(resetPage: false);
+    }
+
+    private async void OnPageSizeChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressPageSizeSelectionChanged)
+        {
+            return;
+        }
+
+        var newPageSize = ReadPageSize();
+        if (newPageSize == _pageSize)
+        {
+            return;
+        }
+
+        _pageSize = newPageSize;
+        await RefreshLibraryAsync(resetPage: true);
     }
 
     private void OnLibrarySelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -158,6 +193,7 @@ public partial class LibraryView : UserControl
             _currentPage = 1;
         }
 
+        UpdatePaginationInfo();
         _isRefreshing = true;
         StatusTextBlock.Text = "正在刷新资源库，请稍候...";
         UpdateCommandAvailability();
@@ -170,14 +206,15 @@ public partial class LibraryView : UserControl
                 SubtitleOnly = SubtitleOnlyCheckBox.IsChecked == true,
                 AudioOnly = AudioOnlyCheckBox.IsChecked == true,
                 Page = _currentPage,
-                PageSize = DefaultPageSize,
+                PageSize = _pageSize,
             });
 
             _currentPage = result.Page;
+            _pageSize = result.PageSize;
             _totalPages = result.TotalPages;
+            _totalCount = result.TotalCount;
 
             LibraryWorksDataGrid.ItemsSource = result.Items;
-            PageInfoTextBlock.Text = $"第 {result.Page}/{result.TotalPages} 页 · 共 {result.TotalCount} 个作品";
             StatusTextBlock.Text = BuildStatusText(result);
 
             _selectedWork = null;
@@ -185,8 +222,9 @@ public partial class LibraryView : UserControl
             _selectedFile = null;
             _selectionFeedback = new LibrarySelectionFeedbackResult();
             FileTreeView.ItemsSource = null;
-            WorkDetailsTextBlock.Text = "请选择左侧作品查看详情。";
+            WorkDetailsTextBlock.Text = "请选择作品查看详情。";
             UpdatePlaybackContext();
+            UpdatePaginationInfo();
         }
         catch (OperationCanceledException)
         {
@@ -218,13 +256,23 @@ public partial class LibraryView : UserControl
         var hasSelectedPlayableTarget = _selectedWork is not null
             && _selectedFile is not null
             && _selectionFeedback.CanLoadContext;
+        var canJump = _totalPages > 1;
 
         RefreshLibraryButton.IsEnabled = !_isRefreshing;
         PrevPageButton.IsEnabled = !_isRefreshing && _currentPage > 1;
         NextPageButton.IsEnabled = !_isRefreshing && _currentPage < _totalPages;
+        GoPageButton.IsEnabled = !_isRefreshing && canJump;
+        CurrentPageTextBox.IsEnabled = !_isRefreshing && canJump;
+        PageSizeComboBox.IsEnabled = !_isRefreshing;
         LoadContextButton.IsEnabled = !_isRefreshing && hasSelectedPlayableTarget;
         PlayButton.IsEnabled = !_isRefreshing && hasSelectedPlayableTarget;
         ClearContextButton.IsEnabled = !_isRefreshing && context.Work is not null;
+    }
+
+    private void UpdatePaginationInfo()
+    {
+        CurrentPageTextBox.Text = _currentPage.ToString();
+        PageInfoTextBlock.Text = $"第 {_currentPage}/{_totalPages} 页 · 共 {_totalCount} 个作品";
     }
 
     private static string BuildWorkDetailsText(LibraryWorkItem? work)
@@ -235,13 +283,11 @@ public partial class LibraryView : UserControl
         }
 
         var builder = new StringBuilder();
-        builder.AppendLine($"SourceId：{work.SourceId}");
+        builder.AppendLine($"作品ID：{work.SourceId}");
         builder.AppendLine($"标题：{work.Title}");
         builder.AppendLine($"日期：{(string.IsNullOrWhiteSpace(work.Release) ? "-" : work.Release)}");
         builder.AppendLine($"字幕：{(work.HasSubtitle ? "有" : "无")}");
         builder.AppendLine($"标签：{(string.IsNullOrWhiteSpace(work.Tags) ? "-" : work.Tags)}");
-        builder.AppendLine($"目录格式：{work.DirectoryScheme}");
-        builder.AppendLine($"来源根目录：{work.SourceRoot}");
         builder.AppendLine($"作品目录：{work.RootDirectory}");
         builder.Append($"文件数：{work.TotalFileCount}，可播放音频数：{work.AudioFileCount}");
         return builder.ToString();
@@ -268,6 +314,25 @@ public partial class LibraryView : UserControl
     private bool ShouldLoadSelectionBeforePlay(PlaybackContext current)
     {
         return LibraryPlaybackSelectionPolicy.ShouldReloadContext(current, _selectedWork, _selectedFile);
+    }
+
+    private int ReadPageSize()
+    {
+        var value = ReadComboValue(PageSizeComboBox, DefaultPageSize.ToString());
+        return int.TryParse(value, out var parsed) && parsed > 0 ? parsed : DefaultPageSize;
+    }
+
+    private static string ReadComboValue(ComboBox comboBox, string fallback)
+    {
+        if (comboBox.SelectedItem is ComboBoxItem item)
+        {
+            if (item.Content is string content)
+            {
+                return content;
+            }
+        }
+
+        return fallback;
     }
 
 }

@@ -30,7 +30,7 @@
             <Setter Property="Padding"
                     Value="14"/>
             <Setter Property="Margin"
-                    Value="0,0,0,10"/>
+                    Value="0,0,0,0"/>
         </Style>
 
         <Style x:Key="SectionTitleStyle"
@@ -43,6 +43,16 @@
                     Value="#FF1E2A3A"/>
             <Setter Property="Margin"
                     Value="0,0,0,8"/>
+        </Style>
+
+        <Style x:Key="MutedLabelStyle"
+               TargetType="TextBlock">
+            <Setter Property="Foreground"
+                    Value="#FF5A6A80"/>
+            <Setter Property="VerticalAlignment"
+                    Value="Center"/>
+            <Setter Property="Margin"
+                    Value="0,0,6,4"/>
         </Style>
 
         <Style x:Key="FieldTextBoxStyle"
@@ -59,6 +69,33 @@
                     Value="#FFFFFFFF"/>
             <Setter Property="VerticalContentAlignment"
                     Value="Center"/>
+        </Style>
+
+        <Style x:Key="FieldComboBoxStyle"
+               TargetType="ComboBox">
+            <Setter Property="Height"
+                    Value="34"/>
+            <Setter Property="Padding"
+                    Value="8,3"/>
+            <Setter Property="BorderBrush"
+                    Value="#FFD6E3F2"/>
+            <Setter Property="BorderThickness"
+                    Value="1"/>
+            <Setter Property="Background"
+                    Value="#FFFFFFFF"/>
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center"/>
+            <Setter Property="HorizontalContentAlignment"
+                    Value="Center"/>
+        </Style>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="HorizontalContentAlignment"
+                    Value="Center"/>
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center"/>
+            <Setter Property="Padding"
+                    Value="8,4"/>
         </Style>
 
         <Style x:Key="ActionButtonStyle"
@@ -138,67 +175,133 @@
           Background="{StaticResource ShellBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0"
-                    Margin="2,2,2,0">
+                    Margin="2,2,2,10">
             <TextBlock FontSize="24"
                        FontWeight="SemiBold"
                        Foreground="#FF1E2A3A"
                        Text="Library"/>
             <TextBlock Margin="0,8,0,12"
                        Foreground="#FF5A6A80"
-                       Text="阶段 6 第四批：资源库格式兼容与作品级选择引导。"/>
+                       Text="本地资源库，文件查看与播放。"/>
 
-            <Border Style="{StaticResource CardBorderStyle}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource SectionTitleStyle}"
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition Width="2*"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0"
+                        x:Name="LibraryFilterBorder"
+                        Style="{StaticResource CardBorderStyle}"
+                        Margin="0,0,10,0">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionTitleStyle}"
                                Text="筛选与分页"/>
-                    <WrapPanel>
-                        <TextBox x:Name="KeywordTextBox"
+                        <WrapPanel>
+                            <TextBox x:Name="KeywordTextBox"
                                  Width="280"
                                  Margin="0,0,8,6"
                                  Style="{StaticResource FieldTextBoxStyle}"
                                  ToolTip="按 SourceId、标题、标签、日期或目录路径筛选"/>
 
-                        <CheckBox x:Name="SubtitleOnlyCheckBox"
+                            <CheckBox x:Name="SubtitleOnlyCheckBox"
                                   Margin="0,0,12,6"
                                   VerticalAlignment="Center"
                                   Content="仅显示带字幕作品"/>
 
-                        <CheckBox x:Name="AudioOnlyCheckBox"
+                            <CheckBox x:Name="AudioOnlyCheckBox"
                                   Margin="0,0,12,6"
                                   VerticalAlignment="Center"
                                   Content="仅显示含音频作品"
                                   IsChecked="True"/>
 
-                        <Button x:Name="RefreshLibraryButton"
+                            <Button x:Name="RefreshLibraryButton"
                                 Style="{StaticResource ActionButtonStyle}"
                                 Click="OnRefreshLibraryClicked"
                                 Content="刷新资源库"/>
 
-                        <Button x:Name="PrevPageButton"
+                        </WrapPanel>
+
+                        <WrapPanel Margin="0,2,0,0">
+                            <Button x:Name="PrevPageButton"
                                 Style="{StaticResource LightActionButtonStyle}"
                                 Click="OnPrevPageClicked"
                                 Content="上一页"/>
 
-                        <Button x:Name="NextPageButton"
+                            <Button x:Name="NextPageButton"
                                 Style="{StaticResource LightActionButtonStyle}"
                                 Click="OnNextPageClicked"
                                 Content="下一页"/>
-                    </WrapPanel>
 
-                    <TextBlock x:Name="PageInfoTextBlock"
+                            <TextBlock Style="{StaticResource MutedLabelStyle}"
+                                   Text="页码"/>
+
+                            <TextBox x:Name="CurrentPageTextBox"
+                                 Width="60"
+                                 Margin="0,0,8,6"
+                                 Style="{StaticResource FieldTextBoxStyle}"
+                                 Text="1"/>
+
+                            <Button x:Name="GoPageButton"
+                                Style="{StaticResource LightActionButtonStyle}"
+                                Click="OnGoPageClicked"
+                                Content="跳页"/>
+
+                            <TextBlock Style="{StaticResource MutedLabelStyle}"
+                                   Text="每页"/>
+
+                            <ComboBox x:Name="PageSizeComboBox"
+                                  Width="80"
+                                  Margin="0,0,8,6"
+                                  Style="{StaticResource FieldComboBoxStyle}"
+                                  SelectionChanged="OnPageSizeChanged">
+                                <ComboBoxItem IsSelected="True"
+                                          Content="20"/>
+                                <ComboBoxItem Content="50"/>
+                                <ComboBoxItem Content="100"/>
+                            </ComboBox>
+                        </WrapPanel>
+
+                        <TextBlock x:Name="PageInfoTextBlock"
                                Foreground="#FF5A6A80"
                                Text="第 1/1 页 · 共 0 个作品"/>
-                </StackPanel>
-            </Border>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1"
+                        Style="{StaticResource CardBorderStyle}"
+                        Height="{Binding ActualHeight, ElementName=LibraryFilterBorder}"
+                        Margin="0,0,0,0">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0"
+                                   Style="{StaticResource SectionTitleStyle}"
+                                   Text="作品详情"/>
+
+                        <ScrollViewer Grid.Row="1"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto">
+                            <TextBlock x:Name="WorkDetailsTextBlock"
+                                       Foreground="#FF4B5563"
+                                       Text="请选择作品查看详情。"
+                                       TextWrapping="WrapWithOverflow"/>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+
+            </Grid>
         </StackPanel>
 
-        <Grid Grid.Row="2"
+        <Grid Grid.Row="1"
               Margin="0,0,0,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="3*"/>
@@ -208,10 +311,18 @@
             <Border Grid.Column="0"
                     Style="{StaticResource CardBorderStyle}"
                     Margin="0,0,10,0">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource SectionTitleStyle}"
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0"
+                               Style="{StaticResource SectionTitleStyle}"
                                Text="作品列表"/>
+
                     <DataGrid x:Name="LibraryWorksDataGrid"
+                              Grid.Row="1"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False"
                               IsReadOnly="True"
@@ -220,7 +331,7 @@
                               Style="{StaticResource ResultGridStyle}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Binding="{Binding SourceId}"
-                                                Header="SourceId"
+                                                Header="作品ID"
                                                 Width="120"/>
                             <DataGridTextColumn Binding="{Binding Title}"
                                                 Header="标题"
@@ -239,26 +350,33 @@
                                                 Width="64"/>
                         </DataGrid.Columns>
                     </DataGrid>
-                </StackPanel>
+                </Grid>
             </Border>
 
-            <StackPanel Grid.Column="1">
-                <Border Style="{StaticResource CardBorderStyle}">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource SectionTitleStyle}"
-                                   Text="作品详情"/>
-                        <TextBlock x:Name="WorkDetailsTextBlock"
-                                   Foreground="#FF4B5563"
-                                   Text="请选择左侧作品查看详情。"
-                                   TextWrapping="Wrap"/>
-                    </StackPanel>
-                </Border>
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-                <Border Style="{StaticResource CardBorderStyle}">
-                    <StackPanel>
-                        <TextBlock Style="{StaticResource SectionTitleStyle}"
+                <Border Grid.Row="0"
+                        Style="{StaticResource CardBorderStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="3*"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0"
+                                   Style="{StaticResource SectionTitleStyle}"
                                    Text="文件树与播放上下文"/>
-                        <WrapPanel Margin="0,0,0,8">
+
+                        <WrapPanel Grid.Row="1"
+                                   Margin="0,0,0,8">
                             <Button x:Name="LoadContextButton"
                                     Style="{StaticResource ActionButtonStyle}"
                                     Click="OnLoadContextClicked"
@@ -274,35 +392,48 @@
                         </WrapPanel>
 
                         <TreeView x:Name="FileTreeView"
-                                  Height="220"
+                                  Grid.Row="2"
                                   Margin="0,0,0,8"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                  ScrollViewer.VerticalScrollBarVisibility="Auto"
                                   SelectedItemChanged="OnFileTreeSelectedItemChanged"/>
 
-                        <TextBlock Margin="0,0,0,4"
+                        <TextBlock Grid.Row="3"
+                                   Margin="0,0,0,4"
                                    FontWeight="SemiBold"
                                    Foreground="#FF24507A"
                                    Text="当前选择"/>
-                        <TextBlock x:Name="SelectionFeedbackTextBlock"
-                                   Margin="0,0,0,8"
-                                   Foreground="#FF4B5563"
-                                   Text="当前未选择任何作品或文件。请先选择左侧作品，并在文件树中显式选中一个可播放的媒体文件。"
-                                   TextWrapping="Wrap"/>
 
-                        <TextBlock Margin="0,0,0,4"
+                        <ScrollViewer Grid.Row="4"
+                                      Margin="0,0,0,8"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto">
+                            <TextBlock x:Name="SelectionFeedbackTextBlock"
+                                       Foreground="#FF4B5563"
+                                       Text="当前未选择任何作品或文件。请先选择左侧作品，并在文件树中显式选中一个可播放的媒体文件。"
+                                       TextWrapping="WrapWithOverflow"/>
+                        </ScrollViewer>
+
+                        <TextBlock Grid.Row="5"
+                                   Margin="0,0,0,4"
                                    FontWeight="SemiBold"
                                    Foreground="#FF24507A"
                                    Text="当前已载入上下文"/>
 
-                        <TextBlock x:Name="ContextTextBlock"
-                                   Foreground="#FF4B5563"
-                                   Text="状态：未载入&#10;说明：尚未载入任何可播放媒体文件。"
-                                   TextWrapping="Wrap"/>
-                    </StackPanel>
+                        <ScrollViewer Grid.Row="6"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto">
+                            <TextBlock x:Name="ContextTextBlock"
+                                       Foreground="#FF4B5563"
+                                       Text="状态：未载入&#10;说明：尚未载入任何可播放媒体文件。"
+                                       TextWrapping="WrapWithOverflow"/>
+                        </ScrollViewer>
+                    </Grid>
                 </Border>
-            </StackPanel>
+            </Grid>
         </Grid>
 
-        <Border Grid.Row="3"
+        <Border Grid.Row="2"
                 Style="{StaticResource CardBorderStyle}">
             <TextBlock x:Name="StatusTextBlock"
                        Foreground="#FF4B5563"

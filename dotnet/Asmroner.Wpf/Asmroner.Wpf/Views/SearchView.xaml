@@ -502,7 +502,7 @@
                     </DataGrid.ContextMenu>
                     <DataGrid.Columns>
                         <DataGridTextColumn Width="120"
-                                            Header="ID"
+                                            Header="作品ID"
                                             Binding="{Binding SourceId}"/>
                         <DataGridTextColumn Width="360"
                                             Header="标题"
