@@ -7,13 +7,13 @@ using Asmroner.Core.Interfaces;
 using Asmroner.Core.Sync;
 using Asmroner.Wpf.Services;
 using Asmroner.Wpf.ViewModels;
-using Microsoft.Win32;
 
 namespace Asmroner.Wpf.Views;
 
 public partial class SyncView : UserControl
 {
     private readonly IAppPathService _appPathService;
+    private readonly IDialogService _dialogService;
     private readonly ISyncExportService _syncExportService;
     private readonly ISyncService _syncService;
 
@@ -32,9 +32,14 @@ public partial class SyncView : UserControl
     private DateTimeOffset? _lastMetadataStartRequestedAt;
     private DateTimeOffset? _lastDownloadStartRequestedAt;
 
-    public SyncView(ISyncService syncService, ISyncExportService syncExportService, IAppPathService appPathService)
+    public SyncView(
+        ISyncService syncService,
+        ISyncExportService syncExportService,
+        IAppPathService appPathService,
+        IDialogService dialogService)
     {
         _appPathService = appPathService;
+        _dialogService = dialogService;
         _syncExportService = syncExportService;
         _syncService = syncService;
 
@@ -395,7 +400,12 @@ public partial class SyncView : UserControl
         try
         {
             Directory.CreateDirectory(_appPathService.MetadataDirectory);
-            var exportTarget = ShowSaveFileDialog(BuildDefaultFileName(status));
+            var exportTarget = _dialogService.ShowSaveFileDialog(new SaveFileDialogOptions
+            {
+                Title = "导出同步记录",
+                InitialDirectory = _appPathService.MetadataDirectory,
+                FileName = BuildDefaultFileName(status),
+            });
             if (exportTarget is null)
             {
                 SetDownloadStatus(SyncStatusTextBuilder.BuildDownloadActionStatus("已取消导出。"));
@@ -415,63 +425,6 @@ public partial class SyncView : UserControl
             SetDownloadStatus(SyncStatusTextBuilder.BuildDownloadActionStatus($"导出失败：{ex.Message}"));
             DetailsTextBox.Text = ex.ToString();
         }
-    }
-
-    private (string FullPath, string Extension)? ShowSaveFileDialog(string defaultFileName)
-    {
-        var dialog = new SaveFileDialog
-        {
-            Title = "导出同步记录",
-            InitialDirectory = _appPathService.MetadataDirectory,
-            FileName = defaultFileName,
-            DefaultExt = ".csv",
-            AddExtension = true,
-            OverwritePrompt = true,
-            Filter = "CSV 文件 (*.csv)|*.csv|JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*",
-            FilterIndex = 1,
-        };
-
-        if (dialog.ShowDialog() != true)
-        {
-            return null;
-        }
-
-        var extension = ResolveExportExtension(dialog.FileName, dialog.FilterIndex);
-        var fullPath = EnsureExportFileExtension(dialog.FileName, extension);
-        return (fullPath, extension);
-    }
-
-    private static string ResolveExportExtension(string filePath, int filterIndex)
-    {
-        var extension = Path.GetExtension(filePath);
-        if (extension.Equals(".csv", StringComparison.OrdinalIgnoreCase))
-        {
-            return "csv";
-        }
-
-        if (extension.Equals(".json", StringComparison.OrdinalIgnoreCase))
-        {
-            return "json";
-        }
-
-        return filterIndex == 2 ? "json" : "csv";
-    }
-
-    private static string EnsureExportFileExtension(string filePath, string extension)
-    {
-        var normalizedExtension = "." + extension;
-        var currentExtension = Path.GetExtension(filePath);
-        if (currentExtension.Equals(normalizedExtension, StringComparison.OrdinalIgnoreCase))
-        {
-            return filePath;
-        }
-
-        if (string.IsNullOrWhiteSpace(currentExtension))
-        {
-            return filePath + normalizedExtension;
-        }
-
-        return Path.ChangeExtension(filePath, extension);
     }
 
     private static string BuildDefaultFileName(SyncExportStatus status)

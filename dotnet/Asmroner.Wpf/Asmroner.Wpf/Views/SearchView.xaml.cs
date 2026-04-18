@@ -7,7 +7,6 @@ using Asmroner.Core.Favorites;
 using Asmroner.Core.Interfaces;
 using Asmroner.Core.Search;
 using NLog;
-using Microsoft.Win32;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -33,6 +32,7 @@ public partial class SearchView : UserControl
     private readonly IUiStateStore _uiStateStore;
     private readonly IConfigurationService _configurationService;
     private readonly IAppPathService _appPathService;
+    private readonly IDialogService _dialogService;
 
     private IReadOnlyList<SearchWorkItem> _results = Array.Empty<SearchWorkItem>();
     private IReadOnlyList<SearchWorkItem> _popularResults = Array.Empty<SearchWorkItem>();
@@ -56,6 +56,7 @@ public partial class SearchView : UserControl
             null!,
             null!,
             null!,
+                null!,
             null!)
     {
     }
@@ -71,7 +72,8 @@ public partial class SearchView : UserControl
         IFavoriteStore favoriteStore,
         IUiStateStore uiStateStore,
         IConfigurationService configurationService,
-        IAppPathService appPathService)
+        IAppPathService appPathService,
+        IDialogService dialogService)
     {
         _searchService = searchService;
         _asmrApiClient = asmrApiClient;
@@ -84,6 +86,7 @@ public partial class SearchView : UserControl
         _uiStateStore = uiStateStore;
         _configurationService = configurationService;
         _appPathService = appPathService;
+        _dialogService = dialogService;
 
         InitializeComponent();
         _pageSize = ReadPageSize();
@@ -912,7 +915,12 @@ public partial class SearchView : UserControl
                 ? "search-selected-export"
                 : "search-export";
             var defaultFileName = $"{filePrefix}-{DateTime.Now:yyyyMMdd-HHmmss}";
-            var exportTarget = ShowSaveFileDialog(defaultFileName);
+            var exportTarget = _dialogService.ShowSaveFileDialog(new SaveFileDialogOptions
+            {
+                Title = "导出搜索结果",
+                InitialDirectory = _appPathService.MetadataDirectory,
+                FileName = defaultFileName,
+            });
             if (exportTarget is null)
             {
                 StatusTextBlock.Text = "已取消导出。";
@@ -954,63 +962,6 @@ public partial class SearchView : UserControl
         {
             ToggleActionButtons(true);
         }
-    }
-
-    private (string FullPath, string Extension)? ShowSaveFileDialog(string defaultFileName)
-    {
-        var dialog = new SaveFileDialog
-        {
-            Title = "导出搜索结果",
-            InitialDirectory = _appPathService.MetadataDirectory,
-            FileName = defaultFileName,
-            DefaultExt = ".csv",
-            AddExtension = true,
-            OverwritePrompt = true,
-            Filter = "CSV 文件 (*.csv)|*.csv|JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*",
-            FilterIndex = 1,
-        };
-
-        if (dialog.ShowDialog() != true)
-        {
-            return null;
-        }
-
-        var extension = ResolveExportExtension(dialog.FileName, dialog.FilterIndex);
-        var fullPath = EnsureExportFileExtension(dialog.FileName, extension);
-        return (fullPath, extension);
-    }
-
-    private static string ResolveExportExtension(string filePath, int filterIndex)
-    {
-        var extension = Path.GetExtension(filePath);
-        if (extension.Equals(".csv", StringComparison.OrdinalIgnoreCase))
-        {
-            return "csv";
-        }
-
-        if (extension.Equals(".json", StringComparison.OrdinalIgnoreCase))
-        {
-            return "json";
-        }
-
-        return filterIndex == 2 ? "json" : "csv";
-    }
-
-    private static string EnsureExportFileExtension(string filePath, string extension)
-    {
-        var normalizedExtension = "." + extension;
-        var currentExtension = Path.GetExtension(filePath);
-        if (currentExtension.Equals(normalizedExtension, StringComparison.OrdinalIgnoreCase))
-        {
-            return filePath;
-        }
-
-        if (string.IsNullOrWhiteSpace(currentExtension))
-        {
-            return filePath + normalizedExtension;
-        }
-
-        return Path.ChangeExtension(filePath, extension);
     }
 
     private void ToggleActionButtons(bool isEnabled)

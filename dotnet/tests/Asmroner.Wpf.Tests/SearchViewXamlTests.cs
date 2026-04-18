@@ -34,9 +34,9 @@ public class SearchViewXamlTests
         var content = File.ReadAllText(xamlPath);
 
         Assert.Contains("x:Key=\"FieldComboBoxStyle\"", content, StringComparison.Ordinal);
-        Assert.Contains("VerticalContentAlignment", content, StringComparison.Ordinal);
-        Assert.Contains("HorizontalContentAlignment", content, StringComparison.Ordinal);
-        Assert.Contains("<Style TargetType=\"ComboBoxItem\">", content, StringComparison.Ordinal);
+        Assert.Contains("BasedOn=\"{StaticResource ShellFieldComboBoxBaseStyle}\"", content, StringComparison.Ordinal);
+        Assert.Contains("<Style TargetType=\"ComboBoxItem\"", content, StringComparison.Ordinal);
+        Assert.Contains("BasedOn=\"{StaticResource ShellComboBoxItemStyle}\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
         Assert.NotNull(doc.Root);

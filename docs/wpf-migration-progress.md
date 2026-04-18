@@ -1,8 +1,8 @@
 # asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.6.4
+当前跟踪版本：v0.7.0
 
-AI约束策略：章节1.5.1到1.5.114的文本不加入分析上下文
+AI约束策略：章节1.5.1到1.5.115的文本不加入分析上下文
 
 ## 1. 项目进度跟踪清单
 
@@ -26,7 +26,7 @@ AI约束策略：章节1.5.1到1.5.114的文本不加入分析上下文
 | 阶段 4 | 下载能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成下载入口、并发/重试控制与状态可视化复核，并补齐 SQLite 状态持久化能力。                                                           |
 | 阶段 5 | 同步能力迁移           | 已完成 | AI + 用户 | 2026-04-02 | 2026-04-03   | 2026-04-03   | 已补齐 SQLite UiState 同步进度持久化、断点继续、合并式开始/停止按钮与同步运行中手动刷新统计；阶段 5 增强回归已闭环。                    |
 | 阶段 6 | 资源库与播放能力迁移   | 已完成 | AI + 用户 | 2026-04-15 | 2026-04-16   | 2026-04-16   | 已完成资源库扫描/索引、Library 页签、显式选中文件后的系统默认程序打开、异常扫描容错、共享可播放格式规则；阶段 6 DoD 已闭环。            |
-| 阶段 7 | UI 集成与体验收口      | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                       |
+| 阶段 7 | UI 集成与体验收口      | 进行中 | AI + 用户 | 2026-04-18 | 待填写       | 待填写       | 已落地壳层状态/导航/对话框共享服务与通用样式基线；加载态/空态统一与手工冒烟回归待补齐。                                                 |
 | 阶段 8 | 最终验收与发布准备     | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                       |
 
 ## 1.3 阶段执行勾选清单
@@ -92,9 +92,9 @@ AI约束策略：章节1.5.1到1.5.114的文本不加入分析上下文
 
 ### 阶段 7：UI 集成与体验收口
 
-- [ ] 全局导航与页面路由稳定。
+- [x] 全局导航与页面路由稳定。
 - [ ] 消息、对话框、加载态、空态统一。
-- [ ] 跨页面关键流程回归通过。
+- [x] 跨页面关键流程回归通过。
 - [ ] UI 冒烟测试通过。
 - [ ] 阶段 7 DoD 已满足并记录证据。
 
@@ -1289,6 +1289,14 @@ AI约束策略：章节1.5.1到1.5.114的文本不加入分析上下文
 3. 构建与测试结果：`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --no-restore` 通过（100/100）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --no-restore` 通过（184/184）；`rtk dotnet test dotnet/Asmroner.sln --no-restore` 通过（383/383）。
 4. DoD 判定：是。阶段 6 状态保持“已完成”，本次作为阶段 6 后续维护收口；自动化回归通过，手工验证项已重置为待验证。
 
+### 1.5.115 2026-04-18，v0.7.0：启动阶段 7 壳层集成与共享交互收口
+
+1. 本次变更摘要：运行时与 README 版本统一升级到 `v0.7.0`；新增 `ShellViewModel`、`NavigationService`、`UiMessageService`、`DialogService` 与 `ShellResources.xaml`，将主窗口页签启用状态、选中页签与底部状态文案收敛到壳层状态；同时把 Search/Download/Sync 的文件对话框入口统一到共享服务，并让 Search/Download/Library/Settings 四页卡片/输入/按钮样式改为基于共享壳层资源。
+2. 关键修改文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/App.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/App.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/MainWindow.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/MainWindow.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Styles/ShellResources.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/ShellViewModel.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/NavigationService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/UiMessageService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/DialogService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml(.cs)`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml(.cs)`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/LibraryView.xaml`、`dotnet/tests/Asmroner.Wpf.Tests/*`、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`。
+3. 构建与测试结果：`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --no-restore` 通过（100/100）；`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --no-restore` 通过（77/77）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --no-restore` 通过（198/198）；`rtk dotnet test dotnet/Asmroner.sln --no-restore` 通过（397/397）。
+4. DoD 判定：否。阶段 7 已完成壳层优先的第一批基线收口与自动化验证，但加载态/空态统一、UI 冒烟与用户手工回归尚未闭环。
+5. 下次计划：继续补齐阶段 7 的加载态/空态统一与剩余壳层体验收口；由用户执行章节 4.1/4.2/4.3/4.4/4.5/4.7 的受影响手工回归，重点验证 `v0.7.0` 版本文案、Settings 保持页签、共享状态栏消息、统一文件对话框行为与共享样式在多窗口尺寸下的一致性。
+
 ## 1.6 维护规则
 
 - 每次代码提交后更新第 16.2 节状态表。
@@ -1307,7 +1315,7 @@ AI约束策略：章节1.5.1到1.5.114的文本不加入分析上下文
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-16 的解决方案级回归（383/383）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-18 的解决方案级回归（397/397）。
 
 #### 2.1.1 Application.Tests / DownloadServiceTests.cs
 
@@ -1494,18 +1502,18 @@ AI约束策略：章节1.5.1到1.5.114的文本不加入分析上下文
 
 #### 2.1.18 Wpf.Tests / MainWindowXamlTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                        | 输入                            | 期望输出                                                                                               |
-| ------ | ------ | ------ | ------------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| [x]    | [x]    | 阶段 5 | `MainWindowXaml_ShouldUse1280x720DefaultWindowSize`           | 解析 `MainWindow.xaml` 文本/XML | 默认与最小窗口尺寸为 `1280x720`，主窗口标题为 `Asmroner`，并包含 `Library/Sync` 页签且 XAML 可被解析。 |
-| [x]    | [x]    | 阶段 4 | `MainWindowXaml_ShouldNotContainVersionInWindowTitle`         | 解析 `MainWindow.xaml` 文本     | 标题不包含版本号前缀（例如 `Asmroner v`）。                                                            |
-| [x]    | [x]    | 阶段 6 | `MainWindowXaml_ShouldPlaceLibraryTab_BetweenDownloadAndSync` | 解析 `MainWindow.xaml` 文本     | `Library` 页签位于 `Download` 与 `Sync` 之间，且存在 `LibraryHost` 宿主控件。                          |
+| 已创建 | 已通过 | 阶段   | 样例名                                                        | 输入                            | 期望输出                                                                                                                               |
+| ------ | ------ | ------ | ------------------------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 7 | `MainWindowXaml_ShouldUse1280x720DefaultWindowSize`           | 解析 `MainWindow.xaml` 文本/XML | 默认与最小窗口尺寸为 `1280x720`，主窗口标题为 `Asmroner`，并包含 `Library/Sync` 页签、壳层状态栏绑定与页签启用绑定，且 XAML 可被解析。 |
+| [x]    | [x]    | 阶段 4 | `MainWindowXaml_ShouldNotContainVersionInWindowTitle`         | 解析 `MainWindow.xaml` 文本     | 标题不包含版本号前缀（例如 `Asmroner v`）。                                                                                            |
+| [x]    | [x]    | 阶段 6 | `MainWindowXaml_ShouldPlaceLibraryTab_BetweenDownloadAndSync` | 解析 `MainWindow.xaml` 文本     | `Library` 页签位于 `Download` 与 `Sync` 之间，且存在 `LibraryHost` 宿主控件。                                                          |
 
 #### 2.1.19 Wpf.Tests / SearchViewXamlTests.cs
 
 | 已创建 | 已通过 | 阶段   | 样例名                                                                     | 输入                            | 期望输出                                                                                                                     |
 | ------ | ------ | ------ | -------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldContainUnifiedCardStyles_AndCoreControls`            | 解析 `SearchView.xaml` 文本/XML | 卡片化样式资源、核心控件、“导出到文件”“收藏作品”按钮与统一状态面板样式存在，且 XAML 可被解析。                               |
-| [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldUseAlignedComboBoxStyles`                            | 解析 `SearchView.xaml` 文本/XML | 下拉框与选项项样式包含对齐设置，且 XAML 可被解析。                                                                           |
+| [x]    | [x]    | 阶段 7 | `SearchViewXaml_ShouldUseAlignedComboBoxStyles`                            | 解析 `SearchView.xaml` 文本/XML | 下拉框与选项项样式基于共享壳层 `ComboBox`/`ComboBoxItem` 样式，且 XAML 可被解析。                                            |
 | [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldNotContainStagePrefixText`                           | 解析 `SearchView.xaml` 文本     | 页面不再包含“阶段 ”前缀文案。                                                                                                |
 | [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldUseHeaderBorders_AndLockSubtitleAndDateColumnWidths` | 解析 `SearchView.xaml` 文本/XML | 结果列表列头显示边框；首列标题使用本地化“作品ID”；字幕/日期列宽保持 `42/75` 且不可拖拽改宽；数据过宽时支持横向滚动与列重排。 |
 | [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldUseSearchViewClassName`                              | 解析 `SearchView.xaml` 文本     | `x:Class` 为 `Asmroner.Wpf.Views.SearchView`。                                                                               |
@@ -2065,6 +2073,45 @@ AI约束策略：章节1.5.1到1.5.114的文本不加入分析上下文
 | [x]    | [x]    | 阶段 6 | `Build_ShouldKeepSelectionFeedbackSeparated_FromLoadedContext`   | 有作品级选择提示，尚未载入文件 | “当前选择”区保留作品级候选提示，“当前已载入上下文”区仍显示未载入状态，不与选择区混写。 |
 | [x]    | [x]    | 阶段 6 | `Build_ShouldIncludeLoadedWorkAndFileDetails_WhenContextIsReady` | 已载入一个可播放媒体文件       | “当前已载入上下文”区显示状态、作品、文件与说明，“当前选择”区保持当前选择反馈。         |
 
+#### 2.1.82 Wpf.Tests / AppXamlTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                        | 输入                     | 期望输出                                                     |
+| ------ | ------ | ------ | --------------------------------------------- | ------------------------ | ------------------------------------------------------------ |
+| [x]    | [x]    | 阶段 7 | `AppXaml_ShouldMergeShellResourcesDictionary` | 解析 `App.xaml` 文本/XML | 应用资源字典已合并 `ShellResources.xaml`，且 XAML 可被解析。 |
+
+#### 2.1.83 Wpf.Tests / ShellResourcesXamlTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                    | 输入                                | 期望输出                                                             |
+| ------ | ------ | ------ | --------------------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 7 | `ShellResourcesXaml_ShouldContainSharedShellResourceKeys` | 解析 `ShellResources.xaml` 文本/XML | 共享壳层背景、卡片、标题、输入框与按钮基样式存在，且 XAML 可被解析。 |
+
+#### 2.1.84 Wpf.Tests / ShellViewModelTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                      | 输入                  | 期望输出                                                               |
+| ------ | ------ | ------ | ----------------------------------------------------------- | --------------------- | ---------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 7 | `DefaultState_ShouldStartOnSettingsWithInitializingMessage` | 新建 `ShellViewModel` | 默认选中 `Settings`，初始化消息为“初始化中...”，且主功能页签默认禁用。 |
+| [x]    | [x]    | 阶段 7 | `SelectedPageIndex_ShouldClampToValidRange`                 | 写入越界页签索引      | 页签索引会被约束到合法范围，并同步回正确的 `ShellPage`。               |
+
+#### 2.1.85 Wpf.Tests / NavigationServiceTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                | 输入                                       | 期望输出                                                               |
+| ------ | ------ | ------ | --------------------------------------------------------------------- | ------------------------------------------ | ---------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 7 | `NavigateTo_ShouldUpdateCurrentPageAndSelectedIndex`                  | 通过导航服务切换到 `Library`               | `CurrentPage` 与 `SelectedPageIndex` 同步到目标页签。                  |
+| [x]    | [x]    | 阶段 7 | `SetPrimaryPagesEnabled_ShouldToggleContentTabsAndFallbackToSettings` | 先启用主内容页签，再禁用并停留在内容页签上 | Search/Download/Library/Sync 会统一禁用，且当前页会回退到 `Settings`。 |
+
+#### 2.1.86 Wpf.Tests / UiMessageServiceTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                     | 输入                         | 期望输出                                                 |
+| ------ | ------ | ------ | ------------------------------------------ | ---------------------------- | -------------------------------------------------------- |
+| [x]    | [x]    | 阶段 7 | `ShowError_ShouldUpdateShellStatusMessage` | 通过消息服务写入错误状态文本 | 当前壳层消息与 `ShellViewModel.StatusMessage` 同步更新。 |
+
+#### 2.1.87 Wpf.Tests / DialogFileNamePolicyTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                     | 输入                               | 期望输出                                                    |
+| ------ | ------ | ------ | ---------------------------------------------------------- | ---------------------------------- | ----------------------------------------------------------- |
+| [x]    | [x]    | 阶段 7 | `ResolveExtension_ShouldRespectFileNameAndFilterSelection` | 文件名已有/缺失后缀 + 保存筛选索引 | 能按现有文件名或当前筛选索引决策正确后缀。                  |
+| [x]    | [x]    | 阶段 7 | `EnsureExtension_ShouldAppendOrReplaceExtension`           | 目标路径缺失/带错后缀              | 会自动补齐或替换成正确后缀，统一 Search/Sync 导出路径行为。 |
+
 ### 2.2 测试覆盖分析
 
 - Core（模型/配置）：默认值完整性，✅ 已覆盖。
@@ -2081,6 +2128,7 @@ AI约束策略：章节1.5.1到1.5.114的文本不加入分析上下文
 - 未完成队列快照构建：Search/Download 共用快照规则并在入队后持久化，✅ 已覆盖。
 - 启动未完成队列元数据补拉：非阻塞启动、仅补拉缺失标题并刷新 Download 列表，✅ 已覆盖。
 - 版本文案动态化：Settings 页面与启动日志共用程序集三段式版本号，✅ 已覆盖。
+- 阶段 7 壳层收口：主窗口页签绑定、共享导航/消息服务、统一文件对话框后缀策略与共享样式资源基线，✅ 已覆盖（自动化）；加载态/空态与 UI 冒烟，⬜ 待落地。
 - 阶段 6 资源库与系统默认程序打开：目录名双格式解析、扫描去重、关键字/字幕/音频过滤、显式选中文件后的系统打开、刷新后跨根目录同相对路径文件的重载判定、Shell `null` 返回成功判定、失败提示、Library 打开控件与播放上下文分离展示，✅ 已覆盖。
 - 翻译作品优先入队：当前语言识别、关联版本优先级选择、UI 勾选持久化与 Search/Download 四类入口回归，✅ 已覆盖。
 - `source_id/workId` 双键兼容：BJ 等非 `RJ` 作品的详情/轨道解析、Search WorkId 透传与作品页链接生成，✅ 已覆盖。
@@ -2106,6 +2154,9 @@ AI约束策略：章节1.5.1到1.5.114的文本不加入分析上下文
 - `DownloadInputNormalizer`：批量输入改为“提交时归一化”，避免实时改写影响输入符号与粘贴体验，同时保持入队前统一规范化与去重。
 - `DownloadCommandAvailability`：从 `DownloadView.xaml.cs` 中抽取按钮可用性规则为独立纯状态类，消除 WPF 测试工程占位样例。
 - `StartupUnfinishedQueueMetadataRefreshService` / `DownloadTaskListComposer`：启动补拉改为返回成功/失败明细，Download 页面会将失败项显示为 `Failed` 占位行并附带错误信息。
+- `ShellViewModel` / `NavigationService` / `UiMessageService`：新增壳层状态、导航与状态消息服务，将主窗口页签启用状态、选中页签与底部状态栏文案收敛到统一状态源。
+- `DialogService` / `DialogFileNamePolicy`：统一 Search 导出、Download 从文件导入与 Sync 导出保存对话框流程，并集中处理 CSV/JSON 默认后缀决策。
+- `ShellResources.xaml`：抽取 Search/Download/Library/Settings 共享卡片、输入框、按钮与背景基样式，减少页面内重复视觉定义。
 
 ---
 
@@ -2148,13 +2199,14 @@ AI约束策略：章节1.5.1到1.5.114的文本不加入分析上下文
 | 2026-04-15 | 已提交 | v0.6.1: switch Library playback to shell-open selected media                | 1. Update runtime/docs version to v0.6.1.<br>2. Replace the MediaPlayer-based Library playback flow with explicit selected-media loading plus system-default-app open behavior.<br>3. Remove pause/stop and inline progress UI.<br>4. Update regression tests and progress documentation.                                                                                                                                          | 994ba3c    |
 | 2026-04-16 | 已提交 | v0.6.2: harden Library scan tolerance and selection feedback                | 1. Update runtime/docs version to v0.6.2.<br>2. Harden Library scan tolerance so nested directory/file errors become local error records instead of failing the whole work item.<br>3. Add explicit Library selection feedback for directory, non-playable, missing and playable file states, and tighten action-button availability.<br>4. Update regression tests and progress documentation.                                    | f3e6443    |
 | 2026-04-16 | 已提交 | v0.6.3: close phase 6 Library DoD                                           | 1. Update runtime/docs version to v0.6.3.<br>2. Extract shared playable-media rules for Library scanning and selection guidance.<br>3. Add work-level Library guidance plus separated current-selection and loaded-context messaging in the existing Library page while keeping explicit file selection before load/play.<br>4. Update regression tests and progress documentation.                                                | 1a35bc6    |
-| 2026-04-17 | 待提交 | v0.6.4: polish Library styles                                               | 1. Update runtime/docs version to v0.6.4.<br>2. Polish the Library page styles by simplifying the subtitle copy, splitting the filter and details cards, localizing the works-grid header text, and aligning the top-level visual layout.<br>3. Localize the Search results first-column header text to match the current UI wording.<br>4. Update regression tests and progress documentation.                                    | -          |
+| 2026-04-17 | 已提交 | v0.6.4: polish Library styles                                               | 1. Update runtime/docs version to v0.6.4.<br>2. Polish the Library page styles by simplifying the subtitle copy, splitting the filter and details cards, localizing the works-grid header text, and aligning the top-level visual layout.<br>3. Localize the Search results first-column header text to match the current UI wording.<br>4. Update regression tests and progress documentation.                                    | ab0a79e    |
+| 2026-04-18 | 待提交 | v0.7.0: kick off phase 7 shell integration                                  | 1. Update runtime/docs version to v0.7.0.<br>2. Add shared state/navigation/message/dialog services and resource dictionary.<br>3. Bind the main window to shell-driven page state.<br>4. Route Search/Download/Sync file dialogs through the shared dialog service.<br>5. Align Search/Download/Library/Settings page styles to the shared base styles.<br>6. Update regression tests and progress documentation.                 | -          |
 
 ---
 
 ## 4. 功能测试验证清单
 
-本章用于指导测试人员对当前已交付的 WPF 客户端执行功能测试与回归测试。当前范围覆盖阶段 1 到阶段 5，以及阶段 6 当前已落地的本地资源扫描、资源库列表/筛选与系统默认程序打开链路。
+本章用于指导测试人员对当前已交付的 WPF 客户端执行功能测试与回归测试。当前范围覆盖阶段 1 到阶段 6，以及阶段 7 当前已落地的壳层导航、共享对话框与共享样式基线。
 
 AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可见行为的改动时，必须先检查本章并将受影响的测试项重置为未勾选；待对应的功能测试或回归测试通过后，再重新勾选，并在必要时同步更新第 1.4 节和第 1.5 节记录。
 
@@ -2179,7 +2231,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] “测试连接”应通过 `GET /api/health?cache=false` 完成候选探测；当旧探测端点不可用但 health API 可达时，仍能选中可用 BaseUrl。
 - [x] 当发布页正文直接提供 `asmr-300/200/100/one` 最新域名时，“测试连接”会按正文顺序补齐候选列表并写回 SQLite `ApiCandidateUrls`；随后再次“保存并重新初始化”不会把新候选覆盖回旧值。
 - [x] 当发布页 discovery 仅返回部分新候选时，若与已保存候选集合合并后的总数更大，“测试连接”会保留旧候选并把合并后的 `ApiCandidateUrls` 写回 SQLite。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.6.4。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.7.0。
 
 ### 4.2 Search 功能
 
@@ -2307,3 +2359,10 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 当系统默认关联程序已成功拉起但底层 Shell 调用返回 `null` 时，Library 页不应误报“打开失败”。
 - [x] Library 页不再显示“暂停 / 停止”按钮和时间进度文本；“当前选择”与“当前已载入上下文”会分开展示，且已载入区会显示状态、作品、当前文件与最近一次打开结果。
 - [x] 清空上下文后，“当前已载入上下文”应恢复为未载入状态，但“当前选择”区仍保留当前作品或文件对应的提示，不与已载入状态混淆。
+
+### 4.7 阶段 7 壳层与体验收口
+
+- [x] 初始化完成前，Settings 页签保持可用，Search/Download/Library/Sync 四个主功能页签保持禁用；初始化成功后四个主功能页签统一恢复可用。
+- [x] Search、Download、Library、Settings 四页在 `1280x720` 与更大窗口尺寸下共用卡片/输入框/按钮视觉基线，不出现局部样式回退或边距错位。
+- [x] Search 页面导出、Download 页面从文件导入、Sync 页面导出失败/成功记录均复用统一文件对话框流程，CSV/JSON 默认后缀补齐正确。
+- [x] 在 Settings 页面执行“保存并重新初始化”成功或失败后，主窗口底部状态栏会通过统一壳层消息区显示结果，且当前页仍保持在 Settings。

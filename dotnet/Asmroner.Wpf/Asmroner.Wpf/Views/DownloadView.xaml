@@ -7,25 +7,13 @@
              d:DesignHeight="450"
              d:DesignWidth="800">
     <UserControl.Resources>
-        <LinearGradientBrush x:Key="PageBackgroundBrush"
-                             StartPoint="0,0"
-                             EndPoint="1,1">
-            <GradientStop Color="#FFF7FBFF"
-                          Offset="0"/>
-            <GradientStop Color="#FFEAF4FF"
-                          Offset="1"/>
-        </LinearGradientBrush>
-
         <Style x:Key="CardBorderStyle"
-               TargetType="Border">
-            <Setter Property="Background"
-                    Value="#FFFFFFFF"/>
+               TargetType="Border"
+               BasedOn="{StaticResource ShellCardBorderBaseStyle}">
             <Setter Property="CornerRadius"
                     Value="12"/>
             <Setter Property="BorderBrush"
                     Value="#FFD8E6F4"/>
-            <Setter Property="BorderThickness"
-                    Value="1"/>
             <Setter Property="Padding"
                     Value="12"/>
             <Setter Property="Margin"
@@ -91,21 +79,19 @@
         </Style>
 
         <Style x:Key="FieldTextBoxStyle"
-               TargetType="TextBox">
+               TargetType="TextBox"
+               BasedOn="{StaticResource ShellFieldTextBoxBaseStyle}">
             <Setter Property="Padding"
                     Value="8,5"/>
             <Setter Property="BorderBrush"
                     Value="#FFADC6DF"/>
-            <Setter Property="BorderThickness"
-                    Value="1"/>
             <Setter Property="Background"
                     Value="#FFFBFDFF"/>
         </Style>
 
         <Style x:Key="MutedLabelStyle"
-               TargetType="TextBlock">
-            <Setter Property="VerticalAlignment"
-                    Value="Center"/>
+               TargetType="TextBlock"
+               BasedOn="{StaticResource ShellMutedLabelStyle}">
             <Setter Property="Foreground"
                     Value="#FF35506C"/>
             <Setter Property="FontWeight"
@@ -138,7 +124,7 @@
     </UserControl.Resources>
 
     <Grid Margin="12"
-          Background="{StaticResource PageBackgroundBrush}">
+          Background="{StaticResource ShellBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>

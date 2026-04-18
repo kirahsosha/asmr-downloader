@@ -2,6 +2,7 @@
 using Asmroner.Core.Interfaces;
 using Asmroner.Infrastructure.Services;
 using Asmroner.Wpf.Services;
+using Asmroner.Wpf.ViewModels;
 using Asmroner.Wpf.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -31,6 +32,10 @@ public partial class App : System.Windows.Application
             .ConfigureServices(services =>
             {
                 services.AddMemoryCache();
+                services.AddSingleton<ShellViewModel>();
+                services.AddSingleton<INavigationService, NavigationService>();
+                services.AddSingleton<IUiMessageService, UiMessageService>();
+                services.AddSingleton<IDialogService, DialogService>();
                 services.AddSingleton<IAppLogService, NLogAppLogService>();
                 services.AddSingleton<IAppPathService, AppPathService>();
                 services.AddSingleton<IConfigurationService, Asmroner.Infrastructure.Services.ConfigurationService>();

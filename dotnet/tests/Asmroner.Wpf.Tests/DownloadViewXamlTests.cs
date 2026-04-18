@@ -10,7 +10,7 @@ public class DownloadViewXamlTests
         var xamlPath = XamlTestPathLocator.Locate("DownloadView.xaml", "dotnet", "Asmroner.Wpf", "Asmroner.Wpf", "Views");
         var content = File.ReadAllText(xamlPath);
 
-        Assert.Contains("x:Key=\"PageBackgroundBrush\"", content, StringComparison.Ordinal);
+        Assert.Contains("Background=\"{StaticResource ShellBackgroundBrush}\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"CardBorderStyle\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"ActionButtonStyle\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"TaskGrid\"", content, StringComparison.Ordinal);

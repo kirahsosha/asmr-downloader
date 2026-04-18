@@ -11,7 +11,6 @@ using Asmroner.Core.Interfaces;
 using Asmroner.Wpf.Services;
 using Asmroner.Wpf.ViewModels;
 using NLog;
-using Microsoft.Win32;
 
 namespace Asmroner.Wpf.Views;
 
@@ -29,6 +28,7 @@ public partial class DownloadView : UserControl
     private readonly IConfigurationService _configurationService;
     private readonly IAppPathService _appPathService;
     private readonly ISearchImportService _importService;
+    private readonly IDialogService _dialogService;
     private readonly StartupUnfinishedQueueMetadataRefreshService _startupUnfinishedQueueMetadataRefreshService;
     private readonly ConcurrentDictionary<string, string> _queuedWorkInfoTitles = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, DownloadTaskStatus> _queuedStatusOverrides = new(StringComparer.OrdinalIgnoreCase);
@@ -36,7 +36,7 @@ public partial class DownloadView : UserControl
     private bool _isApplyingDownloadUiState;
 
     public DownloadView()
-        : this(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!)
+        : this(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!)
     {
     }
 
@@ -50,6 +50,7 @@ public partial class DownloadView : UserControl
         IConfigurationService configurationService,
         IAppPathService appPathService,
         ISearchImportService importService,
+        IDialogService dialogService,
         StartupUnfinishedQueueMetadataRefreshService startupUnfinishedQueueMetadataRefreshService)
     {
         _downloadService = downloadService;
@@ -61,6 +62,7 @@ public partial class DownloadView : UserControl
         _configurationService = configurationService;
         _appPathService = appPathService;
         _importService = importService;
+        _dialogService = dialogService;
         _startupUnfinishedQueueMetadataRefreshService = startupUnfinishedQueueMetadataRefreshService;
 
         InitializeComponent();
@@ -552,26 +554,27 @@ public partial class DownloadView : UserControl
     /// </summary>
     private async void OnImportFileClicked(object sender, RoutedEventArgs e)
     {
-        var dialog = new OpenFileDialog
+        var filePath = _dialogService.ShowOpenFileDialog(new OpenFileDialogOptions
         {
             Title = "选择要导入的文件",
+            InitialDirectory = _appPathService.MetadataDirectory,
             Filter = "支持的文件 (*.csv;*.json)|*.csv;*.json|CSV 文件 (*.csv)|*.csv|JSON 文件 (*.json)|*.json|所有文件 (*.*)|*.*",
             DefaultExt = ".csv",
-        };
+        });
 
-        if (dialog.ShowDialog() != true)
+        if (string.IsNullOrWhiteSpace(filePath))
         {
             return;
         }
 
-        var format = ResolveImportFileFormat(dialog.FileName);
+        var format = ResolveImportFileFormat(filePath);
         if (format is null)
         {
             StatusTextBlock.Text = "仅支持导入 CSV 或 JSON 文件。";
             return;
         }
 
-        await ImportFileAsync(dialog.FileName, format);
+        await ImportFileAsync(filePath, format);
     }
 
     private async Task ImportFileAsync(string filePath, string format)
@@ -935,14 +938,8 @@ public partial class DownloadView : UserControl
 
     private bool ConfirmWithQuestion(string message, string title)
     {
-        var result = MessageBox.Show(
-            message,
-            title,
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question,
-            MessageBoxResult.No);
-
-        var decision = DownloadConfirmationPolicy.Evaluate(result);
+        var shouldContinue = _dialogService.ConfirmQuestion(message, title);
+        var decision = DownloadConfirmationPolicy.Evaluate(shouldContinue ? MessageBoxResult.Yes : MessageBoxResult.No);
         if (!decision.ShouldContinue)
         {
             StatusTextBlock.Text = decision.StatusText;

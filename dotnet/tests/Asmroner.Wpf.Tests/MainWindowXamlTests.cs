@@ -18,6 +18,12 @@ public class MainWindowXamlTests
         Assert.DoesNotContain("Title=\"Asmroner v", content, StringComparison.Ordinal);
         Assert.Contains("Header=\"Library\"", content, StringComparison.Ordinal);
         Assert.Contains("Header=\"Sync\"", content, StringComparison.Ordinal);
+        Assert.Contains("Text=\"{Binding StatusMessage}\"", content, StringComparison.Ordinal);
+        Assert.Contains("SelectedIndex=\"{Binding SelectedPageIndex, Mode=TwoWay}\"", content, StringComparison.Ordinal);
+        Assert.Contains("IsEnabled=\"{Binding IsSearchEnabled}\"", content, StringComparison.Ordinal);
+        Assert.Contains("IsEnabled=\"{Binding IsDownloadEnabled}\"", content, StringComparison.Ordinal);
+        Assert.Contains("IsEnabled=\"{Binding IsLibraryEnabled}\"", content, StringComparison.Ordinal);
+        Assert.Contains("IsEnabled=\"{Binding IsSyncEnabled}\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
         Assert.NotNull(doc.Root);

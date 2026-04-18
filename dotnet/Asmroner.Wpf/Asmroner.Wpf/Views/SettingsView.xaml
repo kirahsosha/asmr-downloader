@@ -7,114 +7,47 @@
              d:DesignHeight="450"
              d:DesignWidth="800">
     <UserControl.Resources>
-        <LinearGradientBrush x:Key="ShellBackgroundBrush"
-                             StartPoint="0,0"
-                             EndPoint="1,1">
-            <GradientStop Offset="0"
-                          Color="#FFF5FAFF"/>
-            <GradientStop Offset="1"
-                          Color="#FFEFF6FF"/>
-        </LinearGradientBrush>
-
         <Style x:Key="CardBorderStyle"
-               TargetType="Border">
-            <Setter Property="Background"
-                    Value="#FFFFFFFF"/>
-            <Setter Property="BorderBrush"
-                    Value="#FFE3ECF7"/>
-            <Setter Property="BorderThickness"
-                    Value="1"/>
-            <Setter Property="CornerRadius"
-                    Value="14"/>
-            <Setter Property="Padding"
-                    Value="14"/>
+               TargetType="Border"
+               BasedOn="{StaticResource ShellCardBorderBaseStyle}">
             <Setter Property="Margin"
                     Value="0,0,0,10"/>
         </Style>
 
         <Style x:Key="SectionTitleStyle"
-               TargetType="TextBlock">
-            <Setter Property="FontSize"
-                    Value="15"/>
-            <Setter Property="FontWeight"
-                    Value="SemiBold"/>
-            <Setter Property="Foreground"
-                    Value="#FF1E2A3A"/>
-            <Setter Property="Margin"
-                    Value="0,0,0,8"/>
-        </Style>
+               TargetType="TextBlock"
+               BasedOn="{StaticResource ShellSectionTitleStyle}"/>
 
         <Style x:Key="FieldLabelStyle"
-               TargetType="TextBlock">
-            <Setter Property="FontWeight"
-                    Value="SemiBold"/>
-            <Setter Property="Foreground"
-                    Value="#FF40546C"/>
-            <Setter Property="Margin"
-                    Value="0,2,0,4"/>
-        </Style>
+               TargetType="TextBlock"
+               BasedOn="{StaticResource ShellFieldLabelStyle}"/>
 
         <Style x:Key="FieldTextBoxStyle"
-               TargetType="TextBox">
-            <Setter Property="Height"
-                    Value="34"/>
-            <Setter Property="Padding"
-                    Value="10,4"/>
-            <Setter Property="BorderBrush"
-                    Value="#FFD6E3F2"/>
-            <Setter Property="BorderThickness"
-                    Value="1"/>
-            <Setter Property="Background"
-                    Value="#FFFFFFFF"/>
-            <Setter Property="VerticalContentAlignment"
-                    Value="Center"/>
+               TargetType="TextBox"
+               BasedOn="{StaticResource ShellFieldTextBoxBaseStyle}">
             <Setter Property="Margin"
                     Value="0,0,0,8"/>
         </Style>
 
         <Style x:Key="FieldPasswordBoxStyle"
-               TargetType="PasswordBox">
-            <Setter Property="Height"
-                    Value="34"/>
-            <Setter Property="Padding"
-                    Value="10,4"/>
-            <Setter Property="BorderBrush"
-                    Value="#FFD6E3F2"/>
-            <Setter Property="BorderThickness"
-                    Value="1"/>
-            <Setter Property="Background"
-                    Value="#FFFFFFFF"/>
+               TargetType="PasswordBox"
+               BasedOn="{StaticResource ShellFieldPasswordBoxBaseStyle}">
             <Setter Property="Margin"
                     Value="0,0,0,8"/>
         </Style>
 
         <Style x:Key="ActionButtonStyle"
-               TargetType="Button">
-            <Setter Property="Padding"
-                    Value="12,5"/>
-            <Setter Property="Height"
-                    Value="34"/>
+               TargetType="Button"
+               BasedOn="{StaticResource ShellActionButtonBaseStyle}">
             <Setter Property="Margin"
                     Value="0,0,8,0"/>
-            <Setter Property="FontWeight"
-                    Value="SemiBold"/>
-            <Setter Property="Foreground"
-                    Value="White"/>
-            <Setter Property="Background"
-                    Value="#FF3D8DFF"/>
-            <Setter Property="BorderBrush"
-                    Value="#FF3D8DFF"/>
         </Style>
 
         <Style x:Key="LightActionButtonStyle"
                TargetType="Button"
-               BasedOn="{StaticResource ActionButtonStyle}">
-            <Setter Property="Foreground"
-                    Value="#FF24507A"/>
-            <Setter Property="Background"
-                    Value="#FFE8F2FF"/>
-            <Setter Property="BorderBrush"
-                    Value="#FFD2E5FF"/>
+               BasedOn="{StaticResource ShellLightActionButtonBaseStyle}">
+            <Setter Property="Margin"
+                    Value="0,0,8,0"/>
         </Style>
     </UserControl.Resources>
 

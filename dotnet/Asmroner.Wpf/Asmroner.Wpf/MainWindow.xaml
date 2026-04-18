@@ -23,25 +23,30 @@
                 Margin="0,0,0,10">
             <TextBlock x:Name="StatusTextBlock"
                        Foreground="White"
-                       Text="初始化中..."/>
+                       Text="{Binding StatusMessage}"/>
         </Border>
 
         <TabControl x:Name="MainTabControl"
-                    Grid.Row="1">
+                    Grid.Row="1"
+                    SelectedIndex="{Binding SelectedPageIndex, Mode=TwoWay}">
             <TabItem x:Name="SearchTab"
-                     Header="Search">
+                     Header="Search"
+                     IsEnabled="{Binding IsSearchEnabled}">
                 <ContentControl x:Name="SearchHost"/>
             </TabItem>
             <TabItem x:Name="DownloadTab"
-                     Header="Download">
+                     Header="Download"
+                     IsEnabled="{Binding IsDownloadEnabled}">
                 <ContentControl x:Name="DownloadHost"/>
             </TabItem>
             <TabItem x:Name="LibraryTab"
-                     Header="Library">
+                     Header="Library"
+                     IsEnabled="{Binding IsLibraryEnabled}">
                 <ContentControl x:Name="LibraryHost"/>
             </TabItem>
             <TabItem x:Name="SyncTab"
-                     Header="Sync">
+                     Header="Sync"
+                     IsEnabled="{Binding IsSyncEnabled}">
                 <ContentControl x:Name="SyncHost"/>
             </TabItem>
             <TabItem x:Name="SettingsTab"
