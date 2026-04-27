@@ -19,6 +19,7 @@ public class SettingsViewXamlTests
         Assert.Contains("x:Name=\"DownloadDataFolderTextBox\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"SyncDataFolderTextBox\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"MetadataValidityDaysTextBox\"", content, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource PageStatePresenterTemplate}\"", content, StringComparison.Ordinal);
         Assert.DoesNotContain("FileFilterTextBox", content, StringComparison.Ordinal);
         Assert.DoesNotContain("GlobalSearchRuleTextBox", content, StringComparison.Ordinal);
         Assert.DoesNotContain("Text=\"版本：v0.4.6\"", content, StringComparison.Ordinal);
@@ -34,5 +35,6 @@ public class SettingsViewXamlTests
         var content = File.ReadAllText(xamlPath);
 
         Assert.DoesNotContain("阶段 ", content, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"Root\"", content, StringComparison.Ordinal);
     }
 }

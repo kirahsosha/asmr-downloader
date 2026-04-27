@@ -17,23 +17,31 @@ public partial class SettingsView : UserControl
     private readonly IApplicationBootstrapper _bootstrapper;
     private readonly IAppPathService _appPathService;
     private readonly IConnectivityProbeService _connectivityProbeService;
+    private readonly IUiMessageService _uiMessageService;
 
     private string _apiCandidateUrls = new DownloaderOptions().ApiCandidateUrls;
     private string _publishSourceUrls = new DownloaderOptions().PublishSourceUrls;
     private string _workPageUrlTemplate = new DownloaderOptions().WorkPageUrlTemplate;
 
+    public PageLoadState PageState { get; }
+
     public SettingsView(
         IConfigurationService configurationService,
         IApplicationBootstrapper bootstrapper,
         IAppPathService appPathService,
-        IConnectivityProbeService connectivityProbeService)
+        IConnectivityProbeService connectivityProbeService,
+        IPageLoadStateService pageLoadStateService,
+        IUiMessageService uiMessageService)
     {
         _configurationService = configurationService;
         _bootstrapper = bootstrapper;
         _appPathService = appPathService;
         _connectivityProbeService = connectivityProbeService;
+        _uiMessageService = uiMessageService;
+        PageState = pageLoadStateService.Create("Settings");
 
         InitializeComponent();
+        ShellStatusTextSynchronizer.Attach(StatusTextBlock, _uiMessageService);
         Loaded += OnLoaded;
     }
 
@@ -109,6 +117,7 @@ public partial class SettingsView : UserControl
         Func<AppConfig, Task> action)
     {
         SetPrimaryActionButtonsEnabled(false);
+        PageState.ShowBusy(runningStatus);
         StatusTextBlock.Text = runningStatus;
 
         try
@@ -128,6 +137,7 @@ public partial class SettingsView : UserControl
         }
         finally
         {
+            PageState.HideBusy();
             SetPrimaryActionButtonsEnabled(true);
         }
     }

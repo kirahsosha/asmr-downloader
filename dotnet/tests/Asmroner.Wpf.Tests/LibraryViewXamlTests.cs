@@ -28,6 +28,7 @@ public class LibraryViewXamlTests
         Assert.Contains("x:Name=\"ClearContextButton\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"ContextTextBlock\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"StatusTextBlock\"", content, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource PageStatePresenterTemplate}\"", content, StringComparison.Ordinal);
         Assert.Contains("Content=\"刷新资源库\"", content, StringComparison.Ordinal);
         Assert.Contains("Content=\"载入/切换文件\"", content, StringComparison.Ordinal);
         Assert.Contains("Content=\"播放\"", content, StringComparison.Ordinal);

@@ -12,6 +12,8 @@ public class AppXamlTests
 
         Assert.Contains("ResourceDictionary.MergedDictionaries", content, StringComparison.Ordinal);
         Assert.Contains("Source=\"Styles/ShellResources.xaml\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"PageStatePresenterTemplate\"", content, StringComparison.Ordinal);
+        Assert.Contains("Text=\"正在处理\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
         Assert.NotNull(doc.Root);

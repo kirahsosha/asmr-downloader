@@ -14,6 +14,7 @@ public partial class SyncView : UserControl
 {
     private readonly IAppPathService _appPathService;
     private readonly IDialogService _dialogService;
+    private readonly IUiMessageService _uiMessageService;
     private readonly ISyncExportService _syncExportService;
     private readonly ISyncService _syncService;
 
@@ -32,18 +33,27 @@ public partial class SyncView : UserControl
     private DateTimeOffset? _lastMetadataStartRequestedAt;
     private DateTimeOffset? _lastDownloadStartRequestedAt;
 
+    public PageLoadState PageState { get; }
+
     public SyncView(
         ISyncService syncService,
         ISyncExportService syncExportService,
         IAppPathService appPathService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IPageLoadStateService pageLoadStateService,
+        IUiMessageService uiMessageService)
     {
         _appPathService = appPathService;
         _dialogService = dialogService;
+        _uiMessageService = uiMessageService;
         _syncExportService = syncExportService;
         _syncService = syncService;
+        PageState = pageLoadStateService.Create("Sync");
 
         InitializeComponent();
+        ShellStatusTextSynchronizer.Attach(StatusTextBlock, _uiMessageService, ShouldPublishMetadataShellStatus);
+        ShellStatusTextSynchronizer.Attach(DownloadStatusTextBlock, _uiMessageService, ShouldPublishDownloadShellStatus);
+        PageState.ShowEmpty("暂无同步记录", "执行元数据同步、同步下载或刷新统计后，这里会显示汇总信息与执行摘要。");
         RefreshCommandAvailability();
         Loaded += OnLoaded;
     }
@@ -67,6 +77,7 @@ public partial class SyncView : UserControl
         }
 
         _isRefreshRunning = true;
+        PageState.ShowBusy("正在刷新同步统计，请稍候...");
         RefreshCommandAvailability();
 
         try
@@ -77,6 +88,7 @@ public partial class SyncView : UserControl
         finally
         {
             _isRefreshRunning = false;
+            PageState.HideBusy();
             RefreshCommandAvailability();
             Interlocked.Exchange(ref _refreshActionInFlight, 0);
         }
@@ -118,6 +130,7 @@ public partial class SyncView : UserControl
             _lastMetadataStartRequestedAt = now;
             _isMetadataSyncRunning = true;
             _isMetadataStopRequested = false;
+            PageState.ShowBusy("正在同步元数据，请稍候...");
             RefreshCommandAvailability();
             SetMetadataStatus(SyncStatusTextBuilder.BuildMetadataActionStatus("正在同步元数据，请稍候..."));
             _ = RunMetadataSyncAsync();
@@ -146,6 +159,7 @@ public partial class SyncView : UserControl
         {
             _isMetadataSyncRunning = false;
             _isMetadataStopRequested = false;
+            PageState.HideBusy();
             RefreshCommandAvailability();
         }
     }
@@ -186,6 +200,7 @@ public partial class SyncView : UserControl
             _lastDownloadStartRequestedAt = now;
             _isDownloadSyncRunning = true;
             _isDownloadStopRequested = false;
+            PageState.ShowBusy("正在执行同步下载，请稍候...");
             RefreshCommandAvailability();
             SetDownloadStatus(SyncStatusTextBuilder.BuildDownloadActionStatus("正在执行同步下载，请稍候..."));
             _ = RunSyncDownloadAsync();
@@ -214,6 +229,7 @@ public partial class SyncView : UserControl
         {
             _isDownloadSyncRunning = false;
             _isDownloadStopRequested = false;
+            PageState.HideBusy();
             RefreshCommandAvailability();
         }
     }
@@ -280,6 +296,7 @@ public partial class SyncView : UserControl
 
     private void ApplyReport(SyncReportSnapshot report)
     {
+        UpdateSyncPageState(report);
         CurrentCountTextBlock.Text = $"本地元数据：{report.MetadataTotalCount.ToString(CultureInfo.InvariantCulture)} 条（字幕 {report.MetadataSubtitleCount.ToString(CultureInfo.InvariantCulture)} 条）";
         DownloadCountTextBlock.Text = string.Join(string.Empty,
         [
@@ -474,6 +491,7 @@ public partial class SyncView : UserControl
     private async Task RunRetryOperationAsync(Func<Task> action)
     {
         _isRetryFailedRunning = true;
+        PageState.ShowBusy("正在重试失败同步下载，请稍候...");
         RefreshCommandAvailability();
 
         try
@@ -483,6 +501,7 @@ public partial class SyncView : UserControl
         finally
         {
             _isRetryFailedRunning = false;
+            PageState.HideBusy();
             RefreshCommandAvailability();
         }
     }
@@ -490,6 +509,7 @@ public partial class SyncView : UserControl
     private async Task RunExportOperationAsync(Func<Task> action)
     {
         _isExportRunning = true;
+        PageState.ShowBusy("正在导出同步记录，请稍候...");
         RefreshCommandAvailability();
 
         try
@@ -499,6 +519,7 @@ public partial class SyncView : UserControl
         finally
         {
             _isExportRunning = false;
+            PageState.HideBusy();
             RefreshCommandAvailability();
         }
     }
@@ -513,8 +534,48 @@ public partial class SyncView : UserControl
         DownloadStatusTextBlock.Text = text;
     }
 
+    private bool ShouldPublishMetadataShellStatus()
+    {
+        return SyncShellStatusRelayPolicy.ShouldPublishMetadata(
+            isViewVisible: IsLoaded && IsVisible,
+            isMetadataSyncRunning: _isMetadataSyncRunning,
+            isMetadataStopRequested: _isMetadataStopRequested,
+            isDownloadSyncRunning: _isDownloadSyncRunning,
+            isDownloadStopRequested: _isDownloadStopRequested,
+            isRetryFailedRunning: _isRetryFailedRunning,
+            isExportRunning: _isExportRunning,
+            isRefreshRunning: _isRefreshRunning);
+    }
+
+    private bool ShouldPublishDownloadShellStatus()
+    {
+        return SyncShellStatusRelayPolicy.ShouldPublishDownload(
+            isViewVisible: IsLoaded && IsVisible,
+            isDownloadSyncRunning: _isDownloadSyncRunning,
+            isDownloadStopRequested: _isDownloadStopRequested,
+            isRetryFailedRunning: _isRetryFailedRunning,
+            isExportRunning: _isExportRunning);
+    }
+
     private static string FormatSourceId(string sourceId)
     {
         return string.IsNullOrWhiteSpace(sourceId) ? "暂无" : sourceId;
+    }
+
+    private void UpdateSyncPageState(SyncReportSnapshot report)
+    {
+        var hasData = report.MetadataTotalCount > 0
+            || report.CompletedCount > 0
+            || report.FailedCount > 0
+            || report.PendingCount > 0
+            || report.RemainingMetadataCount > 0;
+
+        if (hasData)
+        {
+            PageState.ClearEmpty();
+            return;
+        }
+
+        PageState.ShowEmpty("暂无同步记录", "执行元数据同步、同步下载或刷新统计后，这里会显示汇总信息与执行摘要。");
     }
 }

@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using Asmroner.Core.Interfaces;
 using Asmroner.Core.Library;
 using Asmroner.Core.Playback;
+using Asmroner.Wpf.Services;
 
 namespace Asmroner.Wpf.Views;
 
@@ -13,6 +14,7 @@ public partial class LibraryView : UserControl
 
     private readonly ILibraryQueryService _libraryQueryService;
     private readonly IPlayerService _playerService;
+    private readonly IUiMessageService _uiMessageService;
 
     private int _currentPage = 1;
     private int _pageSize = DefaultPageSize;
@@ -25,18 +27,28 @@ public partial class LibraryView : UserControl
     private LibraryFileItem? _selectedFile;
     private LibrarySelectionFeedbackResult _selectionFeedback = new();
 
-    public LibraryView(ILibraryQueryService libraryQueryService, IPlayerService playerService)
+    public PageLoadState PageState { get; }
+
+    public LibraryView(
+        ILibraryQueryService libraryQueryService,
+        IPlayerService playerService,
+        IPageLoadStateService pageLoadStateService,
+        IUiMessageService uiMessageService)
     {
         _libraryQueryService = libraryQueryService;
         _playerService = playerService;
+        _uiMessageService = uiMessageService;
+        PageState = pageLoadStateService.Create("Library");
 
         InitializeComponent();
+        ShellStatusTextSynchronizer.Attach(StatusTextBlock, _uiMessageService);
         _pageSize = ReadPageSize();
         UpdatePaginationInfo();
         _suppressPageSizeSelectionChanged = false;
         Loaded += OnLoaded;
         _playerService.ContextChanged += OnPlayerContextChanged;
 
+        PageState.ShowEmpty("资源库尚未刷新", "执行刷新资源库后，这里会显示本地作品列表与播放上下文。");
         UpdatePlaybackContext();
         UpdateCommandAvailability();
     }
@@ -195,6 +207,7 @@ public partial class LibraryView : UserControl
 
         UpdatePaginationInfo();
         _isRefreshing = true;
+        PageState.ShowBusy("正在刷新资源库，请稍候...");
         StatusTextBlock.Text = "正在刷新资源库，请稍候...";
         UpdateCommandAvailability();
 
@@ -225,6 +238,7 @@ public partial class LibraryView : UserControl
             WorkDetailsTextBlock.Text = "请选择作品查看详情。";
             UpdatePlaybackContext();
             UpdatePaginationInfo();
+            UpdateLibraryPageState(result.Items.Count);
         }
         catch (OperationCanceledException)
         {
@@ -237,8 +251,20 @@ public partial class LibraryView : UserControl
         finally
         {
             _isRefreshing = false;
+            PageState.HideBusy();
             UpdateCommandAvailability();
         }
+    }
+
+    private void UpdateLibraryPageState(int itemCount)
+    {
+        if (itemCount > 0)
+        {
+            PageState.ClearEmpty();
+            return;
+        }
+
+        PageState.ShowEmpty("资源库暂无符合条件的作品", "请调整筛选条件，或先执行下载/同步以生成本地资源。");
     }
 
     private void UpdatePlaybackContext()

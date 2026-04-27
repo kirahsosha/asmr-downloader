@@ -139,4 +139,26 @@
         <Setter Property="BorderBrush"
                 Value="#FFD2E5FF"/>
     </Style>
+
+    <Style x:Key="PageStateBusyPanelStyle"
+           TargetType="Border"
+           BasedOn="{StaticResource ShellCardBorderBaseStyle}">
+        <Setter Property="Background"
+                Value="#FFF4F8FD"/>
+        <Setter Property="BorderBrush"
+                Value="#FFD6E3F2"/>
+        <Setter Property="Margin"
+                Value="0,0,0,10"/>
+    </Style>
+
+    <Style x:Key="PageStateEmptyPanelStyle"
+           TargetType="Border"
+           BasedOn="{StaticResource ShellCardBorderBaseStyle}">
+        <Setter Property="Background"
+                Value="#FFFFFFFF"/>
+        <Setter Property="BorderBrush"
+                Value="#FFD6E3F2"/>
+        <Setter Property="Margin"
+                Value="0,0,0,10"/>
+    </Style>
 </ResourceDictionary>

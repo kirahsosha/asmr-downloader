@@ -1,4 +1,5 @@
 <UserControl x:Class="Asmroner.Wpf.Views.SettingsView"
+             x:Name="Root"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -62,6 +63,10 @@
                 <TextBlock Margin="0,8,0,12"
                            Foreground="#FF5A6A80"
                            Text="可在此验证 API 连通性、最快站点与登录状态。"/>
+
+                <ContentControl Margin="0,0,0,10"
+                                Content="{Binding PageState, ElementName=Root}"
+                                ContentTemplate="{StaticResource PageStatePresenterTemplate}"/>
 
                 <Border Style="{StaticResource CardBorderStyle}">
                     <StackPanel>

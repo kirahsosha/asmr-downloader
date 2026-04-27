@@ -1,4 +1,5 @@
 <UserControl x:Class="Asmroner.Wpf.Views.DownloadView"
+             x:Name="Root"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -289,45 +290,58 @@
                 Margin="0,0,0,0"
                 Padding="0"
                 BorderBrush="#FFBFD3E8">
-            <DataGrid x:Name="TaskGrid"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      CanUserReorderColumns="True"
-                      SelectionChanged="OnTaskSelectionChanged"
-                      SelectionMode="Extended"
-                      SelectionUnit="FullRow"
-                      GridLinesVisibility="None"
-                      RowBackground="#FFFDFEFF"
-                      AlternatingRowBackground="#FFF3F8FE"
-                      HeadersVisibility="Column"
-                      BorderThickness="0"
-                      ColumnHeaderStyle="{StaticResource TaskGridHeaderStyle}"
-                      CellStyle="{StaticResource TaskGridCellStyle}"
-                      HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Auto">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Width="110"
-                                        Header="作品ID"
-                                        Binding="{Binding SourceId}"/>
-                    <DataGridTextColumn Width="300"
-                                        Header="标题"
-                                        Binding="{Binding Title}"/>
-                    <DataGridTextColumn Width="50"
-                                        Header="状态"
-                                        CanUserResize="False"
-                                        Binding="{Binding StatusText}"
-                                        SortMemberPath="StatusSortOrder"/>
-                    <DataGridTextColumn Width="96"
-                                        Header="进度"
-                                        Binding="{Binding ProgressText}"/>
-                    <DataGridTextColumn Width="320"
-                                        Header="下载目录"
-                                        Binding="{Binding TargetDirectory}"/>
-                    <DataGridTextColumn Width="300"
-                                        Header="错误信息"
-                                        Binding="{Binding ErrorMessage}"/>
-                </DataGrid.Columns>
-            </DataGrid>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <ContentControl Grid.Row="0"
+                                Margin="12,12,12,0"
+                                Content="{Binding PageState, ElementName=Root}"
+                                ContentTemplate="{StaticResource PageStatePresenterTemplate}"/>
+
+                <DataGrid x:Name="TaskGrid"
+                          Grid.Row="1"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          CanUserReorderColumns="True"
+                          SelectionChanged="OnTaskSelectionChanged"
+                          SelectionMode="Extended"
+                          SelectionUnit="FullRow"
+                          GridLinesVisibility="None"
+                          RowBackground="#FFFDFEFF"
+                          AlternatingRowBackground="#FFF3F8FE"
+                          HeadersVisibility="Column"
+                          BorderThickness="0"
+                          ColumnHeaderStyle="{StaticResource TaskGridHeaderStyle}"
+                          CellStyle="{StaticResource TaskGridCellStyle}"
+                          HorizontalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Auto">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Width="110"
+                                            Header="作品ID"
+                                            Binding="{Binding SourceId}"/>
+                        <DataGridTextColumn Width="300"
+                                            Header="标题"
+                                            Binding="{Binding Title}"/>
+                        <DataGridTextColumn Width="50"
+                                            Header="状态"
+                                            CanUserResize="False"
+                                            Binding="{Binding StatusText}"
+                                            SortMemberPath="StatusSortOrder"/>
+                        <DataGridTextColumn Width="96"
+                                            Header="进度"
+                                            Binding="{Binding ProgressText}"/>
+                        <DataGridTextColumn Width="320"
+                                            Header="下载目录"
+                                            Binding="{Binding TargetDirectory}"/>
+                        <DataGridTextColumn Width="300"
+                                            Header="错误信息"
+                                            Binding="{Binding ErrorMessage}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
         </Border>
 
         <Border Grid.Row="5"

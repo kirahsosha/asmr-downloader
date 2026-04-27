@@ -29,14 +29,17 @@ public partial class DownloadView : UserControl
     private readonly IAppPathService _appPathService;
     private readonly ISearchImportService _importService;
     private readonly IDialogService _dialogService;
+    private readonly IUiMessageService _uiMessageService;
     private readonly StartupUnfinishedQueueMetadataRefreshService _startupUnfinishedQueueMetadataRefreshService;
     private readonly ConcurrentDictionary<string, string> _queuedWorkInfoTitles = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, DownloadTaskStatus> _queuedStatusOverrides = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<string, string> _queuedErrorMessages = new(StringComparer.OrdinalIgnoreCase);
     private bool _isApplyingDownloadUiState;
 
+    public PageLoadState PageState { get; }
+
     public DownloadView()
-        : this(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, null!)
+        : this(null!, null!, null!, null!, null!, null!, null!, null!, null!, null!, new PageLoadStateService(), NoOpUiMessageService.Instance, null!)
     {
     }
 
@@ -51,6 +54,8 @@ public partial class DownloadView : UserControl
         IAppPathService appPathService,
         ISearchImportService importService,
         IDialogService dialogService,
+        IPageLoadStateService pageLoadStateService,
+        IUiMessageService uiMessageService,
         StartupUnfinishedQueueMetadataRefreshService startupUnfinishedQueueMetadataRefreshService)
     {
         _downloadService = downloadService;
@@ -63,9 +68,13 @@ public partial class DownloadView : UserControl
         _appPathService = appPathService;
         _importService = importService;
         _dialogService = dialogService;
+        _uiMessageService = uiMessageService;
         _startupUnfinishedQueueMetadataRefreshService = startupUnfinishedQueueMetadataRefreshService;
+        PageState = pageLoadStateService.Create("Download");
 
         InitializeComponent();
+        ShellStatusTextSynchronizer.Attach(StatusTextBlock, _uiMessageService);
+        PageState.ShowEmpty("下载队列为空", "可输入 RJID、从文件导入，或从收藏夹导入作品后开始下载。");
         Loaded += async (_, _) =>
         {
             await LoadDownloadUiStateAsync();
@@ -355,10 +364,19 @@ public partial class DownloadView : UserControl
     /// <summary>
     /// 处理“刷新任务列表”按钮点击。
     /// </summary>
-    private void OnRefreshClicked(object sender, System.Windows.RoutedEventArgs e)
+    private async void OnRefreshClicked(object sender, System.Windows.RoutedEventArgs e)
     {
-        RefreshView();
-        StatusTextBlock.Text = "任务列表已刷新。";
+        await ExecuteGuardedAsync(
+            () =>
+            {
+                RefreshView();
+                StatusTextBlock.Text = "任务列表已刷新。";
+                return Task.CompletedTask;
+            },
+            failurePrefix: "刷新任务列表失败",
+            logMessage: "Failed to refresh download tasks.",
+            busyMessage: "正在刷新任务列表，请稍候...",
+            updateSelectionOnFinally: true);
     }
 
     /// <summary>
@@ -800,6 +818,7 @@ public partial class DownloadView : UserControl
 
         TaskGrid.ItemsSource = combined;
         QueueCountTextBlock.Text = $"待下载队列：{queuedSourceIds.Count}";
+        UpdateDownloadPageState(combined.Count);
         UpdateSelectionActions();
 
         _ = PersistUnfinishedQueueSnapshotSafeAsync(activeTasks, queuedSourceIds);
@@ -1059,6 +1078,7 @@ public partial class DownloadView : UserControl
         Func<Task> action,
         string failurePrefix,
         string logMessage,
+        string? busyMessage = null,
         bool disableRunQueue = false,
         bool disableSelectionActions = false,
         bool updateSelectionOnFinally = false)
@@ -1073,6 +1093,8 @@ public partial class DownloadView : UserControl
             ToggleSelectionActions(false);
         }
 
+        PageState.ShowBusy(busyMessage ?? "正在处理下载任务，请稍候...");
+
         try
         {
             await action();
@@ -1084,6 +1106,8 @@ public partial class DownloadView : UserControl
         }
         finally
         {
+            PageState.HideBusy();
+
             if (disableRunQueue)
             {
                 SetQueueMutationRunning(false);
@@ -1094,6 +1118,17 @@ public partial class DownloadView : UserControl
                 UpdateSelectionActions();
             }
         }
+    }
+
+    private void UpdateDownloadPageState(int rowCount)
+    {
+        if (rowCount > 0)
+        {
+            PageState.ClearEmpty();
+            return;
+        }
+
+        PageState.ShowEmpty("下载队列为空", "可输入 RJID、从文件导入，或从收藏夹导入作品后开始下载。");
     }
 
 }

@@ -39,3 +39,22 @@ public sealed class UiMessageService : IUiMessageService
         _shellViewModel.StatusMessage = message;
     }
 }
+
+public sealed class NoOpUiMessageService : IUiMessageService
+{
+    public static NoOpUiMessageService Instance { get; } = new();
+
+    public string CurrentMessage => string.Empty;
+
+    public void ShowInfo(string message)
+    {
+    }
+
+    public void ShowWarning(string message)
+    {
+    }
+
+    public void ShowError(string message)
+    {
+    }
+}

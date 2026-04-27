@@ -47,6 +47,73 @@
                 <Setter Property="Foreground"
                         Value="{StaticResource StatusInfoMutedTextBrush}"/>
             </Style>
+
+            <DataTemplate x:Key="PageStatePresenterTemplate">
+                <StackPanel>
+                    <Border x:Name="BusyPanel"
+                            Style="{StaticResource PageStateBusyPanelStyle}"
+                            Visibility="Collapsed">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <ProgressBar Grid.Column="0"
+                                         Width="72"
+                                         Height="12"
+                                         Margin="0,0,12,0"
+                                         VerticalAlignment="Center"
+                                         IsIndeterminate="True"/>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="#FF24507A"
+                                           Text="正在处理"/>
+                                <TextBlock Foreground="#FF4B5563"
+                                           Text="{Binding BusyMessage}"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border x:Name="EmptyPanel"
+                            Style="{StaticResource PageStateEmptyPanelStyle}"
+                            Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="#FF24507A"
+                                       Text="{Binding EmptyTitle}"
+                                       TextWrapping="Wrap"/>
+                            <TextBlock Margin="0,6,0,0"
+                                       Foreground="#FF4B5563"
+                                       Text="{Binding EmptyDescription}"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding IsBusy}"
+                                 Value="True">
+                        <Setter TargetName="BusyPanel"
+                                Property="Visibility"
+                                Value="Visible"/>
+                    </DataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding IsBusy}"
+                                       Value="False"/>
+                            <Condition Binding="{Binding IsEmptyVisible}"
+                                       Value="True"/>
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="EmptyPanel"
+                                Property="Visibility"
+                                Value="Visible"/>
+                    </MultiDataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

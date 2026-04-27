@@ -23,6 +23,7 @@ public class DownloadViewXamlTests
         Assert.Contains("Content=\"从文件导入\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"ImportFavoritesButton\"", content, StringComparison.Ordinal);
         Assert.Contains("Content=\"从收藏夹导入\"", content, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource PageStatePresenterTemplate}\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"StatusTextBlock\"", content, StringComparison.Ordinal);
         Assert.Contains("Style=\"{StaticResource StatusInfoPanelStyle}\"", content, StringComparison.Ordinal);
         Assert.Contains("Style=\"{StaticResource StatusInfoTextStyle}\"", content, StringComparison.Ordinal);
@@ -38,6 +39,7 @@ public class DownloadViewXamlTests
         var content = File.ReadAllText(xamlPath);
 
         Assert.DoesNotContain("阶段 ", content, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"Root\"", content, StringComparison.Ordinal);
     }
 
     [Fact]

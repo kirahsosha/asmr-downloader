@@ -35,6 +35,7 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<ShellViewModel>();
                 services.AddSingleton<INavigationService, NavigationService>();
                 services.AddSingleton<IUiMessageService, UiMessageService>();
+                services.AddSingleton<IPageLoadStateService, PageLoadStateService>();
                 services.AddSingleton<IDialogService, DialogService>();
                 services.AddSingleton<IAppLogService, NLogAppLogService>();
                 services.AddSingleton<IAppPathService, AppPathService>();

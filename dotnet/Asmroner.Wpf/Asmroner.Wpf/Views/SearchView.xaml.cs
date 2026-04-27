@@ -33,6 +33,7 @@ public partial class SearchView : UserControl
     private readonly IConfigurationService _configurationService;
     private readonly IAppPathService _appPathService;
     private readonly IDialogService _dialogService;
+    private readonly IUiMessageService _uiMessageService;
 
     private IReadOnlyList<SearchWorkItem> _results = Array.Empty<SearchWorkItem>();
     private IReadOnlyList<SearchWorkItem> _popularResults = Array.Empty<SearchWorkItem>();
@@ -43,6 +44,8 @@ public partial class SearchView : UserControl
     private bool _isApplyingSearchUiState;
     private bool _suppressSearchOptionSelectionChanged = true;
     private SearchWorkItem? _contextMenuTargetItem;
+
+    public PageLoadState PageState { get; }
 
     public SearchView()
         : this(
@@ -56,8 +59,10 @@ public partial class SearchView : UserControl
             null!,
             null!,
             null!,
+            null!,
                 null!,
-            null!)
+            new PageLoadStateService(),
+            NoOpUiMessageService.Instance)
     {
     }
 
@@ -73,7 +78,9 @@ public partial class SearchView : UserControl
         IUiStateStore uiStateStore,
         IConfigurationService configurationService,
         IAppPathService appPathService,
-        IDialogService dialogService)
+        IDialogService dialogService,
+        IPageLoadStateService pageLoadStateService,
+        IUiMessageService uiMessageService)
     {
         _searchService = searchService;
         _asmrApiClient = asmrApiClient;
@@ -87,10 +94,14 @@ public partial class SearchView : UserControl
         _configurationService = configurationService;
         _appPathService = appPathService;
         _dialogService = dialogService;
+        _uiMessageService = uiMessageService;
+        PageState = pageLoadStateService.Create("Search");
 
         InitializeComponent();
+        ShellStatusTextSynchronizer.Attach(StatusTextBlock, _uiMessageService);
         _pageSize = ReadPageSize();
         UpdatePaginationInfo();
+        PageState.ShowEmpty("尚无搜索结果", "请输入关键词、填写筛选条件，或执行热门查询后查看结果列表。");
         RegisterSearchUiAutosaveHandlers();
 
         Loaded += async (_, _) => await LoadSearchUiStateAsync();
@@ -298,10 +309,12 @@ public partial class SearchView : UserControl
         if (string.IsNullOrWhiteSpace(rawQuery))
         {
             StatusTextBlock.Text = "请输入关键词，或填写至少一个高级筛选条件。";
+            PageState.ShowEmpty("尚未发起搜索", "请输入关键词，或填写至少一个高级筛选条件后再执行搜索。");
             return;
         }
 
         ToggleActionButtons(false);
+        PageState.ShowBusy("正在搜索，请稍候...");
         StatusTextBlock.Text = "正在搜索...";
 
         try
@@ -311,15 +324,22 @@ public partial class SearchView : UserControl
             ResultsGrid.ItemsSource = _results;
             _totalCount = result.TotalCount;
             UpdatePaginationInfo();
+            UpdateResultsPageState();
             StatusTextBlock.Text = $"搜索完成：返回 {result.ReturnedCount} 条 / 总计 {result.TotalCount} 条。";
         }
         catch (Exception ex)
         {
             _logger.Error(ex, "Search failed for query: {Query}", rawQuery);
+            if (_results.Count == 0)
+            {
+                PageState.ShowEmpty("搜索失败", "搜索未成功完成，请检查筛选条件后重试。");
+            }
+
             StatusTextBlock.Text = $"搜索失败：{ex.Message}";
         }
         finally
         {
+            PageState.HideBusy();
             ToggleActionButtons(true);
         }
     }
@@ -351,87 +371,101 @@ public partial class SearchView : UserControl
             return;
         }
 
-        IReadOnlyDictionary<string, WorkInfoDto> workInfos;
-        IReadOnlyList<string> candidateSourceIds;
-        var failedCount = 0;
-        var switchedCount = 0;
+        PageState.ShowBusy("正在准备加入下载队列，请稍候...");
 
-        if (QueueTranslationCheckBox.IsChecked == true)
+        try
         {
-            StatusTextBlock.Text = "正在分析作品语言并准备加入下载队列...";
-            var resolution = await _enqueueWorkInfoResolver.ResolvePreferTranslatedAsync(targetItems.Select(static item => new EnqueueWorkInfoRequest
-            {
-                SourceId = item.SourceId,
-                WorkId = item.WorkId,
-            }).ToArray());
-            workInfos = resolution.WorkInfos;
-            candidateSourceIds = resolution.WorkInfos.Keys.ToArray();
-            failedCount = resolution.FailedSourceIds.Count;
-            switchedCount = resolution.SwitchedSourceCount;
+            IReadOnlyDictionary<string, WorkInfoDto> workInfos;
+            IReadOnlyList<string> candidateSourceIds;
+            var failedCount = 0;
+            var switchedCount = 0;
 
-            if (candidateSourceIds.Count == 0)
+            if (QueueTranslationCheckBox.IsChecked == true)
             {
-                StatusTextBlock.Text = failedCount > 0
-                    ? $"未能解析可入队的作品信息，失败 {failedCount} 项。"
-                    : "当前没有可入队的搜索结果。";
+                StatusTextBlock.Text = "正在分析作品语言并准备加入下载队列...";
+                var resolution = await _enqueueWorkInfoResolver.ResolvePreferTranslatedAsync(targetItems.Select(static item => new EnqueueWorkInfoRequest
+                {
+                    SourceId = item.SourceId,
+                    WorkId = item.WorkId,
+                }).ToArray());
+                workInfos = resolution.WorkInfos;
+                candidateSourceIds = resolution.WorkInfos.Keys.ToArray();
+                failedCount = resolution.FailedSourceIds.Count;
+                switchedCount = resolution.SwitchedSourceCount;
+
+                if (candidateSourceIds.Count == 0)
+                {
+                    StatusTextBlock.Text = failedCount > 0
+                        ? $"未能解析可入队的作品信息，失败 {failedCount} 项。"
+                        : "当前没有可入队的搜索结果。";
+                    return;
+                }
+            }
+            else
+            {
+                StatusTextBlock.Text = "正在读取作品元数据...";
+                var resolution = await _metadataWorkInfoResolver.ResolveAsync(targetItems.Select(static item => new WorkInfoResolutionRequest
+                {
+                    SourceId = item.SourceId,
+                    WorkId = item.WorkId,
+                }).ToArray());
+                candidateSourceIds = resolution.WorkInfos.Keys.ToArray();
+                workInfos = resolution.WorkInfos;
+                failedCount = resolution.FailedSourceIds.Count;
+
+                if (candidateSourceIds.Count == 0)
+                {
+                    StatusTextBlock.Text = failedCount > 0
+                        ? $"未能解析可入队的作品信息，失败 {failedCount} 项。"
+                        : "当前没有可入队的搜索结果。";
+                    return;
+                }
+            }
+
+            var queuePlan = SearchQueueCountPolicy.Build(
+                candidateSourceIds,
+                _downloadService.GetTasks(),
+                _searchStateStore.GetQueuedSourceIds());
+
+            if (queuePlan.ToEnqueue.Count == 0)
+            {
+                var skippedStatusText = failedCount > 0
+                    ? $"所选作品均已在下载列表或队列中，跳过 {queuePlan.SkippedCount} 项；另有 {failedCount} 项解析失败。"
+                    : $"所选作品均已在下载列表或队列中，跳过 {queuePlan.SkippedCount} 项。";
+                StatusTextBlock.Text = DownloadOperationStatusTexts.AppendTranslationSwitchClause(skippedStatusText.TrimEnd('。'), switchedCount) + "。";
                 return;
             }
-        }
-        else
-        {
-            StatusTextBlock.Text = "正在读取作品元数据...";
-            var resolution = await _metadataWorkInfoResolver.ResolveAsync(targetItems.Select(static item => new WorkInfoResolutionRequest
-            {
-                SourceId = item.SourceId,
-                WorkId = item.WorkId,
-            }).ToArray());
-            candidateSourceIds = resolution.WorkInfos.Keys.ToArray();
-            workInfos = resolution.WorkInfos;
-            failedCount = resolution.FailedSourceIds.Count;
 
-            if (candidateSourceIds.Count == 0)
+            _searchStateStore.EnqueueForDownload(queuePlan.ToEnqueue);
+            var cacheLevel = QueueTranslationCheckBox.IsChecked == true
+                ? WorkInfoCacheEntryLevel.Full
+                : WorkInfoCacheEntryLevel.Summary;
+            _downloadService.UpsertPrefetchedWorkInfo(FilterWorkInfoMap(workInfos, queuePlan.ToEnqueue), cacheLevel);
+
+            var queuedSourceIds = _searchStateStore.GetQueuedSourceIds();
+            await PersistUnfinishedQueueSnapshotSafeAsync(queuedSourceIds);
+
+            var queueCount = queuedSourceIds.Count;
+            var queueStatusText = queuePlan.SkippedCount > 0
+                ? $"已加入下载队列 {queuePlan.ToEnqueue.Count} 项，跳过 {queuePlan.SkippedCount} 项（已存在或重复），当前队列总数 {queueCount}"
+                : $"已加入下载队列 {queuePlan.ToEnqueue.Count} 项，当前队列总数 {queueCount}";
+
+            if (failedCount > 0)
             {
-                StatusTextBlock.Text = failedCount > 0
-                    ? $"未能解析可入队的作品信息，失败 {failedCount} 项。"
-                    : "当前没有可入队的搜索结果。";
-                return;
+                queueStatusText += $"；另有 {failedCount} 项解析失败";
             }
+
+            StatusTextBlock.Text = DownloadOperationStatusTexts.AppendTranslationSwitchClause(queueStatusText, switchedCount) + "。";
         }
-
-        var queuePlan = SearchQueueCountPolicy.Build(
-            candidateSourceIds,
-            _downloadService.GetTasks(),
-            _searchStateStore.GetQueuedSourceIds());
-
-        if (queuePlan.ToEnqueue.Count == 0)
+        catch (Exception ex)
         {
-            var skippedStatusText = failedCount > 0
-                ? $"所选作品均已在下载列表或队列中，跳过 {queuePlan.SkippedCount} 项；另有 {failedCount} 项解析失败。"
-                : $"所选作品均已在下载列表或队列中，跳过 {queuePlan.SkippedCount} 项。";
-            StatusTextBlock.Text = DownloadOperationStatusTexts.AppendTranslationSwitchClause(skippedStatusText.TrimEnd('。'), switchedCount) + "。";
-            return;
+            _logger.Error(ex, "Failed to enqueue search results.");
+            StatusTextBlock.Text = $"加入下载队列失败：{ex.Message}";
         }
-
-        _searchStateStore.EnqueueForDownload(queuePlan.ToEnqueue);
-        var cacheLevel = QueueTranslationCheckBox.IsChecked == true
-            ? WorkInfoCacheEntryLevel.Full
-            : WorkInfoCacheEntryLevel.Summary;
-        _downloadService.UpsertPrefetchedWorkInfo(FilterWorkInfoMap(workInfos, queuePlan.ToEnqueue), cacheLevel);
-
-        var queuedSourceIds = _searchStateStore.GetQueuedSourceIds();
-        await PersistUnfinishedQueueSnapshotSafeAsync(queuedSourceIds);
-
-        var queueCount = queuedSourceIds.Count;
-        var queueStatusText = queuePlan.SkippedCount > 0
-            ? $"已加入下载队列 {queuePlan.ToEnqueue.Count} 项，跳过 {queuePlan.SkippedCount} 项（已存在或重复），当前队列总数 {queueCount}"
-            : $"已加入下载队列 {queuePlan.ToEnqueue.Count} 项，当前队列总数 {queueCount}";
-
-        if (failedCount > 0)
+        finally
         {
-            queueStatusText += $"；另有 {failedCount} 项解析失败";
+            PageState.HideBusy();
         }
-
-        StatusTextBlock.Text = DownloadOperationStatusTexts.AppendTranslationSwitchClause(queueStatusText, switchedCount) + "。";
     }
 
     /// <summary>
@@ -480,6 +514,7 @@ public partial class SearchView : UserControl
         }
 
         ToggleActionButtons(false);
+        PageState.ShowBusy("正在保存收藏，请稍候...");
         try
         {
             IReadOnlyCollection<FavoriteWorkItem> favoriteItems;
@@ -546,6 +581,7 @@ public partial class SearchView : UserControl
         }
         finally
         {
+            PageState.HideBusy();
             ToggleActionButtons(true);
         }
     }
@@ -686,6 +722,7 @@ public partial class SearchView : UserControl
     private async void OnQueryHotClicked(object sender, System.Windows.RoutedEventArgs e)
     {
         ToggleActionButtons(false);
+        PageState.ShowBusy("正在查询热门作品，请稍候...");
         StatusTextBlock.Text = "正在查询热门作品...";
 
         try
@@ -717,6 +754,7 @@ public partial class SearchView : UserControl
         }
         finally
         {
+            PageState.HideBusy();
             ToggleActionButtons(true);
         }
     }
@@ -749,6 +787,7 @@ public partial class SearchView : UserControl
         _results = Array.Empty<SearchWorkItem>();
         ResultsGrid.ItemsSource = _results;
         UpdatePaginationInfo();
+        PageState.ShowEmpty("搜索结果已清空", "请输入关键词、填写筛选条件，或执行热门查询后重新加载结果。");
         StatusTextBlock.Text = "已清空关键词、排序、分页与当前结果。";
     }
 
@@ -907,6 +946,7 @@ public partial class SearchView : UserControl
         }
 
         ToggleActionButtons(false);
+        PageState.ShowBusy("正在导出搜索结果，请稍候...");
 
         try
         {
@@ -960,6 +1000,7 @@ public partial class SearchView : UserControl
         }
         finally
         {
+            PageState.HideBusy();
             ToggleActionButtons(true);
         }
     }
@@ -990,11 +1031,29 @@ public partial class SearchView : UserControl
 
         ResultsGrid.ItemsSource = _results;
         UpdatePaginationInfo();
+        UpdateResultsPageState();
     }
 
     private string BuildPopularPageStatusText()
     {
         return $"热门查询：第 {_currentPage}/{GetTotalPages()} 页，当前 {_results.Count} 条 / 总计 {_totalCount} 条。";
+    }
+
+    private void UpdateResultsPageState()
+    {
+        if (_results.Count > 0)
+        {
+            PageState.ClearEmpty();
+            return;
+        }
+
+        if (_isPopularMode)
+        {
+            PageState.ShowEmpty("热门列表为空", "当前热门作品列表为空，请稍后重试。");
+            return;
+        }
+
+        PageState.ShowEmpty("尚无搜索结果", "请输入关键词、填写筛选条件，或执行热门查询后查看结果列表。");
     }
 
     private string BuildEffectiveQuery(bool allowOptionOnlyQuery = false)

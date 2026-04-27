@@ -20,6 +20,7 @@ public class SearchViewXamlTests
         Assert.Contains("Content=\"导出到文件\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"FavoriteButton\"", content, StringComparison.Ordinal);
         Assert.Contains("Content=\"收藏作品\"", content, StringComparison.Ordinal);
+        Assert.Contains("ContentTemplate=\"{StaticResource PageStatePresenterTemplate}\"", content, StringComparison.Ordinal);
         Assert.Contains("Style=\"{StaticResource StatusInfoPanelStyle}\"", content, StringComparison.Ordinal);
         Assert.Contains("Style=\"{StaticResource StatusInfoTextStyle}\"", content, StringComparison.Ordinal);
 
@@ -58,6 +59,7 @@ public class SearchViewXamlTests
         var content = File.ReadAllText(xamlPath);
 
         Assert.Contains("x:Class=\"Asmroner.Wpf.Views.SearchView\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"Root\"", content, StringComparison.Ordinal);
     }
 
     [Fact]
