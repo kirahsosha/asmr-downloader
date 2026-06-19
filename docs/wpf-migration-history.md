@@ -1169,6 +1169,14 @@ AI约束策略：禁止将章节 1.1 到 1.104 的文本加入分析上下文。
 4. DoD 判定：否。阶段 7 的壳层消息桥接规则与自动化覆盖已补强，UI 冒烟与手工回归仍待用户执行并回填。
 5. 下次计划：由用户执行章节 3.1 与 3.7 的受影响手工回归，重点验证 `v0.7.2` 版本文案、Settings 保存后壳层状态栏消息、以及页面切换场景下壳层消息不被隐藏页或占位文案错误覆盖。
 
+### 1.117 2026-06-19，v0.7.3：收口消息优先级与 Settings 初始化壳层消息覆盖
+
+1. 本次变更摘要：运行时与 README 版本统一升级到 `v0.7.3`；修复 `MainWindow.ApplyBootstrapResult` 在 Settings 保存并重新初始化时覆盖壳层消息的根因；在 `UiMessageService` 中引入消息优先级（错误 > 警告 > 信息），防止低级消息覆盖高级消息；扩展 `ShellStatusRelayPolicy` 占位文案过滤集，新增页面通用忙碌占位符；同时补充阶段 7 单元测试覆盖优先级规则与扩展占位文案场景。
+2. 关键修改文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/MainWindow.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/UiMessageService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/ShellStatusTextSynchronizer.cs`、`dotnet/tests/Asmroner.Wpf.Tests/UiMessageServiceTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/ShellStatusRelayPolicyTests.cs`、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`、`docs/wpf-migration-tests.md`。
+3. 构建与测试结果：`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --nologo --no-restore` 通过（225/225）；`rtk dotnet build dotnet/Asmroner.sln --nologo --no-restore -c Release` 通过。
+4. DoD 判定：否。阶段 7 的消息优先级机制与自动化工单覆盖已补强，UI 冒烟与手工回归仍待用户执行并回填。
+5. 下次计划：由用户执行章节 3.1 与 3.7 的受影响手工回归，重点验证 `v0.7.3` 版本文案、Settings 保存后壳层状态栏保留 Settings 侧消息、以及错误/警告消息在壳层状态栏中不被后续信息覆盖。
+
 
 
 

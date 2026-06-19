@@ -1,6 +1,6 @@
 ﻿# asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.7.2
+当前跟踪版本：v0.7.3
 
 AI约束策略：变更与验证记录统一维护于 `docs/wpf-migration-history.md` 的 `§1`，单元测试清单统一维护于 `docs/wpf-migration-tests.md` 的 `§1`。
 
@@ -201,7 +201,8 @@ AI约束策略：变更与验证记录统一维护于 `docs/wpf-migration-histor
 | 2026-04-16 | 已提交 | v0.6.3: close phase 6 Library DoD                                           | 1. Update runtime/docs version to v0.6.3.<br>2. Extract shared playable-media rules for Library scanning and selection guidance.<br>3. Add work-level Library guidance plus separated current-selection and loaded-context messaging in the existing Library page while keeping explicit file selection before load/play.<br>4. Update regression tests and progress documentation.                                                | 1a35bc6    |
 | 2026-04-17 | 已提交 | v0.6.4: polish Library styles                                               | 1. Update runtime/docs version to v0.6.4.<br>2. Polish the Library page styles by simplifying the subtitle copy, splitting the filter and details cards, localizing the works-grid header text, and aligning the top-level visual layout.<br>3. Localize the Search results first-column header text to match the current UI wording.<br>4. Update regression tests and progress documentation.                                    | ab0a79e    |
 | 2026-04-18 | 已提交 | v0.7.1: unify shell page states and split migration docs                    | 1. Update runtime/docs version to v0.7.1.<br>2. Complete the stage 7 shell integration baseline.<br>3. Add shared page-state service, shell status-text synchronization, and shared page-state resource templates/styles.<br>4. Unify page-level state handling and panels.<br>5. Refactor prompt files and documents.<br>6. Expand WPF regression coverage, update regression tests and progress documentation.                   | c272014    |
-| 2026-04-28 | 待提交 | v0.7.2: tighten shell status relay and extend stage 7 coverage              | 1. Update runtime/docs version to v0.7.2.<br>2. Refine stage 7 shell status relay policy to avoid hidden-page or placeholder message overrides.<br>3. Add/extend WPF tests for shell message relay and sync relay policy.<br>4. Sync migration progress/history/tests documentation and reset affected manual checklist items.                                                                                     | -          |
+| 2026-04-28 | 已提交 | v0.7.2: tighten shell status relay and extend stage 7 coverage              | 1. Update runtime/docs version to v0.7.2.<br>2. Refine stage 7 shell status relay policy to avoid hidden-page or placeholder message overrides.<br>3. Add/extend WPF tests for shell message relay and sync relay policy.<br>4. Sync migration progress/history/tests documentation and reset affected manual checklist items.                                                                                                     | cefe03f    |
+| 2026-06-19 | 待提交 | v0.7.3: harden message priority and fix Settings reinit status              | 1. Update runtime/docs version to v0.7.3.<br>2. Fix overwriting Settings status message after save-and-reinit.<br>3. Add message priority in UiMessageService.<br>4. Expand ShellStatusRelayPolicy placeholder filtering with known busy messages.<br>5. Add/extend tests for message priority and placeholder filtering.<br>6. Update regression tests and progress documentation.                                                | -          |
 
 ---
 
@@ -232,11 +233,11 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] “测试连接”应通过 `GET /api/health?cache=false` 完成候选探测；当旧探测端点不可用但 health API 可达时，仍能选中可用 BaseUrl。
 - [x] 当发布页正文直接提供 `asmr-300/200/100/one` 最新域名时，“测试连接”会按正文顺序补齐候选列表并写回 SQLite `ApiCandidateUrls`；随后再次“保存并重新初始化”不会把新候选覆盖回旧值。
 - [x] 当发布页 discovery 仅返回部分新候选时，若与已保存候选集合合并后的总数更大，“测试连接”会保留旧候选并把合并后的 `ApiCandidateUrls` 写回 SQLite。
-- [ ] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.7.2。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.7.3。
 
 ### 3.2 Search 功能
 
-- [ ] 仅输入基础关键词即可成功搜索，并展示结果列表（含标签列）、总数和页码信息。
+- [x] 仅输入基础关键词即可成功搜索，并展示结果列表（含标签列）、总数和页码信息。
 - [x] Search 结果列表列头应显示完整边框；首列标题显示“作品ID”；字幕列与日期列宽保持 `42/75` 且不可拖拽改宽，拖拽仅改变列顺序；当标题或标签过宽时可通过横向滚动查看完整数据。
 - [x] 高级筛选 `tag/circle/va/duration/rate/price/sell/age/lang` 可单独或组合生效，`反选` 语义正确。
 - [x] Search 的排序、方向、字幕、“包含翻译作品”“加入翻译作品”等选项生效，翻页后条件保持不丢失。
@@ -316,7 +317,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 元数据同步主按钮在空闲态显示“开始同步元数据”，点击后会切换为“停止同步元数据”。
 - [x] 点击元数据同步主按钮开始同步后，可成功拉取网站元数据并写入 SQLite `MetadataWork` 表。
 - [x] 当网站总量与本地一致且不存在过期元数据时，Sync 页面会提示“无需同步”，且不会重复写入数据。
-- [ ] 当上次元数据同步状态为已完成且存在超过“元数据有效期”的本地记录时，再次点击“开始同步元数据”会执行过期刷新，并在摘要中显示过期刷新结果。
+- [x] 当上次元数据同步状态为已完成且存在超过“元数据有效期”的本地记录时，再次点击“开始同步元数据”会执行过期刷新，并在摘要中显示过期刷新结果。
 - [x] 当 SQLite `UiState` 中存在未完成元数据同步进度时，再次点击元数据同步主按钮会从记录页码继续执行，而不是从第一页重新开始。
 - [x] 点击元数据同步主按钮发出 stop request 后，按钮会切换为“正在停止元数据...”，并在当前页完成后恢复为空闲态。
 - [x] 元数据同步开始后的 1 秒内连续双击主按钮时，第二次点击会被防抖忽略，按钮保持“停止同步元数据”，不会误切到“正在停止元数据...”。

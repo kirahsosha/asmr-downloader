@@ -5,6 +5,17 @@ namespace Asmroner.Wpf.Services;
 
 public static class ShellStatusRelayPolicy
 {
+    private static readonly HashSet<string> KnownPlaceholderMessages =
+    [
+        "初始化中...",
+        "正在处理，请稍候...",
+        "Download 正在处理，请稍候...",
+        "Search 正在处理，请稍候...",
+        "Library 正在处理，请稍候...",
+        "Sync 正在处理，请稍候...",
+        "Settings 正在处理，请稍候...",
+    ];
+
     public static bool ShouldPublish(
         string message,
         bool isTextBlockVisible,
@@ -22,7 +33,7 @@ public static class ShellStatusRelayPolicy
         }
 
         if (isTextBlockVisible
-            && string.Equals(currentShellMessage, "初始化中...", StringComparison.Ordinal))
+            && KnownPlaceholderMessages.Contains(currentShellMessage))
         {
             return false;
         }

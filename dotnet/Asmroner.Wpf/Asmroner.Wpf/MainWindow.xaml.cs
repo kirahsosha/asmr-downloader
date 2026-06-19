@@ -67,7 +67,10 @@ public partial class MainWindow : Window
         {
             _navigationService.SetPrimaryPagesEnabled(true);
             _navigationService.NavigateTo(navigateToSearchOnSuccess ? ShellPage.Search : ShellPage.Settings);
-            _uiMessageService.ShowInfo("初始化完成，可进入主页面。");
+            if (navigateToSearchOnSuccess)
+            {
+                _uiMessageService.ShowInfo("初始化完成，可进入主页面。");
+            }
             _downloadView.StartUnfinishedQueueMetadataRefreshInBackground();
             _logger.Info("Bootstrap succeeded.");
             return;
