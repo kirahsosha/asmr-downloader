@@ -1161,6 +1161,14 @@ AI约束策略：禁止将章节 1.1 到 1.104 的文本加入分析上下文。
 4. DoD 判定：否。阶段 7 的共享 busy 面板、Search/Download/Library/Sync 空态面板、页内状态消息桥接与当前自动化基线已完成，但壳层消息桥接过滤、UI 冒烟与用户手工回归仍待完成。
 5. 下次计划：由用户执行章节 4.1/4.2/4.3/4.4/4.5/4.6/4.7 的受影响手工回归，重点验证 `v0.7.1` 版本文案、五页共享 busy 面板、Search/Download/Library/Sync 空态文案、Search/Download 联动链路、Settings 保存时壳层状态栏同步，以及壳层消息栏不会被隐藏页更新或占位文案错误覆盖。
 
+### 1.116 2026-04-28，v0.7.2：收口壳层消息桥接策略并补齐阶段 7 单测
+
+1. 本次变更摘要：运行时与 README 版本统一升级到 `v0.7.2`；在壳层状态栏桥接链路中抽取 `ShellStatusRelayPolicy` 并统一"可见且有效消息才发布"的判定，避免隐藏页面、空白消息或初始化占位文案误覆盖壳层状态；同时补充阶段 7 相关单元测试，覆盖壳层消息发布门禁与 Sync 状态转发策略。
+2. 关键修改文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/ShellStatusTextSynchronizer.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Services/SyncShellStatusRelayPolicy.cs`、`dotnet/tests/Asmroner.Wpf.Tests/ShellStatusRelayPolicyTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/SyncShellStatusRelayPolicyTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/UiMessageServiceTests.cs`、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`、`docs/wpf-migration-tests.md`。
+3. 构建与测试结果：`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --nologo --no-restore` 通过（212/212）；`rtk dotnet build dotnet/Asmroner.sln --nologo --no-restore -c Release` 通过。
+4. DoD 判定：否。阶段 7 的壳层消息桥接规则与自动化覆盖已补强，UI 冒烟与手工回归仍待用户执行并回填。
+5. 下次计划：由用户执行章节 3.1 与 3.7 的受影响手工回归，重点验证 `v0.7.2` 版本文案、Settings 保存后壳层状态栏消息、以及页面切换场景下壳层消息不被隐藏页或占位文案错误覆盖。
+
 
 
 

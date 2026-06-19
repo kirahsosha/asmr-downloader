@@ -1,6 +1,6 @@
 ﻿# asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.7.1
+当前跟踪版本：v0.7.2
 
 AI约束策略：变更与验证记录统一维护于 `docs/wpf-migration-history.md` 的 `§1`，单元测试清单统一维护于 `docs/wpf-migration-tests.md` 的 `§1`。
 
@@ -200,7 +200,8 @@ AI约束策略：变更与验证记录统一维护于 `docs/wpf-migration-histor
 | 2026-04-16 | 已提交 | v0.6.2: harden Library scan tolerance and selection feedback                | 1. Update runtime/docs version to v0.6.2.<br>2. Harden Library scan tolerance so nested directory/file errors become local error records instead of failing the whole work item.<br>3. Add explicit Library selection feedback for directory, non-playable, missing and playable file states, and tighten action-button availability.<br>4. Update regression tests and progress documentation.                                    | f3e6443    |
 | 2026-04-16 | 已提交 | v0.6.3: close phase 6 Library DoD                                           | 1. Update runtime/docs version to v0.6.3.<br>2. Extract shared playable-media rules for Library scanning and selection guidance.<br>3. Add work-level Library guidance plus separated current-selection and loaded-context messaging in the existing Library page while keeping explicit file selection before load/play.<br>4. Update regression tests and progress documentation.                                                | 1a35bc6    |
 | 2026-04-17 | 已提交 | v0.6.4: polish Library styles                                               | 1. Update runtime/docs version to v0.6.4.<br>2. Polish the Library page styles by simplifying the subtitle copy, splitting the filter and details cards, localizing the works-grid header text, and aligning the top-level visual layout.<br>3. Localize the Search results first-column header text to match the current UI wording.<br>4. Update regression tests and progress documentation.                                    | ab0a79e    |
-| 2026-04-18 | 待提交 | v0.7.1: unify shell page states and split migration docs                    | 1. Update runtime/docs version to v0.7.1.<br>2. Complete the stage 7 shell integration baseline.<br>3. Add shared page-state service, shell status-text synchronization, and shared page-state resource templates/styles.<br>4. Unify page-level state handling and panels.<br>5. Refactor prompt files and documents.<br>6. Expand WPF regression coverage, update regression tests and progress documentation.                   | -          |
+| 2026-04-18 | 已提交 | v0.7.1: unify shell page states and split migration docs                    | 1. Update runtime/docs version to v0.7.1.<br>2. Complete the stage 7 shell integration baseline.<br>3. Add shared page-state service, shell status-text synchronization, and shared page-state resource templates/styles.<br>4. Unify page-level state handling and panels.<br>5. Refactor prompt files and documents.<br>6. Expand WPF regression coverage, update regression tests and progress documentation.                   | c272014    |
+| 2026-04-28 | 待提交 | v0.7.2: tighten shell status relay and extend stage 7 coverage              | 1. Update runtime/docs version to v0.7.2.<br>2. Refine stage 7 shell status relay policy to avoid hidden-page or placeholder message overrides.<br>3. Add/extend WPF tests for shell message relay and sync relay policy.<br>4. Sync migration progress/history/tests documentation and reset affected manual checklist items.                                                                                     | -          |
 
 ---
 
@@ -231,7 +232,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] “测试连接”应通过 `GET /api/health?cache=false` 完成候选探测；当旧探测端点不可用但 health API 可达时，仍能选中可用 BaseUrl。
 - [x] 当发布页正文直接提供 `asmr-300/200/100/one` 最新域名时，“测试连接”会按正文顺序补齐候选列表并写回 SQLite `ApiCandidateUrls`；随后再次“保存并重新初始化”不会把新候选覆盖回旧值。
 - [x] 当发布页 discovery 仅返回部分新候选时，若与已保存候选集合合并后的总数更大，“测试连接”会保留旧候选并把合并后的 `ApiCandidateUrls` 写回 SQLite。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.7.1。
+- [ ] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.7.2。
 
 ### 3.2 Search 功能
 

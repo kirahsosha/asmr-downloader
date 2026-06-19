@@ -9,7 +9,7 @@
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-18 的解决方案级回归（400/400）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-18 的解决方案级回归（400/400），本轮受影响回归为 2026-04-28 的 `Asmroner.Wpf.Tests`（212/212）。
 
 维护规则：
 
@@ -813,6 +813,8 @@
 | 已创建 | 已通过 | 阶段   | 样例名                                     | 输入                         | 期望输出                                                 |
 | ------ | ------ | ------ | ------------------------------------------ | ---------------------------- | -------------------------------------------------------- |
 | [x]    | [x]    | 阶段 7 | `ShowError_ShouldUpdateShellStatusMessage` | 通过消息服务写入错误状态文本 | 当前壳层消息与 `ShellViewModel.StatusMessage` 同步更新。 |
+| [x]    | [x]    | 阶段 7 | `ShowInfo_ShouldUpdateShellStatusMessage`              | 通过消息服务写入信息状态文本       | 当前壳层消息与 `ShellViewModel.StatusMessage` 同步更新。   |
+| [x]    | [x]    | 阶段 7 | `ShowWarning_ShouldUpdateShellStatusMessage`           | 通过消息服务写入警告状态文本       | 当前壳层消息与 `ShellViewModel.StatusMessage` 同步更新。   |
 
 #### 1.5.49 DialogFileNamePolicyTests.cs
 
@@ -828,6 +830,25 @@
 | [x]    | [x]    | 阶段 7 | `Create_ShouldReturnStateForRequestedPage`                      | 通过 `PageLoadStateService` 创建 `Search` 状态                 | 返回对应页面名的初始状态对象，且默认不处于 busy/empty。                               |
 | [x]    | [x]    | 阶段 7 | `ShowBusy_AndHideBusy_ShouldKeepBusyUntilAllOperationsComplete` | `Download` 页面状态先后执行两次 `ShowBusy` 再分两次 `HideBusy` | busy 标记会持续到全部操作完成；中途释放时仍保持忙碌状态并回退到页面级通用 busy 文案。 |
 | [x]    | [x]    | 阶段 7 | `ShowEmpty_AndClearEmpty_ShouldToggleEmptyState`                | `Library` 页面状态执行 `ShowEmpty/ClearEmpty`                  | empty 标记、标题与说明正确切换，并在清空后恢复为空字符串。                            |
+
+#### 1.5.51 ShellStatusRelayPolicyTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                    | 输入                                                         | 期望输出                                                                 |
+| ------ | ------ | ------ | ------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| [x]    | [x]    | 阶段 7 | `ShouldPublish_ShouldReturnFalse_WhenViewPolicyDisallows`                | 页面转发策略拒绝发布                                         | 不向壳层状态栏发布消息。                                                 |
+| [x]    | [x]    | 阶段 7 | `ShouldPublish_ShouldReturnFalse_WhenMessageIsEmpty`                     | `StatusTextBlock` 文案为空白                                 | 空白消息不会覆盖壳层状态。                                               |
+| [x]    | [x]    | 阶段 7 | `ShouldPublish_ShouldReturnFalse_WhenCurrentShellMessageIsInitializing`  | 当前壳层消息为"初始化中..."，且页面处于可见态                | 初始化占位文案期间不发布页面消息，避免初始化阶段误覆盖。                 |
+| [x]    | [x]    | 阶段 7 | `ShouldPublish_ShouldReturnTrue_WhenMessageIsValidAndCanPublish`         | 页面可发布且消息非空，当前壳层消息非初始化占位               | 有效页面消息可同步到壳层状态栏。                                         |
+
+#### 1.5.52 SyncShellStatusRelayPolicyTests.cs
+
+| 已创建 | 已通过 | 阶段   | 样例名                                                                    | 输入                                                         | 期望输出                                                                 |
+| ------ | ------ | ------ | ------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| [x]    | [x]    | 阶段 7 | `ShouldPublishMetadata_ShouldReturnFalse_WhenViewIsHidden`               | Sync 页不可见时触发元数据状态更新                            | 不发布元数据状态到壳层状态栏。                                           |
+| [x]    | [x]    | 阶段 7 | `ShouldPublishMetadata_ShouldReturnFalse_WhenDownloadFlowOwnsStatus`     | 下载同步流程运行中同时出现元数据状态更新                     | 元数据状态被抑制，避免覆盖下载态壳层消息。                               |
+| [x]    | [x]    | 阶段 7 | `ShouldPublishMetadata_ShouldReturnTrue_WhenViewVisibleAndNoDownloadConflict` | Sync 页可见且无下载流程冲突                                   | 元数据状态可发布到壳层状态栏。                                           |
+| [x]    | [x]    | 阶段 7 | `ShouldPublishDownload_ShouldReturnTrue_WhenDownloadRunning`              | 下载同步流程运行中                                            | 下载状态可发布到壳层状态栏。                                             |
+| [x]    | [x]    | 阶段 7 | `ShouldPublishDownload_ShouldReturnFalse_WhenViewHidden`                  | Sync 页不可见但下载流程运行中                                 | 隐藏页状态不会覆盖壳层状态栏。                                           |
 
 ## 2. 测试覆盖分析
 
@@ -845,7 +866,7 @@
 - 未完成队列快照构建：Search/Download 共用快照规则并在入队后持久化，✅ 已覆盖。
 - 启动未完成队列元数据补拉：非阻塞启动、仅补拉缺失标题并刷新 Download 列表，✅ 已覆盖。
 - 版本文案动态化：Settings 页面与启动日志共用程序集三段式版本号，✅ 已覆盖。
-- 阶段 7 壳层收口：主窗口页签绑定、共享导航/消息服务、统一文件对话框后缀策略、共享样式资源基线、共享 busy 面板与 Search/Download/Library/Sync 空态 page-state 模板，✅ 当前自动化基线已覆盖；壳层消息桥接过滤与 UI 冒烟，⬜ 待手工验证。
+- 阶段 7 壳层收口：主窗口页签绑定、共享导航/消息服务、统一文件对话框后缀策略、共享样式资源基线、共享 busy 面板与 Search/Download/Library/Sync 空态 page-state 模板，以及壳层消息桥接/Sync 转发门禁策略单测，✅ 当前自动化基线已覆盖；UI 冒烟，⬜ 待手工验证。
 - 阶段 6 资源库与系统默认程序打开：目录名双格式解析、扫描去重、关键字/字幕/音频过滤、显式选中文件后的系统打开、刷新后跨根目录同相对路径文件的重载判定、Shell `null` 返回成功判定、失败提示、Library 打开控件与播放上下文分离展示，✅ 已覆盖。
 - 翻译作品优先入队：当前语言识别、关联版本优先级选择、UI 勾选持久化与 Search/Download 四类入口回归，✅ 已覆盖。
 - `source_id/workId` 双键兼容：BJ 等非 `RJ` 作品的详情/轨道解析、Search WorkId 透传与作品页链接生成，✅ 已覆盖。

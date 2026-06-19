@@ -1,6 +1,6 @@
 namespace Asmroner.Wpf.Services;
 
-internal static class SyncShellStatusRelayPolicy
+public static class SyncShellStatusRelayPolicy
 {
     public static bool ShouldPublishMetadata(
         bool isViewVisible,

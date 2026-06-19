@@ -1,9 +1,9 @@
 
 ## 📖 项目简介
 
-ASMRoner v0.7.1 — Windows 客户端（WPF）
+ASMRoner v0.7.2 — Windows 客户端（WPF）
 
-当前版本：v0.7.1
+当前版本：v0.7.2
 
 本仓库当前主要面向 Windows 桌面应用（基于 WPF），提供 ASMR.one 内容的搜索、预览、下载与同步功能。原始的 Go 命令行工具与本地 WebUI 实现仅作为历史参考并保留于仓库中，迁移工作以 WPF 为主线。
 
@@ -118,6 +118,6 @@ WPF 客户端以可视化操作为主，历史的 Go/CLI 命令参考请见 [doc
 
 ---
 
-ASMRoner v0.7.1 — Windows 客户端（WPF）
+ASMRoner v0.7.2 — Windows 客户端（WPF）
 
-*最后更新：2026 年 4 月 18 日*
+*最后更新：2026 年 6 月 19 日*
