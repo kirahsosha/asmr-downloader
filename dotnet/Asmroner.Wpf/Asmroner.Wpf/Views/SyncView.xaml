@@ -212,12 +212,14 @@
             </StackPanel>
         </Border>
 
-        <TextBox x:Name="DetailsTextBox"
-                 Grid.Row="6"
-                 IsReadOnly="True"
-                 VerticalScrollBarVisibility="Auto"
-                 TextWrapping="Wrap"
-                 AcceptsReturn="True"
-                 Text="点击同步、重试、导出或刷新统计后，这里会显示本次执行摘要。"/>
+        <Border Grid.Row="6"
+                Style="{StaticResource StatusInfoPanelStyle}">
+            <TextBox x:Name="DetailsTextBox"
+                     IsReadOnly="True"
+                     VerticalScrollBarVisibility="Auto"
+                     TextWrapping="Wrap"
+                     AcceptsReturn="True"
+                     Text="点击同步、重试、导出或刷新统计后，这里会显示本次执行摘要。"/>
+        </Border>
     </Grid>
 </UserControl>

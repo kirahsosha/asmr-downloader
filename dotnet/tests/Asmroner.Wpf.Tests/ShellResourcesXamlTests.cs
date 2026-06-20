@@ -18,6 +18,7 @@ public class ShellResourcesXamlTests
         Assert.Contains("x:Key=\"ShellLightActionButtonBaseStyle\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"PageStateBusyPanelStyle\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"PageStateEmptyPanelStyle\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"ShellDataGridColumnHeaderBaseStyle\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
         Assert.NotNull(doc.Root);

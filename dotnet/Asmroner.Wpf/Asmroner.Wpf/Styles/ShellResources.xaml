@@ -161,4 +161,20 @@
         <Setter Property="Margin"
                 Value="0,0,0,10"/>
     </Style>
+
+    <Style x:Key="ShellDataGridColumnHeaderBaseStyle"
+           TargetType="DataGridColumnHeader">
+        <Setter Property="Background"
+                Value="#FFE9F3FF"/>
+        <Setter Property="Foreground"
+                Value="#FF24507A"/>
+        <Setter Property="FontWeight"
+                Value="SemiBold"/>
+        <Setter Property="Padding"
+                Value="8,6"/>
+        <Setter Property="BorderBrush"
+                Value="#FFD7E8FA"/>
+        <Setter Property="BorderThickness"
+                Value="1,1,1,1"/>
+    </Style>
 </ResourceDictionary>

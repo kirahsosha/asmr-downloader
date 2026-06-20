@@ -429,13 +429,13 @@
 
 #### 1.5.3 DownloadViewXamlTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                                       | 输入                                | 期望输出                                                                                                                             |
-| ------ | ------ | ------ | -------------------------------------------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldContainBeautifiedStyleResources_AndCoreControls`                     | 解析 `DownloadView.xaml` 的文本/XML | 关键样式资源、核心控件、“从文件导入”“从收藏夹导入”按钮、统一状态面板样式与共享 `PageStatePresenterTemplate` 存在，且 XAML 可被解析。 |
-| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldNotContainStagePrefixText`                                           | 解析 `DownloadView.xaml` 文本       | 页面不再包含“阶段 ”前缀文案。                                                                                                        |
-| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldUseHeaderBorders_AndLockStatusWidthWhileLeavingProgressResizable`    | 解析 `DownloadView.xaml` 文本/XML   | 列头显示边框；状态列宽保持 `50` 且不可拖拽改宽；进度列宽保持 `96` 且允许调整；数据过宽时支持横向滚动与列重排。                       |
-| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldContainQueueTranslationCheckbox`                                     | 解析 `DownloadView.xaml` 文本/XML   | 页面包含默认勾选的“加入翻译作品”复选框，且位于“只下载高清音频”右侧。                                                                 |
-| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldPlaceRunQueueBetweenStartSelectedAndRefresh_AndRemoveRetryAllButton` | 解析 `DownloadView.xaml` 文本       | “执行下载队列”位于“立即下载选中任务”和“刷新任务列表”之间，且页面不再包含“重试全部失败任务”按钮。                                     |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                                       | 输入                                | 期望输出                                                                                                                   |
+| ------ | ------ | ------ | -------------------------------------------------------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 7 | `DownloadViewXaml_ShouldContainBeautifiedStyleResources_AndCoreControls`                     | 解析 `DownloadView.xaml` 的文本/XML | 关键样式资源、核心控件、横幅使用标准页眉模式、统一状态面板样式与共享 `PageStatePresenterTemplate` 存在，且 XAML 可被解析。 |
+| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldNotContainStagePrefixText`                                           | 解析 `DownloadView.xaml` 文本       | 页面不再包含“阶段 ”前缀文案。                                                                                              |
+| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldUseHeaderBorders_AndLockStatusWidthWhileLeavingProgressResizable`    | 解析 `DownloadView.xaml` 文本/XML   | 列头显示边框；状态列宽保持 `50` 且不可拖拽改宽；进度列宽保持 `96` 且允许调整；数据过宽时支持横向滚动与列重排。             |
+| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldContainQueueTranslationCheckbox`                                     | 解析 `DownloadView.xaml` 文本/XML   | 页面包含默认勾选的“加入翻译作品”复选框，且位于“只下载高清音频”右侧。                                                       |
+| [x]    | [x]    | 阶段 4 | `DownloadViewXaml_ShouldPlaceRunQueueBetweenStartSelectedAndRefresh_AndRemoveRetryAllButton` | 解析 `DownloadView.xaml` 文本       | “执行下载队列”位于“立即下载选中任务”和“刷新任务列表”之间，且页面不再包含“重试全部失败任务”按钮。                           |
 
 #### 1.5.4 MainWindowXamlTests.cs
 
@@ -692,8 +692,8 @@
 
 #### 1.5.33 SyncViewXamlTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                     | 输入                          | 期望输出                                                                                                                                                                                                                                                          |
-| ------ | ------ | ------ | ---------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 已创建 | 已通过 | 阶段   | 样例名                                                     | 输入                          | 期望输出                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------ | ------ | ------ | ---------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [x]    | [x]    | 阶段 7 | `SyncViewXaml_ShouldContainPrimaryActions_AndStatusFields` | 解析 `SyncView.xaml` 文本/XML | 页面包含两枚合并后的同步主按钮、"重试失败项""导出失败记录""导出成功记录""刷新统计"按钮、Banner 文案使用简洁用户面向描述（不含阶段 5 内部迭代文本）、根 Grid 使用 `ShellBackgroundBrush`、主按钮使用 `ActionButtonStyle`、次要按钮使用 `SecondaryActionButtonStyle`、统计卡片使用 `StatsCardBorderStyle` 与 `MutedLabelStyle`、统一状态面板样式、共享 `PageStatePresenterTemplate`、`StatusTextBlock + DownloadStatusTextBlock` 双状态文本框，且旧的独立停止按钮命名和硬编码背景色已移除。 |
 
 #### 1.5.34 SyncCommandAvailabilityTests.cs
@@ -790,9 +790,9 @@
 
 #### 1.5.45 ShellResourcesXamlTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                    | 输入                                | 期望输出                                                                                                                         |
-| ------ | ------ | ------ | --------------------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 7 | `ShellResourcesXaml_ShouldContainSharedShellResourceKeys` | 解析 `ShellResources.xaml` 文本/XML | 共享壳层背景、卡片、标题、输入框、按钮基样式以及 `PageStateBusyPanelStyle` / `PageStateEmptyPanelStyle` 存在，且 XAML 可被解析。 |
+| 已创建 | 已通过 | 阶段   | 样例名                                                    | 输入                                | 期望输出                                                                                                                                                                |
+| ------ | ------ | ------ | --------------------------------------------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 7 | `ShellResourcesXaml_ShouldContainSharedShellResourceKeys` | 解析 `ShellResources.xaml` 文本/XML | 共享壳层背景、卡片、标题、输入框、按钮基样式、`PageStateBusyPanelStyle` / `PageStateEmptyPanelStyle` 以及 `ShellDataGridColumnHeaderBaseStyle` 存在，且 XAML 可被解析。 |
 
 #### 1.5.46 ShellViewModelTests.cs
 

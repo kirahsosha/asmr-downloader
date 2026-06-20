@@ -13,7 +13,11 @@ public class DownloadViewXamlTests
         Assert.Contains("Background=\"{StaticResource ShellBackgroundBrush}\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"CardBorderStyle\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Key=\"ActionButtonStyle\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"TaskGridStyle\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"TaskGrid\"", content, StringComparison.Ordinal);
+        Assert.Contains("BasedOn=\"{StaticResource ShellActionButtonBaseStyle}\"", content, StringComparison.Ordinal);
+        Assert.Contains("BasedOn=\"{StaticResource ShellLightActionButtonBaseStyle}\"", content, StringComparison.Ordinal);
+        Assert.Contains("Text=\"Download\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"StartSelectedButton\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"ClearTaskListButton\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"HdAudioOnlyCheckBox\"", content, StringComparison.Ordinal);
@@ -49,9 +53,10 @@ public class DownloadViewXamlTests
         var content = File.ReadAllText(xamlPath);
 
         Assert.Contains("x:Key=\"TaskGridHeaderStyle\"", content, StringComparison.Ordinal);
-        Assert.Contains("Value=\"1,1,1,1\"", content, StringComparison.Ordinal);
-        Assert.Contains("HorizontalScrollBarVisibility=\"Auto\"", content, StringComparison.Ordinal);
-        Assert.Contains("CanUserReorderColumns=\"True\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Key=\"TaskGridStyle\"", content, StringComparison.Ordinal);
+        Assert.Contains("Style=\"{StaticResource TaskGridStyle}\"", content, StringComparison.Ordinal);
+        Assert.Contains("Property=\"HorizontalScrollBarVisibility\"", content, StringComparison.Ordinal);
+        Assert.Contains("Property=\"CanUserReorderColumns\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
         XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";

@@ -1185,6 +1185,14 @@ AI约束策略：禁止将章节 1.1 到 1.104 的文本加入分析上下文。
 4. DoD 判定：否。阶段 7 的 SyncView 视觉对齐与自动化覆盖已补强，UI 冒烟与手工回归仍待用户执行并回填。
 5. 下次计划：由用户执行章节 3.7 的受影响手工回归，重点验证 `v0.7.4` 版本文案、Sync 页面的壳层样式一致性（背景、卡片、按钮与搜索/下载/资源库基线对齐）、以及 Sync 页面 Banner 文案更新后的可读性。
 
+### 1.119 2026-06-20，v0.7.5：对齐 DownloadView 与 DataGrid 壳层样式
+
+1. 本次变更摘要：运行时与 README 版本统一升级到 `v0.7.5`；将 `DownloadView.xaml` 的内联按钮 `ControlTemplate` 移除并改为基于共享 `ShellActionButtonBaseStyle`/`ShellLightActionButtonBaseStyle`，移除 `CardBorderStyle` 的 `CornerRadius`/`BorderBrush`/`Padding` 覆盖，将深蓝色横幅替换为标准页眉模式，移除 `FieldTextBoxStyle`/`MutedLabelStyle` 的属性覆盖；在 `ShellResources.xaml` 新增共享 `ShellDataGridColumnHeaderBaseStyle` 并将 SearchView/LibraryView/DownloadView 的列头样式改为引用该基线；将 DownloadView 的内联 DataGrid 属性提取为 `TaskGridStyle` 命名样式；将 SyncView 的 `DetailsTextBox` 包裹在 `StatusInfoPanelStyle` 容器中。
+2. 关键修改文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/DownloadView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Styles/ShellResources.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/LibraryView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml`、`dotnet/tests/Asmroner.Wpf.Tests/DownloadViewXamlTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/SearchViewXamlTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/ShellResourcesXamlTests.cs`、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`、`docs/wpf-migration-tests.md`。
+3. 构建与测试结果：`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --no-restore` 通过（225/225）；`rtk dotnet test dotnet/Asmroner.sln --no-restore` 通过（424/424）。
+4. DoD 判定：否。阶段 7 的 DownloadView/DataGrid 视觉对齐与自动化覆盖已补强，UI 冒烟与手工回归仍待用户执行并回填。
+5. 下次计划：由用户执行章节 3.3 与 3.7 的受影响手工回归，重点验证 `v0.7.5` 版本文案、Download 页面的壳层样式一致性（按钮/卡片/横幅/输入框/标签与搜索/资源库/同步基线对齐）、以及三页 DataGrid 列头基线统一后的视觉一致性。
+
 
 
 

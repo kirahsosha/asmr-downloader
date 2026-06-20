@@ -115,7 +115,7 @@ public class SearchViewXamlTests
 
         Assert.Contains("x:Key=\"ResultGridHeaderStyle\"", content, StringComparison.Ordinal);
         Assert.Contains("Header=\"作品ID\"", content, StringComparison.Ordinal);
-        Assert.Contains("Value=\"1,1,1,1\"", content, StringComparison.Ordinal);
+        Assert.Contains("BasedOn=\"{StaticResource ShellDataGridColumnHeaderBaseStyle}\"", content, StringComparison.Ordinal);
         Assert.Contains("Property=\"HorizontalScrollBarVisibility\"", content, StringComparison.Ordinal);
         Assert.Contains("CanUserReorderColumns=\"True\"", content, StringComparison.Ordinal);
 

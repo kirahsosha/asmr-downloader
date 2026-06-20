@@ -1,6 +1,6 @@
 ﻿# asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.7.4
+当前跟踪版本：v0.7.5
 
 AI约束策略：变更与验证记录统一维护于 `docs/wpf-migration-history.md` 的 `§1`，单元测试清单统一维护于 `docs/wpf-migration-tests.md` 的 `§1`。
 
@@ -17,17 +17,17 @@ AI约束策略：变更与验证记录统一维护于 `docs/wpf-migration-histor
 
 ## 1.2 阶段总览清单
 
-| 阶段   | 名称                   | 状态   | 负责人    | 开始日期   | 目标完成日期 | 实际完成日期 | 备注                                                                                                                                    |
-| ------ | ---------------------- | ------ | --------- | ---------- | ------------ | ------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| 阶段 0 | 创建 .NET 解决方案骨架 | 已完成 | AI + 用户 | 2026-03-14 | 2026-03-14   | 2026-03-14   | 已确认 9 项目在解决方案中；`dotnet build dotnet/Asmroner.sln` 成功。                                                                    |
-| 阶段 1 | 配置与初始化迁移       | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成配置模型、程序目录 `config.json` 默认配置加载、SQLite读写与旧结构迁移、初始化编排、首次启动设置向导分支与“保存后重新初始化”闭环。 |
-| 阶段 2 | API 与认证迁移         | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已修复 `HttpClient` 配置时机问题并完成回归。                                                                                            |
-| 阶段 3 | 搜索能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成查询解析、分页聚合、搜索导出、入队与高级筛选/分页 UI 交互；补齐“无关键词调整排序类控件触发查询”修复。                             |
-| 阶段 4 | 下载能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成下载入口、并发/重试控制与状态可视化复核，并补齐 SQLite 状态持久化能力。                                                           |
-| 阶段 5 | 同步能力迁移           | 已完成 | AI + 用户 | 2026-04-02 | 2026-04-03   | 2026-04-03   | 已补齐 SQLite UiState 同步进度持久化、断点继续、合并式开始/停止按钮与同步运行中手动刷新统计；阶段 5 增强回归已闭环。                    |
-| 阶段 6 | 资源库与播放能力迁移   | 已完成 | AI + 用户 | 2026-04-15 | 2026-04-16   | 2026-04-16   | 已完成资源库扫描/索引、Library 页签、显式选中文件后的系统默认程序打开、异常扫描容错、共享可播放格式规则；阶段 6 DoD 已闭环。            |
-| 阶段 7 | UI 集成与体验收口      | 进行中 | AI + 用户 | 2026-04-18 | 待填写       | 待填写       | 已落地壳层状态/导航/对话框共享服务、页面级统一加载态/空态与状态栏消息桥接；SyncView 样式已对齐共享壳层资源；UI 冒烟与手工回归待补齐。   |
-| 阶段 8 | 最终验收与发布准备     | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                       |
+| 阶段   | 名称                   | 状态   | 负责人    | 开始日期   | 目标完成日期 | 实际完成日期 | 备注                                                                                                                                                                              |
+| ------ | ---------------------- | ------ | --------- | ---------- | ------------ | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 阶段 0 | 创建 .NET 解决方案骨架 | 已完成 | AI + 用户 | 2026-03-14 | 2026-03-14   | 2026-03-14   | 已确认 9 项目在解决方案中；`dotnet build dotnet/Asmroner.sln` 成功。                                                                                                              |
+| 阶段 1 | 配置与初始化迁移       | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成配置模型、程序目录 `config.json` 默认配置加载、SQLite读写与旧结构迁移、初始化编排、首次启动设置向导分支与“保存后重新初始化”闭环。                                           |
+| 阶段 2 | API 与认证迁移         | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已修复 `HttpClient` 配置时机问题并完成回归。                                                                                                                                      |
+| 阶段 3 | 搜索能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成查询解析、分页聚合、搜索导出、入队与高级筛选/分页 UI 交互；补齐“无关键词调整排序类控件触发查询”修复。                                                                       |
+| 阶段 4 | 下载能力迁移           | 已完成 | AI + 用户 | 2026-03-15 | 2026-03-15   | 2026-03-15   | 已完成下载入口、并发/重试控制与状态可视化复核，并补齐 SQLite 状态持久化能力。                                                                                                     |
+| 阶段 5 | 同步能力迁移           | 已完成 | AI + 用户 | 2026-04-02 | 2026-04-03   | 2026-04-03   | 已补齐 SQLite UiState 同步进度持久化、断点继续、合并式开始/停止按钮与同步运行中手动刷新统计；阶段 5 增强回归已闭环。                                                              |
+| 阶段 6 | 资源库与播放能力迁移   | 已完成 | AI + 用户 | 2026-04-15 | 2026-04-16   | 2026-04-16   | 已完成资源库扫描/索引、Library 页签、显式选中文件后的系统默认程序打开、异常扫描容错、共享可播放格式规则；阶段 6 DoD 已闭环。                                                      |
+| 阶段 7 | UI 集成与体验收口      | 进行中 | AI + 用户 | 2026-04-18 | 待填写       | 待填写       | 已落地壳层状态/导航/对话框共享服务、页面级统一加载态/空态与状态栏消息桥接；SyncView/DownloadView 样式已对齐共享壳层资源；DataGrid 列头已提取为共享样式；UI 冒烟与手工回归待补齐。 |
+| 阶段 8 | 最终验收与发布准备     | 未开始 | 待填写    | 待填写     | 待填写       | 待填写       | -                                                                                                                                                                                 |
 
 ## 1.3 阶段执行勾选清单
 
@@ -203,7 +203,8 @@ AI约束策略：变更与验证记录统一维护于 `docs/wpf-migration-histor
 | 2026-04-18 | 已提交 | v0.7.1: unify shell page states and split migration docs                    | 1. Update runtime/docs version to v0.7.1.<br>2. Complete the stage 7 shell integration baseline.<br>3. Add shared page-state service, shell status-text synchronization, and shared page-state resource templates/styles.<br>4. Unify page-level state handling and panels.<br>5. Refactor prompt files and documents.<br>6. Expand WPF regression coverage, update regression tests and progress documentation.                   | c272014    |
 | 2026-04-28 | 已提交 | v0.7.2: tighten shell status relay and extend stage 7 coverage              | 1. Update runtime/docs version to v0.7.2.<br>2. Refine stage 7 shell status relay policy to avoid hidden-page or placeholder message overrides.<br>3. Add/extend WPF tests for shell message relay and sync relay policy.<br>4. Sync migration progress/history/tests documentation and reset affected manual checklist items.                                                                                                     | cefe03f    |
 | 2026-06-19 | 已提交 | v0.7.3: harden message priority and fix Settings reinit status              | 1. Update runtime/docs version to v0.7.3.<br>2. Fix overwriting Settings status message after save-and-reinit.<br>3. Add message priority in UiMessageService.<br>4. Expand ShellStatusRelayPolicy placeholder filtering with known busy messages.<br>5. Add/extend tests for message priority and placeholder filtering.<br>6. Update regression tests and progress documentation.                                                | ff1c0c7    |
-| 2026-06-20 | 待提交 | v0.7.4: align SyncView styles with shared shell resources                   | 1. Update runtime/docs version to v0.7.4.<br>2. Align SyncView.xaml styles with shared shell resources (ShellBackgroundBrush, shared card styles).<br>3. Clean up SyncView banner text from internal iteration copy.<br>4. Add/extend WPF tests for SyncView style alignment.<br>5. Update regression tests and progress documentation.                                                                                            | -          |
+| 2026-06-20 | 已提交 | v0.7.4: align SyncView styles with shared shell resources                   | 1. Update runtime/docs version to v0.7.4.<br>2. Align SyncView.xaml styles with shared shell resources (ShellBackgroundBrush, shared card styles).<br>3. Clean up SyncView banner text from internal iteration copy.<br>4. Add/extend WPF tests for SyncView style alignment.<br>5. Update regression tests and progress documentation.                                                                                            | 314e353    |
+| 2026-06-20 | 待提交 | v0.7.5: align DownloadView styles with shared shell resources               | 1. Update runtime/docs version to v0.7.5.<br>2. Align DownloadView styles with shared shell resources.<br>3. Add shared ShellDataGridColumnHeaderBaseStyle to ShellResources and align column headers in Views.<br>4. Wrap SyncView DetailsTextBox in styled container.<br>5. Update regression tests and progress documentation.                                                                                                  | -          |
 
 ---
 
@@ -234,7 +235,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] “测试连接”应通过 `GET /api/health?cache=false` 完成候选探测；当旧探测端点不可用但 health API 可达时，仍能选中可用 BaseUrl。
 - [x] 当发布页正文直接提供 `asmr-300/200/100/one` 最新域名时，“测试连接”会按正文顺序补齐候选列表并写回 SQLite `ApiCandidateUrls`；随后再次“保存并重新初始化”不会把新候选覆盖回旧值。
 - [x] 当发布页 discovery 仅返回部分新候选时，若与已保存候选集合合并后的总数更大，“测试连接”会保留旧候选并把合并后的 `ApiCandidateUrls` 写回 SQLite。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.7.4。
+- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.7.5。
 
 ### 3.2 Search 功能
 
@@ -377,3 +378,6 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] Search、Download、Library、Settings、Sync 页内 `StatusTextBlock` 变化会同步到主窗口壳层状态栏；页面切换后壳层消息栏保持最近一次已发布的有效消息，且不会被隐藏页更新或占位文案错误覆盖。
 - [x] Sync 页面标题显示为"Sync"，副标题显示简洁功能描述文案，不再包含内部迭代或阶段标识。
 - [x] Sync 页面背景、统计卡片、按钮等元素使用与 Search/Download/Library/Settings 一致的共享壳层样式基线，不出现硬编码色值或样式回退。
+- [x] Download 页面标题显示为"Download"，副标题文案清晰可读，不再使用深蓝色横幅样式。
+- [x] Download 页面的按钮、卡片边框、输入框、标签文本使用与 Search/Library/Settings/Sync 一致的共享壳层样式基线，无硬编码模板或色值回退。
+- [x] Search、Download、Library 三页的 DataGrid 列头样式（背景色、前景色、边框）统一一致。
