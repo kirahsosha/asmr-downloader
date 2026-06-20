@@ -9,7 +9,7 @@
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-04-18 的解决方案级回归（400/400），本轮受影响回归为 2026-06-19 的 `Asmroner.Wpf.Tests`（225/225）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-06-20 的解决方案级回归（424/424），本轮受影响回归为 2026-06-20 的 `Asmroner.Wpf.Tests`（225/225）。
 
 维护规则：
 
@@ -694,7 +694,7 @@
 
 | 已创建 | 已通过 | 阶段   | 样例名                                                     | 输入                          | 期望输出                                                                                                                                                                                                                                                          |
 | ------ | ------ | ------ | ---------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 5 | `SyncViewXaml_ShouldContainPrimaryActions_AndStatusFields` | 解析 `SyncView.xaml` 文本/XML | 页面包含两枚合并后的同步主按钮、“重试失败项”“导出失败记录”“导出成功记录”“刷新统计”按钮、下载摘要字段、统计卡片字段、统一状态面板样式、共享 `PageStatePresenterTemplate`、`StatusTextBlock + DownloadStatusTextBlock` 双状态文本框，且旧的独立停止按钮命名已移除。 |
+| [x]    | [x]    | 阶段 7 | `SyncViewXaml_ShouldContainPrimaryActions_AndStatusFields` | 解析 `SyncView.xaml` 文本/XML | 页面包含两枚合并后的同步主按钮、"重试失败项""导出失败记录""导出成功记录""刷新统计"按钮、Banner 文案使用简洁用户面向描述（不含阶段 5 内部迭代文本）、根 Grid 使用 `ShellBackgroundBrush`、主按钮使用 `ActionButtonStyle`、次要按钮使用 `SecondaryActionButtonStyle`、统计卡片使用 `StatsCardBorderStyle` 与 `MutedLabelStyle`、统一状态面板样式、共享 `PageStatePresenterTemplate`、`StatusTextBlock + DownloadStatusTextBlock` 双状态文本框，且旧的独立停止按钮命名和硬编码背景色已移除。 |
 
 #### 1.5.34 SyncCommandAvailabilityTests.cs
 
@@ -810,11 +810,11 @@
 
 #### 1.5.48 UiMessageServiceTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                     | 输入                         | 期望输出                                                 |
-| ------ | ------ | ------ | ------------------------------------------ | ---------------------------- | -------------------------------------------------------- |
-| [x]    | [x]    | 阶段 7 | `ShowError_ShouldUpdateShellStatusMessage` | 通过消息服务写入错误状态文本 | 当前壳层消息与 `ShellViewModel.StatusMessage` 同步更新。 |
-| [x]    | [x]    | 阶段 7 | `ShowInfo_ShouldUpdateShellStatusMessage`              | 通过消息服务写入信息状态文本       | 当前壳层消息与 `ShellViewModel.StatusMessage` 同步更新。   |
-| [x]    | [x]    | 阶段 7 | `ShowWarning_ShouldUpdateShellStatusMessage`           | 通过消息服务写入警告状态文本       | 当前壳层消息与 `ShellViewModel.StatusMessage` 同步更新。   |
+| 已创建 | 已通过 | 阶段   | 样例名                                       | 输入                         | 期望输出                                                 |
+| ------ | ------ | ------ | -------------------------------------------- | ---------------------------- | -------------------------------------------------------- |
+| [x]    | [x]    | 阶段 7 | `ShowError_ShouldUpdateShellStatusMessage`   | 通过消息服务写入错误状态文本 | 当前壳层消息与 `ShellViewModel.StatusMessage` 同步更新。 |
+| [x]    | [x]    | 阶段 7 | `ShowInfo_ShouldUpdateShellStatusMessage`    | 通过消息服务写入信息状态文本 | 当前壳层消息与 `ShellViewModel.StatusMessage` 同步更新。 |
+| [x]    | [x]    | 阶段 7 | `ShowWarning_ShouldUpdateShellStatusMessage` | 通过消息服务写入警告状态文本 | 当前壳层消息与 `ShellViewModel.StatusMessage` 同步更新。 |
 
 #### 1.5.49 DialogFileNamePolicyTests.cs
 
@@ -833,22 +833,22 @@
 
 #### 1.5.51 ShellStatusRelayPolicyTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                    | 输入                                                         | 期望输出                                                                 |
-| ------ | ------ | ------ | ------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| [x]    | [x]    | 阶段 7 | `ShouldPublish_ShouldReturnFalse_WhenViewPolicyDisallows`                | 页面转发策略拒绝发布                                         | 不向壳层状态栏发布消息。                                                 |
-| [x]    | [x]    | 阶段 7 | `ShouldPublish_ShouldReturnFalse_WhenMessageIsEmpty`                     | `StatusTextBlock` 文案为空白                                 | 空白消息不会覆盖壳层状态。                                               |
-| [x]    | [x]    | 阶段 7 | `ShouldPublish_ShouldReturnFalse_WhenCurrentShellMessageIsInitializing`  | 当前壳层消息为"初始化中..."，且页面处于可见态                | 初始化占位文案期间不发布页面消息，避免初始化阶段误覆盖。                 |
-| [x]    | [x]    | 阶段 7 | `ShouldPublish_ShouldReturnTrue_WhenMessageIsValidAndCanPublish`         | 页面可发布且消息非空，当前壳层消息非初始化占位               | 有效页面消息可同步到壳层状态栏。                                         |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                  | 输入                                           | 期望输出                                                 |
+| ------ | ------ | ------ | ----------------------------------------------------------------------- | ---------------------------------------------- | -------------------------------------------------------- |
+| [x]    | [x]    | 阶段 7 | `ShouldPublish_ShouldReturnFalse_WhenViewPolicyDisallows`               | 页面转发策略拒绝发布                           | 不向壳层状态栏发布消息。                                 |
+| [x]    | [x]    | 阶段 7 | `ShouldPublish_ShouldReturnFalse_WhenMessageIsEmpty`                    | `StatusTextBlock` 文案为空白                   | 空白消息不会覆盖壳层状态。                               |
+| [x]    | [x]    | 阶段 7 | `ShouldPublish_ShouldReturnFalse_WhenCurrentShellMessageIsInitializing` | 当前壳层消息为"初始化中..."，且页面处于可见态  | 初始化占位文案期间不发布页面消息，避免初始化阶段误覆盖。 |
+| [x]    | [x]    | 阶段 7 | `ShouldPublish_ShouldReturnTrue_WhenMessageIsValidAndCanPublish`        | 页面可发布且消息非空，当前壳层消息非初始化占位 | 有效页面消息可同步到壳层状态栏。                         |
 
 #### 1.5.52 SyncShellStatusRelayPolicyTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                    | 输入                                                         | 期望输出                                                                 |
-| ------ | ------ | ------ | ------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| [x]    | [x]    | 阶段 7 | `ShouldPublishMetadata_ShouldReturnFalse_WhenViewIsHidden`               | Sync 页不可见时触发元数据状态更新                            | 不发布元数据状态到壳层状态栏。                                           |
-| [x]    | [x]    | 阶段 7 | `ShouldPublishMetadata_ShouldReturnFalse_WhenDownloadFlowOwnsStatus`     | 下载同步流程运行中同时出现元数据状态更新                     | 元数据状态被抑制，避免覆盖下载态壳层消息。                               |
-| [x]    | [x]    | 阶段 7 | `ShouldPublishMetadata_ShouldReturnTrue_WhenViewVisibleAndNoDownloadConflict` | Sync 页可见且无下载流程冲突                                   | 元数据状态可发布到壳层状态栏。                                           |
-| [x]    | [x]    | 阶段 7 | `ShouldPublishDownload_ShouldReturnTrue_WhenDownloadRunning`              | 下载同步流程运行中                                            | 下载状态可发布到壳层状态栏。                                             |
-| [x]    | [x]    | 阶段 7 | `ShouldPublishDownload_ShouldReturnFalse_WhenViewHidden`                  | Sync 页不可见但下载流程运行中                                 | 隐藏页状态不会覆盖壳层状态栏。                                           |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                        | 输入                                     | 期望输出                                   |
+| ------ | ------ | ------ | ----------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------ |
+| [x]    | [x]    | 阶段 7 | `ShouldPublishMetadata_ShouldReturnFalse_WhenViewIsHidden`                    | Sync 页不可见时触发元数据状态更新        | 不发布元数据状态到壳层状态栏。             |
+| [x]    | [x]    | 阶段 7 | `ShouldPublishMetadata_ShouldReturnFalse_WhenDownloadFlowOwnsStatus`          | 下载同步流程运行中同时出现元数据状态更新 | 元数据状态被抑制，避免覆盖下载态壳层消息。 |
+| [x]    | [x]    | 阶段 7 | `ShouldPublishMetadata_ShouldReturnTrue_WhenViewVisibleAndNoDownloadConflict` | Sync 页可见且无下载流程冲突              | 元数据状态可发布到壳层状态栏。             |
+| [x]    | [x]    | 阶段 7 | `ShouldPublishDownload_ShouldReturnTrue_WhenDownloadRunning`                  | 下载同步流程运行中                       | 下载状态可发布到壳层状态栏。               |
+| [x]    | [x]    | 阶段 7 | `ShouldPublishDownload_ShouldReturnFalse_WhenViewHidden`                      | Sync 页不可见但下载流程运行中            | 隐藏页状态不会覆盖壳层状态栏。             |
 
 ## 2. 测试覆盖分析
 

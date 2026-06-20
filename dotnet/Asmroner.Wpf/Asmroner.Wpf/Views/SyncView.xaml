@@ -7,7 +7,52 @@
              mc:Ignorable="d"
              d:DesignHeight="600"
              d:DesignWidth="1000">
-    <Grid Margin="12">
+    <UserControl.Resources>
+        <Style x:Key="CardBorderStyle"
+               TargetType="Border"
+               BasedOn="{StaticResource ShellCardBorderBaseStyle}">
+            <Setter Property="Margin"
+                    Value="0,0,0,10"/>
+        </Style>
+
+        <Style x:Key="StatsCardBorderStyle"
+               TargetType="Border"
+               BasedOn="{StaticResource ShellCardBorderBaseStyle}">
+            <Setter Property="Padding"
+                    Value="12"/>
+        </Style>
+
+        <Style x:Key="SectionTitleStyle"
+               TargetType="TextBlock"
+               BasedOn="{StaticResource ShellSectionTitleStyle}"/>
+
+        <Style x:Key="MutedLabelStyle"
+               TargetType="TextBlock"
+               BasedOn="{StaticResource ShellMutedLabelStyle}"/>
+
+        <Style x:Key="ActionButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource ShellActionButtonBaseStyle}">
+            <Setter Property="Margin"
+                    Value="0,0,12,8"/>
+            <Setter Property="Width"
+                    Value="180"/>
+            <Setter Property="Height"
+                    Value="32"/>
+        </Style>
+
+        <Style x:Key="SecondaryActionButtonStyle"
+               TargetType="Button"
+               BasedOn="{StaticResource ShellLightActionButtonBaseStyle}">
+            <Setter Property="Margin"
+                    Value="0,0,12,8"/>
+            <Setter Property="Height"
+                    Value="32"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="12"
+          Background="{StaticResource ShellBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -18,60 +63,45 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0"
-                Padding="16"
-                Background="#F3F4F6"
-                BorderBrush="#D1D5DB"
-                BorderThickness="1"
-                CornerRadius="6"
-                Margin="0,0,0,12">
-            <StackPanel>
-                <TextBlock FontSize="18"
-                           FontWeight="SemiBold"
-                           Text="同步能力（阶段 5 增强）"/>
-                <TextBlock Margin="0,8,0,0"
-                           Foreground="#4B5563"
-                           Text="当前批次已落地元数据同步、本地 SQLite 入库、同步下载容量控制、失败重试、状态导出与统计报表；并新增同步进度持久化、断点继续与温和停止按钮。"
-                           TextWrapping="Wrap"/>
-            </StackPanel>
-        </Border>
+        <StackPanel Grid.Row="0"
+                    Margin="2,2,2,0">
+            <TextBlock FontSize="24"
+                       FontWeight="SemiBold"
+                       Foreground="#FF1E2A3A"
+                       Text="Sync"/>
+            <TextBlock Margin="0,8,0,12"
+                       Foreground="#FF5A6A80"
+                       Text="元数据同步、下载同步、失败重试与统计报表。"/>
+        </StackPanel>
 
         <WrapPanel Grid.Row="1"
-                   Margin="0,0,0,12">
+                   Margin="0,0,0,6">
             <Button x:Name="SyncMetadataButton"
-                    Width="180"
-                    Height="32"
-                    Margin="0,0,12,8"
+                    Style="{StaticResource ActionButtonStyle}"
                     Content="开始同步元数据"
                     Click="OnSyncMetadataClicked"/>
             <Button x:Name="SyncDownloadButton"
-                    Width="180"
-                    Height="32"
-                    Margin="0,0,12,8"
+                    Style="{StaticResource ActionButtonStyle}"
                     Content="开始同步下载"
                     Click="OnSyncDownloadClicked"/>
             <Button x:Name="RetryFailedButton"
+                    Style="{StaticResource SecondaryActionButtonStyle}"
                     Width="140"
-                    Height="32"
-                    Margin="0,0,12,8"
                     Content="重试失败项"
                     Click="OnRetryFailedClicked"/>
             <Button x:Name="ExportFailedButton"
+                    Style="{StaticResource SecondaryActionButtonStyle}"
                     Width="140"
-                    Height="32"
-                    Margin="0,0,12,8"
                     Content="导出失败记录"
                     Click="OnExportFailedClicked"/>
             <Button x:Name="ExportCompletedButton"
+                    Style="{StaticResource SecondaryActionButtonStyle}"
                     Width="140"
-                    Height="32"
-                    Margin="0,0,12,8"
                     Content="导出成功记录"
                     Click="OnExportCompletedClicked"/>
             <Button x:Name="RefreshStatusButton"
+                    Style="{StaticResource SecondaryActionButtonStyle}"
                     Width="120"
-                    Height="32"
-                    Margin="0,0,12,8"
                     Content="刷新统计"
                     Click="OnRefreshStatusClicked"/>
         </WrapPanel>
@@ -106,17 +136,13 @@
             <Border Grid.Row="0"
                     Grid.Column="0"
                     Margin="0,0,8,8"
-                    Padding="12"
-                    Background="#F9FAFB"
-                    BorderBrush="#D1D5DB"
-                    BorderThickness="1"
-                    CornerRadius="6">
+                    Style="{StaticResource StatsCardBorderStyle}">
                 <StackPanel>
                     <TextBlock FontWeight="SemiBold"
                                Text="元数据统计"/>
                     <TextBlock x:Name="MetadataBreakdownTextBlock"
                                Margin="0,6,0,0"
-                               Foreground="#374151"
+                               Style="{StaticResource MutedLabelStyle}"
                                Text="总量 0 条，字幕 0 条，无字幕 0 条"
                                TextWrapping="Wrap"/>
                 </StackPanel>
@@ -125,17 +151,13 @@
             <Border Grid.Row="0"
                     Grid.Column="1"
                     Margin="8,0,0,8"
-                    Padding="12"
-                    Background="#F9FAFB"
-                    BorderBrush="#D1D5DB"
-                    BorderThickness="1"
-                    CornerRadius="6">
+                    Style="{StaticResource StatsCardBorderStyle}">
                 <StackPanel>
                     <TextBlock FontWeight="SemiBold"
                                Text="完成统计"/>
                     <TextBlock x:Name="CompletedBreakdownTextBlock"
                                Margin="0,6,0,0"
-                               Foreground="#374151"
+                               Style="{StaticResource MutedLabelStyle}"
                                Text="已完成 0 条，字幕 0 条，无字幕 0 条，已落盘 0 B"
                                TextWrapping="Wrap"/>
                 </StackPanel>
@@ -144,17 +166,13 @@
             <Border Grid.Row="1"
                     Grid.Column="0"
                     Margin="0,0,8,0"
-                    Padding="12"
-                    Background="#F9FAFB"
-                    BorderBrush="#D1D5DB"
-                    BorderThickness="1"
-                    CornerRadius="6">
+                    Style="{StaticResource StatsCardBorderStyle}">
                 <StackPanel>
                     <TextBlock FontWeight="SemiBold"
                                Text="积压统计"/>
                     <TextBlock x:Name="BacklogBreakdownTextBlock"
                                Margin="0,6,0,0"
-                               Foreground="#374151"
+                               Style="{StaticResource MutedLabelStyle}"
                                Text="失败 0 条，待处理 0 条，未建同步记录 0 条"
                                TextWrapping="Wrap"/>
                 </StackPanel>
@@ -163,17 +181,13 @@
             <Border Grid.Row="1"
                     Grid.Column="1"
                     Margin="8,0,0,0"
-                    Padding="12"
-                    Background="#F9FAFB"
-                    BorderBrush="#D1D5DB"
-                    BorderThickness="1"
-                    CornerRadius="6">
+                    Style="{StaticResource StatsCardBorderStyle}">
                 <StackPanel>
                     <TextBlock FontWeight="SemiBold"
                                Text="同步进度"/>
                     <TextBlock x:Name="ProgressBreakdownTextBlock"
                                Margin="0,6,0,0"
-                               Foreground="#374151"
+                               Style="{StaticResource MutedLabelStyle}"
                                Text="总进度 0.00%，字幕 0.00%，无字幕 0.00%"
                                TextWrapping="Wrap"/>
                 </StackPanel>

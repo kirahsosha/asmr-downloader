@@ -1177,6 +1177,14 @@ AI约束策略：禁止将章节 1.1 到 1.104 的文本加入分析上下文。
 4. DoD 判定：否。阶段 7 的消息优先级机制与自动化工单覆盖已补强，UI 冒烟与手工回归仍待用户执行并回填。
 5. 下次计划：由用户执行章节 3.1 与 3.7 的受影响手工回归，重点验证 `v0.7.3` 版本文案、Settings 保存后壳层状态栏保留 Settings 侧消息、以及错误/警告消息在壳层状态栏中不被后续信息覆盖。
 
+### 1.118 2026-06-20，v0.7.4：对齐 SyncView 壳层样式并清理内部文案
+
+1. 本次变更摘要：运行时与 README 版本统一升级到 `v0.7.4`；将 `SyncView.xaml` 的根 Grid 添加 `ShellBackgroundBrush`、顶部 Banner 与四张统计卡片的硬编码颜色和边框替换为共享 `ShellCardBorderBaseStyle` 系列样式、清理 Banner 内部迭代文案（"同步能力（阶段 5 增强）" 改为简洁用户面向描述）；同步更新 `SyncViewXamlTests` 断言适配新样式基线。
+2. 关键修改文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml`、`dotnet/tests/Asmroner.Wpf.Tests/SyncViewXamlTests.cs`、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`、`docs/wpf-migration-tests.md`。
+3. 构建与测试结果：`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --no-restore` 通过（225/225）；`rtk dotnet test dotnet/Asmroner.sln --no-restore` 通过（424/424）。
+4. DoD 判定：否。阶段 7 的 SyncView 视觉对齐与自动化覆盖已补强，UI 冒烟与手工回归仍待用户执行并回填。
+5. 下次计划：由用户执行章节 3.7 的受影响手工回归，重点验证 `v0.7.4` 版本文案、Sync 页面的壳层样式一致性（背景、卡片、按钮与搜索/下载/资源库基线对齐）、以及 Sync 页面 Banner 文案更新后的可读性。
+
 
 
 

@@ -30,12 +30,20 @@ public class SyncViewXamlTests
         Assert.Contains("x:Name=\"DetailsTextBox\"", content, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource PageStatePresenterTemplate}\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"Root\"", content, StringComparison.Ordinal);
-        Assert.Contains("Text=\"同步能力（阶段 5 增强）\"", content, StringComparison.Ordinal);
+        Assert.Contains("Text=\"Sync\"", content, StringComparison.Ordinal);
+        Assert.Contains("Text=\"元数据同步、下载同步、失败重试与统计报表。\"", content, StringComparison.Ordinal);
+        Assert.Contains("Background=\"{StaticResource ShellBackgroundBrush}\"", content, StringComparison.Ordinal);
+        Assert.Contains("Style=\"{StaticResource ActionButtonStyle}\"", content, StringComparison.Ordinal);
+        Assert.Contains("Style=\"{StaticResource SecondaryActionButtonStyle}\"", content, StringComparison.Ordinal);
+        Assert.Contains("Style=\"{StaticResource StatsCardBorderStyle}\"", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("Text=\"同步能力（阶段 5 增强）\"", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("Background=\"#F3F4F6\"", content, StringComparison.Ordinal);
         Assert.Contains("Text=\"同步状态：点击同步、重试、导出或刷新统计后，这里会显示元数据同步状态。\"", content, StringComparison.Ordinal);
         Assert.Contains("Text=\"下载状态：点击同步、重试、导出或刷新统计后，这里会显示同步下载状态。\"", content, StringComparison.Ordinal);
         Assert.Contains("Style=\"{StaticResource StatusInfoPanelStyle}\"", content, StringComparison.Ordinal);
         Assert.Contains("Style=\"{StaticResource StatusInfoTextStyle}\"", content, StringComparison.Ordinal);
         Assert.Contains("Style=\"{StaticResource StatusInfoMutedTextStyle}\"", content, StringComparison.Ordinal);
+        Assert.Contains("Style=\"{StaticResource MutedLabelStyle}\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
         Assert.NotNull(doc.Root);
