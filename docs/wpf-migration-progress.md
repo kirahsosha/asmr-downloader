@@ -1,6 +1,6 @@
 ﻿# asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.7.5
+当前跟踪版本：v0.7.6
 
 AI约束策略：变更与验证记录统一维护于 `docs/wpf-migration-history.md` 的 `§1`，单元测试清单统一维护于 `docs/wpf-migration-tests.md` 的 `§1`。
 
@@ -204,7 +204,8 @@ AI约束策略：变更与验证记录统一维护于 `docs/wpf-migration-histor
 | 2026-04-28 | 已提交 | v0.7.2: tighten shell status relay and extend stage 7 coverage              | 1. Update runtime/docs version to v0.7.2.<br>2. Refine stage 7 shell status relay policy to avoid hidden-page or placeholder message overrides.<br>3. Add/extend WPF tests for shell message relay and sync relay policy.<br>4. Sync migration progress/history/tests documentation and reset affected manual checklist items.                                                                                                     | cefe03f    |
 | 2026-06-19 | 已提交 | v0.7.3: harden message priority and fix Settings reinit status              | 1. Update runtime/docs version to v0.7.3.<br>2. Fix overwriting Settings status message after save-and-reinit.<br>3. Add message priority in UiMessageService.<br>4. Expand ShellStatusRelayPolicy placeholder filtering with known busy messages.<br>5. Add/extend tests for message priority and placeholder filtering.<br>6. Update regression tests and progress documentation.                                                | ff1c0c7    |
 | 2026-06-20 | 已提交 | v0.7.4: align SyncView styles with shared shell resources                   | 1. Update runtime/docs version to v0.7.4.<br>2. Align SyncView.xaml styles with shared shell resources (ShellBackgroundBrush, shared card styles).<br>3. Clean up SyncView banner text from internal iteration copy.<br>4. Add/extend WPF tests for SyncView style alignment.<br>5. Update regression tests and progress documentation.                                                                                            | 314e353    |
-| 2026-06-20 | 待提交 | v0.7.5: align DownloadView styles with shared shell resources               | 1. Update runtime/docs version to v0.7.5.<br>2. Align DownloadView styles with shared shell resources.<br>3. Add shared ShellDataGridColumnHeaderBaseStyle to ShellResources and align column headers in Views.<br>4. Wrap SyncView DetailsTextBox in styled container.<br>5. Update regression tests and progress documentation.                                                                                                  | -          |
+| 2026-06-20 | 已提交 | v0.7.5: align DownloadView styles with shared shell resources               | 1. Update runtime/docs version to v0.7.5.<br>2. Align DownloadView styles with shared shell resources.<br>3. Add shared ShellDataGridColumnHeaderBaseStyle to ShellResources and align column headers in Views.<br>4. Wrap SyncView DetailsTextBox in styled container.<br>5. Update regression tests and progress documentation.                                                                                                  | 2f1fbc1    |
+| 2026-06-21 | 待提交 | v0.7.6: add Sync filter checkboxes and update stage 7 UI                    | 1. Update runtime/docs version to v0.7.6.<br>2. Add SyncUiState persistence and Sync download filter options.<br>3. Add two Sync page checkboxes for Search/Download filter reuse.<br>4. Wire Search filters and Download file filters into Sync download flow.<br>5. Add/extend regression tests for Sync filters and SyncUiState.<br>6. Update regression tests and progress documentation.                                      | -          |
 
 ---
 
@@ -235,7 +236,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] “测试连接”应通过 `GET /api/health?cache=false` 完成候选探测；当旧探测端点不可用但 health API 可达时，仍能选中可用 BaseUrl。
 - [x] 当发布页正文直接提供 `asmr-300/200/100/one` 最新域名时，“测试连接”会按正文顺序补齐候选列表并写回 SQLite `ApiCandidateUrls`；随后再次“保存并重新初始化”不会把新候选覆盖回旧值。
 - [x] 当发布页 discovery 仅返回部分新候选时，若与已保存候选集合合并后的总数更大，“测试连接”会保留旧候选并把合并后的 `ApiCandidateUrls` 写回 SQLite。
-- [x] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.7.5。
+- [ ] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.7.6。
 
 ### 3.2 Search 功能
 
@@ -345,6 +346,11 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] Sync 状态面板以两行分别显示“同步状态”和“下载状态”，且元数据同步与同步下载的状态文本不会互相覆盖。
 - [x] “刷新统计”在自身执行期间会临时禁用，但不会把当前同步主按钮从 stop 语义切回 start 语义。
 - [x] 点击“刷新统计”或完成同步/重试后，统计卡片与摘要面板需同步刷新，最近更新时间应同时反映元数据与同步记录的最新时间。
+- [ ] Sync 页面按钮下方新增了两个筛选复选框：“同步下载使用Search页面高级筛选条件”和“同步下载使用Download页面文件筛选条件”。
+- [ ] 勾选“同步下载使用Search页面高级筛选条件”后，同步下载时仅处理 Search 高级筛选条件匹配的作品。
+- [ ] 勾选“同步下载使用Download页面文件筛选条件”后，同步下载时应用 Download 页面的文件筛选条件（文件筛选标签 + 高清音频）。
+- [ ] 两个筛选复选框的状态在重启后可持久化恢复，变更后自动保存。
+- [ ] Sync 页面筛选复选框在元数据同步/同步下载/失败重试期间保持可用，不影响按钮状态。
 
 ### 3.6 Library 功能
 

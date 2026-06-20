@@ -54,9 +54,9 @@ public sealed class SyncService : ISyncService
         return _syncDownloadService.GetProgressAsync(cancellationToken);
     }
 
-    public Task<SyncDownloadRunResult> SyncDownloadAsync(CancellationToken cancellationToken = default)
+    public Task<SyncDownloadRunResult> SyncDownloadAsync(SyncDownloadFilterOptions? filterOptions = null, CancellationToken cancellationToken = default)
     {
-        return _syncDownloadService.SyncDownloadAsync(cancellationToken);
+        return _syncDownloadService.SyncDownloadAsync(filterOptions, cancellationToken);
     }
 
     public Task RequestStopSyncDownloadAsync(CancellationToken cancellationToken = default)

@@ -60,6 +60,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -106,12 +107,26 @@
                     Click="OnRefreshStatusClicked"/>
         </WrapPanel>
 
-        <ContentControl Grid.Row="2"
+        <StackPanel Grid.Row="2"
+                    Margin="0,4,0,10"
+                    Orientation="Horizontal">
+            <CheckBox x:Name="UseSearchFilterCheckBox"
+                      Margin="0,0,24,0"
+                      Content="同步下载使用Search页面高级筛选条件"
+                      Checked="OnSyncFilterChanged"
+                      Unchecked="OnSyncFilterChanged"/>
+            <CheckBox x:Name="UseDownloadFilterCheckBox"
+                      Content="同步下载使用Download页面文件筛选条件"
+                      Checked="OnSyncFilterChanged"
+                      Unchecked="OnSyncFilterChanged"/>
+        </StackPanel>
+
+        <ContentControl Grid.Row="3"
                         Margin="0,0,0,12"
                         Content="{Binding PageState, ElementName=Root}"
                         ContentTemplate="{StaticResource PageStatePresenterTemplate}"/>
 
-        <StackPanel Grid.Row="3"
+        <StackPanel Grid.Row="4"
                     Margin="0,0,0,6">
             <TextBlock x:Name="CurrentCountTextBlock"
                        Margin="0,0,0,6"
@@ -122,7 +137,7 @@
                        Text="同步下载：已完成 0 项，失败 0 项，待处理 0 项，队列中 0 项，已落盘 0 B"/>
         </StackPanel>
 
-        <Grid Grid.Row="4"
+        <Grid Grid.Row="5"
               Margin="0,0,0,12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -194,7 +209,7 @@
             </Border>
         </Grid>
 
-        <Border Grid.Row="5"
+        <Border Grid.Row="6"
                 Margin="0,0,0,12"
                 Style="{StaticResource StatusInfoPanelStyle}">
             <StackPanel>
@@ -212,7 +227,7 @@
             </StackPanel>
         </Border>
 
-        <Border Grid.Row="6"
+        <Border Grid.Row="7"
                 Style="{StaticResource StatusInfoPanelStyle}">
             <TextBox x:Name="DetailsTextBox"
                      IsReadOnly="True"

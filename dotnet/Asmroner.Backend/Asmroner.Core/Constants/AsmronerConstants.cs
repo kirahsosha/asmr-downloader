@@ -56,6 +56,7 @@ public static class AsmronerConstants
                 public const string UnfinishedQueue = "unfinished_queue";
                 public const string MetadataSyncProgress = "metadata_sync_progress";
                 public const string SyncDownloadProgress = "sync_download_progress";
+                public const string Sync = "sync";
             }
         }
 

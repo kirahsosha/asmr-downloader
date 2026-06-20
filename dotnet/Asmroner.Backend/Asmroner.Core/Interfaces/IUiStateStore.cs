@@ -25,6 +25,10 @@ public interface IUiStateStore
 
     Task RequestStopSyncDownloadAsync(CancellationToken cancellationToken = default);
 
+    Task<SyncUiState> LoadSyncUiStateAsync(CancellationToken cancellationToken = default);
+
+    Task SaveSyncUiStateAsync(SyncUiState state, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<string>> LoadUnfinishedQueueAsync(CancellationToken cancellationToken = default);
 
     Task SaveUnfinishedQueueAsync(IReadOnlyCollection<string> sourceIds, CancellationToken cancellationToken = default);

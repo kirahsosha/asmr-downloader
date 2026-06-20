@@ -9,7 +9,7 @@
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-06-20 的解决方案级回归（424/424），本轮受影响回归为 2026-06-20 的 `Asmroner.Wpf.Tests`（225/225）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-06-21 的解决方案级回归（待验证），本轮受影响回归为 2026-06-21 的 `Asmroner.Infrastructure.Tests` / `Asmroner.Wpf.Tests`。
 
 维护规则：
 
@@ -48,14 +48,16 @@
 | [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldUsePrefetchedWorkId_ForNonRjTrackLookup`                                           | 非 `RJ` `SourceId` + 预取 `WorkId`                     | `tracks` 查询使用数值 `WorkId` 并下载成功                                                               |
 | [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldNotAppendDuplicateExtension_WhenTrackTitleAlreadyContainsExtension`                | 轨道标题已带 `.mp3`，下载扩展名仍为 `.mp3`             | 落地文件名仅保留单个 `.mp3` 后缀                                                                        |
 | [x]    | [x]    | 阶段 4  | `RunQueuedAsync_ShouldAppendExtension_WhenTrackTitleDoesNotContainExtension`                             | 轨道标题无扩展名，下载扩展名为 `.wav`                  | 落地文件名自动补齐 `.wav` 后缀                                                                          |
-| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldCopyMatchingFiles_FromSyncDirectory`                                                   | 下载目录缺失目标文件、同步下载目录已有匹配文件         | 复用同步下载目录中的真实文件到普通下载目录，不重复请求下载接口，并将 SQLite 同步记录写为 `COMPLETED`    |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldCopyMatchingFiles_FromSyncDirectory`                                                   | 下载目录缺失、同步目录已有匹配文件                     | 复用同步目录文件并写 SQLite `COMPLETED`                                                                  |
 | [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldSkipDownload_WhenExistingTargetFileMatchesTrackSize`                                   | 普通下载目录已存在与 track `size` 一致的目标文件       | 跳过下载请求，直接复用现有文件                                                                          |
 | [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldRedownload_WhenExistingTargetFileSizeDiffersFromTrackSize`                             | 普通下载目录已存在与 track `size` 不一致的目标文件     | 忽略旧文件并重新下载，最终落盘文件大小与 track `size` 一致                                              |
 | [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldDownload_WhenSyncLookupFileSizeDiffersFromTrackSize`                                   | 同步下载目录存在同路径但大小不一致的候选文件           | 不复制候选文件，改为真实下载并在普通下载目录重新落盘                                                    |
 | [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldFail_WhenDownloadedFileSizeDiffersFromTrackSize`                                       | track `size` 与实际下载响应体大小不一致                | 下载失败并删除不完整目标文件                                                                            |
-| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldDownloadRealFiles_WhenNoExistingFileInEitherDirectory`                                 | 普通下载目录与同步下载目录均无目标文件                 | 直接调用 `mediaDownloadUrl` 下载真实文件并同时镜像到同步下载目录，SQLite 写为 `COMPLETED`，不写占位文本 |
-| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldRegisterCompletedSyncInfo_WithoutDuplicatingFiles_WhenDownloadAndSyncDirectoriesMatch` | 普通下载目录与同步下载目录相同，且两侧初始均无目标文件 | 仅落盘单份真实文件，不重复复制或处理，并将 SQLite 同步记录写为 `COMPLETED`                              |
-| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldMirrorSubsetDownloadWithoutMarkingSyncCompleted_WhenFileFilterIsUsed`                  | 普通下载使用 `fileFilter` 仅下载子集轨道               | 只镜像实际下载的子集文件，但不会将 SQLite 同步记录写为 `COMPLETED`                                      |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldDownloadRealFiles_WhenNoExistingFileInEitherDirectory`                                 | 两目录均无目标文件                                     | 下载真实文件，镜像到同步目录，SQLite 写 `COMPLETED`                                                      |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldRegisterCompletedSyncInfo_WithoutDuplicatingFiles_WhenDownloadAndSyncDirectoriesMatch` | 两目录路径相同且均无目标文件                           | 仅落盘单份文件，不重复处理，SQLite 写 `COMPLETED`                                                        |
+| [x]    | [x]    | 阶段 4+ | `StartAsync_ShouldMirrorSubsetDownloadWithoutMarkingSyncCompleted_WhenFileFilterIsUsed`                  | 使用 `fileFilter` 仅下载子集轨道                       | 镜像子集文件，不写 SQLite `COMPLETED`                                                                     |
+| [ ]    | [ ]    | 阶段 7  | `SyncDownloadAsync_ShouldFilterCandidates_WhenSearchAdvancedFiltersProvided`                             | 传入含 `AllowedSourceIds` 的 filterOptions              | 仅下载集合内的候选作品                                                                                    |
+| [ ]    | [ ]    | 阶段 7  | `SyncDownloadAsync_ShouldUseDownloadFilters_WhenDownloadFileFiltersProvided`                             | 传入含 `HdAudioOnly`+`FileFilter` 的 filterOptions      | 下载时使用传入的文件筛选和高清音频参数                                                                    |
 
 #### 1.1.2 QueryParserServiceTests.cs
 
@@ -66,6 +68,7 @@
 | [x]    | [x]    | 阶段 4 | `QueryParser_ShouldNotApplyDefaultAge_WhenAgeMissing`     | 查询未显式提供 age 条件                 | 不自动注入 `age` 默认值                |
 | [x]    | [x]    | 阶段 4 | `QueryParser_ShouldParseSemicolonSeparatedFilters`        | 高级筛选使用分号分隔                    | 分号语法可正确映射到筛选字段           |
 | [x]    | [x]    | 阶段 3 | `QueryParser_ShouldParseOptionOnlyQuery`                  | 仅包含分页/排序参数的查询串             | 可正确解析为无关键词查询并保留页面参数 |
+| [x]    | [x]    | 阶段 3 | `QueryParser_ShouldPreserveCommaSeparatedValues_WithinSingleFilter` | `-tag:女性向,乙女向,记录片/体验谈 age:adult` | Tag 保留全部逗号分隔值，Age 正确解析为 `age:adult` |
 
 #### 1.1.3 SearchExportServiceTests.cs
 
@@ -356,6 +359,8 @@
 | [x]    | [x]    | 阶段 5  | `LoadMetadataSyncProgressAsync_ShouldReturnDefaults_WhenNoStatePersisted` | 无元数据同步进度记录                                     | 返回默认状态：`IDLE`、`NextPage=1`、`ProcessedPageCount=0`、`ProcessedWorkCount=0`                     |
 | [x]    | [x]    | 阶段 5  | `SaveSyncDownloadProgressAsync_ShouldRoundTrip_AndPreserveStopRequest`    | 同步下载进度写回 + 运行中发起停止请求                    | 进度字段 round-trip 正确，且运行中 stop request 不会被后续保存覆盖                                     |
 | [x]    | [x]    | 阶段 5  | `LoadSyncDownloadProgressAsync_ShouldReturnDefaults_WhenNoStatePersisted` | 无同步下载进度记录                                       | 返回默认状态：`IDLE`、空 `LastProcessedSourceId` 与 0 计数                                             |
+| [ ]    | [ ]    | 阶段 7  | `SaveSyncUiStateAsync_ShouldRoundTrip`                                   | 保存 `UseSearchAdvancedFilters=true` + `UseDownloadFileFilters=true` | 重新加载后字段一致                                                                                        |
+| [ ]    | [ ]    | 阶段 7  | `LoadSyncUiStateAsync_ShouldReturnDefaults_WhenNoStatePersisted`         | 无 SyncUiState 记录                                      | 返回默认状态：两个复选框均为 false                                                                        |
 
 #### 1.3.12 NLogAppLogServiceTests.cs
 
@@ -695,6 +700,7 @@
 | 已创建 | 已通过 | 阶段   | 样例名                                                     | 输入                          | 期望输出                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | ------ | ------ | ------ | ---------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [x]    | [x]    | 阶段 7 | `SyncViewXaml_ShouldContainPrimaryActions_AndStatusFields` | 解析 `SyncView.xaml` 文本/XML | 页面包含两枚合并后的同步主按钮、"重试失败项""导出失败记录""导出成功记录""刷新统计"按钮、Banner 文案使用简洁用户面向描述（不含阶段 5 内部迭代文本）、根 Grid 使用 `ShellBackgroundBrush`、主按钮使用 `ActionButtonStyle`、次要按钮使用 `SecondaryActionButtonStyle`、统计卡片使用 `StatsCardBorderStyle` 与 `MutedLabelStyle`、统一状态面板样式、共享 `PageStatePresenterTemplate`、`StatusTextBlock + DownloadStatusTextBlock` 双状态文本框，且旧的独立停止按钮命名和硬编码背景色已移除。 |
+| [ ]    | [ ]    | 阶段 7 | `SyncViewXaml_ShouldContainFilterCheckboxes`               | 解析 `SyncView.xaml` 文本/XML | 页面按钮下方包含 `UseSearchFilterCheckBox` 和 `UseDownloadFilterCheckBox` 两个复选框，且 `Checked`/`Unchecked` 均绑定 `OnSyncFilterChanged` 事件。 |
 
 #### 1.5.34 SyncCommandAvailabilityTests.cs
 

@@ -15,6 +15,7 @@ public sealed class UiStateStore : IUiStateStore
     private const string DownloadStateKey = AsmronerConstants.Storage.UiState.StateKeys.Download;
     private const string MetadataSyncProgressKey = AsmronerConstants.Storage.UiState.StateKeys.MetadataSyncProgress;
     private const string SyncDownloadProgressKey = AsmronerConstants.Storage.UiState.StateKeys.SyncDownloadProgress;
+    private const string SyncUiStateKey = AsmronerConstants.Storage.UiState.StateKeys.Sync;
     private const string UnfinishedQueueKey = AsmronerConstants.Storage.UiState.StateKeys.UnfinishedQueue;
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -119,6 +120,18 @@ public sealed class UiStateStore : IUiStateStore
         }
 
         await SaveStateAsync(SyncDownloadProgressKey, state, cancellationToken);
+    }
+
+    public async Task<SyncUiState> LoadSyncUiStateAsync(CancellationToken cancellationToken = default)
+    {
+        var persisted = await LoadStateAsync<SyncUiState>(SyncUiStateKey, cancellationToken);
+        return persisted ?? new SyncUiState();
+    }
+
+    public Task SaveSyncUiStateAsync(SyncUiState state, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        return SaveStateAsync(SyncUiStateKey, state, cancellationToken);
     }
 
     public async Task RequestStopSyncDownloadAsync(CancellationToken cancellationToken = default)

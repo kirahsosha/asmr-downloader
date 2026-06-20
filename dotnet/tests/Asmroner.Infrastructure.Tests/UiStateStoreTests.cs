@@ -327,6 +327,52 @@ public class UiStateStoreTests
         }
     }
 
+    [Fact]
+    public async Task SaveSyncUiStateAsync_ShouldRoundTrip()
+    {
+        var tempRoot = CreateTempRoot();
+        try
+        {
+            var pathService = new AppPathService(tempRoot);
+            var store = new UiStateStore(pathService);
+            var state = new SyncUiState
+            {
+                UseSearchAdvancedFilters = true,
+                UseDownloadFileFilters = false,
+            };
+
+            await store.SaveSyncUiStateAsync(state);
+
+            var loaded = await store.LoadSyncUiStateAsync();
+            Assert.True(loaded.UseSearchAdvancedFilters);
+            Assert.False(loaded.UseDownloadFileFilters);
+        }
+        finally
+        {
+            CleanupTempRoot(tempRoot);
+        }
+    }
+
+    [Fact]
+    public async Task LoadSyncUiStateAsync_ShouldReturnDefaults_WhenNoStatePersisted()
+    {
+        var tempRoot = CreateTempRoot();
+        try
+        {
+            var pathService = new AppPathService(tempRoot);
+            var store = new UiStateStore(pathService);
+
+            var loaded = await store.LoadSyncUiStateAsync();
+
+            Assert.False(loaded.UseSearchAdvancedFilters);
+            Assert.False(loaded.UseDownloadFileFilters);
+        }
+        finally
+        {
+            CleanupTempRoot(tempRoot);
+        }
+    }
+
     private static string CreateTempRoot()
     {
         var path = Path.Combine(Path.GetTempPath(), "asmroner-tests", Guid.NewGuid().ToString("N"));

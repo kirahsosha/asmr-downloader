@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using Asmroner.Core.Configuration;
 using Asmroner.Core.Interfaces;
 using Asmroner.Core.Sync;
 using Asmroner.Wpf.Services;
@@ -17,6 +18,8 @@ public partial class SyncView : UserControl
     private readonly IUiMessageService _uiMessageService;
     private readonly ISyncExportService _syncExportService;
     private readonly ISyncService _syncService;
+    private readonly IUiStateStore _uiStateStore;
+    private readonly ISearchService _searchService;
 
     private bool _isMetadataSyncRunning;
     private bool _isMetadataStopRequested;
@@ -41,13 +44,17 @@ public partial class SyncView : UserControl
         IAppPathService appPathService,
         IDialogService dialogService,
         IPageLoadStateService pageLoadStateService,
-        IUiMessageService uiMessageService)
+        IUiMessageService uiMessageService,
+        IUiStateStore uiStateStore,
+        ISearchService searchService)
     {
         _appPathService = appPathService;
         _dialogService = dialogService;
         _uiMessageService = uiMessageService;
         _syncExportService = syncExportService;
         _syncService = syncService;
+        _uiStateStore = uiStateStore;
+        _searchService = searchService;
         PageState = pageLoadStateService.Create("Sync");
 
         InitializeComponent();
@@ -63,7 +70,24 @@ public partial class SyncView : UserControl
     /// </summary>
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        var syncUiState = await _uiStateStore.LoadSyncUiStateAsync();
+        UseSearchFilterCheckBox.IsChecked = syncUiState.UseSearchAdvancedFilters;
+        UseDownloadFilterCheckBox.IsChecked = syncUiState.UseDownloadFileFilters;
+
         await RefreshSnapshotAsync(updateStatusText: false);
+    }
+
+    /// <summary>
+    /// 处理筛选复选框变更，自动持久化到 SQLite UiState。
+    /// </summary>
+    private async void OnSyncFilterChanged(object sender, RoutedEventArgs e)
+    {
+        var state = new SyncUiState
+        {
+            UseSearchAdvancedFilters = UseSearchFilterCheckBox.IsChecked == true,
+            UseDownloadFileFilters = UseDownloadFilterCheckBox.IsChecked == true,
+        };
+        await _uiStateStore.SaveSyncUiStateAsync(state);
     }
 
     /// <summary>
@@ -212,11 +236,103 @@ public partial class SyncView : UserControl
         }
     }
 
+    /// <summary>
+    /// 根据当前复选框状态构建同步下载筛选选项。
+    /// 若勾选“使用 Search 高级筛选”，会通过 SearchService 查询匹配作品 SourceId 列表。
+    /// 若勾选“使用 Download 文件筛选”，会读取 DownloadUiState 中的文件筛选参数。
+    /// </summary>
+    private async Task<SyncDownloadFilterOptions?> BuildSyncDownloadFilterOptionsAsync()
+    {
+        var useSearch = UseSearchFilterCheckBox.IsChecked == true;
+        var useDownload = UseDownloadFilterCheckBox.IsChecked == true;
+
+        if (!useSearch && !useDownload)
+        {
+            return null;
+        }
+
+        IReadOnlySet<string>? allowedSourceIds = null;
+
+        if (useSearch)
+        {
+            var searchUiState = await _uiStateStore.LoadSearchUiStateAsync();
+            var query = BuildSearchQueryFromState(searchUiState);
+
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                try
+                {
+                    var searchResult = await _searchService.SearchAsync(query, count: 200);
+                    allowedSourceIds = searchResult.Items
+                        .Select(static item => item.SourceId)
+                        .Where(static id => !string.IsNullOrWhiteSpace(id))
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                }
+                catch
+                {
+                    // 搜索失败时不阻塞同步下载，允许继续处理全部作品
+                }
+            }
+        }
+
+        DownloadUiState? downloadFilters = null;
+
+        if (useDownload)
+        {
+            downloadFilters = await _uiStateStore.LoadDownloadUiStateAsync();
+        }
+
+        if (allowedSourceIds is null && downloadFilters is null)
+        {
+            return null;
+        }
+
+        return new SyncDownloadFilterOptions
+        {
+            UseSearchAdvancedFilters = allowedSourceIds is not null,
+            AllowedSourceIds = allowedSourceIds,
+            UseDownloadFileFilters = downloadFilters is not null,
+            DownloadFilters = downloadFilters,
+        };
+    }
+
+    /// <summary>
+    /// 将 SearchUiState 中的高级筛选字段转为搜索查询字符串。
+    /// </summary>
+    private static string BuildSearchQueryFromState(SearchUiState state)
+    {
+        var parts = new List<string>(16);
+
+        AppendFilter(parts, "tag", state.Tag, state.TagExclude);
+        AppendFilter(parts, "circle", state.Circle, state.CircleExclude);
+        AppendFilter(parts, "va", state.Va, state.VaExclude);
+        AppendFilter(parts, "duration", state.Duration, state.DurationExclude);
+        AppendFilter(parts, "rate", state.Rate, state.RateExclude);
+        AppendFilter(parts, "price", state.Price, state.PriceExclude);
+        AppendFilter(parts, "sell", state.Sell, state.SellExclude);
+        AppendFilter(parts, "age", state.Age, state.AgeExclude);
+        AppendFilter(parts, "lang", state.Lang, state.LangExclude);
+
+        return string.Join(" ", parts);
+    }
+
+    private static void AppendFilter(List<string> parts, string key, string value, bool exclude)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return;
+        }
+
+        var prefix = exclude ? "-" : string.Empty;
+        parts.Add($"{prefix}{key}:{value.Trim()}");
+    }
+
     private async Task RunSyncDownloadAsync()
     {
         try
         {
-            var result = await _syncService.SyncDownloadAsync();
+            var filterOptions = await BuildSyncDownloadFilterOptionsAsync();
+            var result = await _syncService.SyncDownloadAsync(filterOptions);
             ApplyResult(result);
             await ApplyReportAsync();
         }

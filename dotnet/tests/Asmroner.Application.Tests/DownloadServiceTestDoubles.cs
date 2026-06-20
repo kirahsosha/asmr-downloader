@@ -409,6 +409,17 @@ internal sealed class InMemoryUiStateStore : IUiStateStore
         return Task.CompletedTask;
     }
 
+    public SyncUiState SyncUiState { get; private set; } = new();
+
+    public Task<SyncUiState> LoadSyncUiStateAsync(CancellationToken cancellationToken = default)
+        => Task.FromResult(SyncUiState);
+
+    public Task SaveSyncUiStateAsync(SyncUiState state, CancellationToken cancellationToken = default)
+    {
+        SyncUiState = state;
+        return Task.CompletedTask;
+    }
+
     public Task<IReadOnlyList<string>> LoadUnfinishedQueueAsync(CancellationToken cancellationToken = default)
         => Task.FromResult(UnfinishedQueue);
 

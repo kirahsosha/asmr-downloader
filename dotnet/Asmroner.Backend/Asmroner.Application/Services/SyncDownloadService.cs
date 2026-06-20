@@ -46,7 +46,7 @@ public sealed class SyncDownloadService
         return _uiStateStore.RequestStopSyncDownloadAsync(cancellationToken);
     }
 
-    public async Task<SyncDownloadRunResult> SyncDownloadAsync(CancellationToken cancellationToken = default)
+    public async Task<SyncDownloadRunResult> SyncDownloadAsync(SyncDownloadFilterOptions? filterOptions = null, CancellationToken cancellationToken = default)
     {
         var progress = await _uiStateStore.LoadSyncDownloadProgressAsync(cancellationToken);
         var resumedFromProgress = ShouldResume(progress);
@@ -62,6 +62,14 @@ public sealed class SyncDownloadService
         var syncInfoMap = new Dictionary<int, WorkSyncInfoItem>(await _metadataSyncStore.GetWorkSyncInfoMapAsync(cancellationToken));
         var isRescanMode = ShouldRescanAllMetadata(progress, resumedFromProgress, before, allWorkInfos.Count);
         var candidates = BuildProcessingCandidates(allWorkInfos, syncInfoMap, isRescanMode, resumedFromProgress, progress.LastProcessedSourceId);
+
+        if (filterOptions?.UseSearchAdvancedFilters == true && filterOptions.AllowedSourceIds?.Count > 0)
+        {
+            candidates = candidates
+                .Where(c => filterOptions.AllowedSourceIds.Contains(c.SourceId))
+                .ToList();
+        }
+
         var baseDownloadOptions = new DownloadStartOptions
         {
             TargetRoot = targetRoot,
@@ -155,9 +163,18 @@ public sealed class SyncDownloadService
                 WorkId = candidate.Id,
                 Purpose = baseDownloadOptions.Purpose,
             };
+            var actualHdAudioOnly = filterOptions?.UseDownloadFileFilters == true && filterOptions.DownloadFilters is not null
+                ? filterOptions.DownloadFilters.HdAudioOnly
+                : config.Downloader.HdAudioOnly;
+
+            var actualFileFilter = filterOptions?.UseDownloadFileFilters == true && filterOptions.DownloadFilters is not null
+                ? filterOptions.DownloadFilters.FileFilter
+                : null;
+
             var task = await _downloadService.StartAsync(
                 candidate.SourceId,
-                hdAudioOnly: config.Downloader.HdAudioOnly,
+                hdAudioOnly: actualHdAudioOnly,
+                fileFilter: actualFileFilter,
                 options: downloadOptions,
                 cancellationToken: cancellationToken);
 

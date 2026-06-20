@@ -1,6 +1,8 @@
 using Asmroner.Core.Api;
 using Asmroner.Core.Interfaces;
 using Asmroner.Core.Search;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Asmroner.Application.Services;
 

@@ -48,4 +48,18 @@ public class SyncViewXamlTests
         var doc = XDocument.Parse(content);
         Assert.NotNull(doc.Root);
     }
+
+    [Fact]
+    public void SyncViewXaml_ShouldContainFilterCheckboxes()
+    {
+        var xamlPath = XamlTestPathLocator.Locate("SyncView.xaml", "dotnet", "Asmroner.Wpf", "Asmroner.Wpf", "Views");
+        var content = File.ReadAllText(xamlPath);
+
+        Assert.Contains("x:Name=\"UseSearchFilterCheckBox\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"UseDownloadFilterCheckBox\"", content, StringComparison.Ordinal);
+        Assert.Contains("Content=\"同步下载使用Search页面高级筛选条件\"", content, StringComparison.Ordinal);
+        Assert.Contains("Content=\"同步下载使用Download页面文件筛选条件\"", content, StringComparison.Ordinal);
+        Assert.Contains("Checked=\"OnSyncFilterChanged\"", content, StringComparison.Ordinal);
+        Assert.Contains("Unchecked=\"OnSyncFilterChanged\"", content, StringComparison.Ordinal);
+    }
 }

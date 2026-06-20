@@ -75,4 +75,21 @@ public class QueryParserServiceTests
         Assert.Equal(50, parsed.PageOptions.PageSize);
         Assert.StartsWith("?order=price&sort=asc&page=3&pageSize=50&subtitle=1&includeTranslationWorks=false", rebuilt, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void QueryParser_ShouldPreserveCommaSeparatedValues_WithinSingleFilter()
+    {
+        var sut = new QueryParserService();
+        var rawQuery = "-tag:女性向,乙女向,记录片/体验谈,女性视角,无插入/无正戏,被NTR,故意被NTR/绿奴,性转换（TS）,虐待/ryona age:adult";
+
+        var parsed = sut.Parse(rawQuery);
+
+        Assert.Equal("-tag:女性向,乙女向,记录片/体验谈,女性视角,无插入/无正戏,被NTR,故意被NTR/绿奴,性转换（TS）,虐待/ryona", parsed.Filter.Tag);
+        Assert.Equal("age:adult", parsed.Filter.Age);
+        Assert.Empty(parsed.PlainTexts);
+        Assert.True(string.IsNullOrWhiteSpace(parsed.Filter.Circle));
+        Assert.True(string.IsNullOrWhiteSpace(parsed.Filter.Va));
+        Assert.Equal(1, parsed.PageOptions.Page);
+        Assert.Equal(20, parsed.PageOptions.PageSize);
+    }
 }

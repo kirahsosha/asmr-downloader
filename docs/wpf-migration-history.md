@@ -1193,6 +1193,14 @@ AI约束策略：禁止将章节 1.1 到 1.104 的文本加入分析上下文。
 4. DoD 判定：否。阶段 7 的 DownloadView/DataGrid 视觉对齐与自动化覆盖已补强，UI 冒烟与手工回归仍待用户执行并回填。
 5. 下次计划：由用户执行章节 3.3 与 3.7 的受影响手工回归，重点验证 `v0.7.5` 版本文案、Download 页面的壳层样式一致性（按钮/卡片/横幅/输入框/标签与搜索/资源库/同步基线对齐）、以及三页 DataGrid 列头基线统一后的视觉一致性。
 
+### 1.120 2026-06-21，v0.7.6：Sync 页面新增筛选复选框，同步下载支持 Search 高级筛选与 Download 文件筛选
+
+1. 本次变更摘要：运行时与 README 版本统一升级到 `v0.7.6`；新建 `SyncUiState` 模型并通过 `IUiStateStore` 持久化两个复选框状态；新建 `SyncDownloadFilterOptions` 记录类在同步下载链路中透传筛选选项；修改 `ISyncService.SyncDownloadAsync` 新增可选 filterOptions 参数；`SyncDownloadService` 在候选作品过滤与文件下载两阶段分别接入 Search 和 Download 筛选逻辑；`SyncView.xaml` 新增两个 CheckBox（"同步下载使用Search页面高级筛选条件"和"同步下载使用Download页面文件筛选条件"），`SyncView.xaml.cs` 通过构造查询字符串调用 `SearchService` 获取匹配 SourceId 并读取 `DownloadUiState` 透传文件筛选参数；精简单元测试清单文档中的冗长描述文本。
+2. 关键修改文件：`dotnet/Asmroner.Backend/Asmroner.Core/Configuration/SyncUiState.cs`（新建）、`dotnet/Asmroner.Backend/Asmroner.Core/Sync/SyncDownloadFilterOptions.cs`（新建）、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/IUiStateStore.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Interfaces/ISyncService.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Constants/AsmronerConstants.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/UiStateStore.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/SyncDownloadService.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/SyncService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SyncView.xaml.cs`、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`、`docs/wpf-migration-tests.md`、`docs/wpf-migration-history.md`。
+3. 构建与测试结果：待执行完整回归验证后补充。
+4. DoD 判定：否。阶段 7 的 Sync 页面筛选功能与自动化覆盖已扩展，UI 冒烟与手工回归仍待用户执行并回填。
+5. 下次计划：由用户执行章节 3.5 与 3.7 的受影响手工回归，重点验证 `v0.7.6` 版本文案、Sync 页面两个筛选复选框的显示/持久化/恢复/对同步下载的筛选效果、以及 Settings 页面版本文案更新。
+
 
 
 

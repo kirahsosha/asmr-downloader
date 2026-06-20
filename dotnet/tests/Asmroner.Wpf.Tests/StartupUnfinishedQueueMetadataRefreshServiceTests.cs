@@ -214,6 +214,12 @@ public class StartupUnfinishedQueueMetadataRefreshServiceTests
         public Task SaveDownloadUiStateAsync(DownloadUiState state, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 
+        public Task<SyncUiState> LoadSyncUiStateAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(new SyncUiState());
+
+        public Task SaveSyncUiStateAsync(SyncUiState state, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+
         public Task<MetadataSyncProgressState> LoadMetadataSyncProgressAsync(CancellationToken cancellationToken = default)
             => Task.FromResult(new MetadataSyncProgressState());
 

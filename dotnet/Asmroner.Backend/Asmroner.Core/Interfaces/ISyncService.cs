@@ -18,7 +18,7 @@ public interface ISyncService
 
     Task<SyncDownloadProgressState> GetSyncDownloadProgressAsync(CancellationToken cancellationToken = default);
 
-    Task<SyncDownloadRunResult> SyncDownloadAsync(CancellationToken cancellationToken = default);
+    Task<SyncDownloadRunResult> SyncDownloadAsync(SyncDownloadFilterOptions? filterOptions = null, CancellationToken cancellationToken = default);
 
     Task RequestStopSyncDownloadAsync(CancellationToken cancellationToken = default);
 

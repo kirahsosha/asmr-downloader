@@ -122,6 +122,12 @@ public sealed class QueryParserService : IQueryParserService
             return new SearchFilter();
         }
 
+        var spaceTokens = input.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var rawParts = spaceTokens
+            .SelectMany(t => t.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .ToArray();
+        var parts = ReassembleFilterParts(rawParts);
+
         var tag = string.Empty;
         var circle = string.Empty;
         var va = string.Empty;
@@ -131,7 +137,6 @@ public sealed class QueryParserService : IQueryParserService
         var sell = string.Empty;
         var age = string.Empty;
         var lang = string.Empty;
-        var parts = input.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         foreach (var part in parts)
         {
@@ -160,6 +165,43 @@ public sealed class QueryParserService : IQueryParserService
             Age = age,
             Lang = lang,
         };
+    }
+
+    /// <summary>
+    /// 将以逗号/分号拆分的原始片段重新组合：不以已知过滤器前缀开头的片段
+    /// 会被追加到前一个片段末尾（用逗号连接），从而保留单个过滤器内的多值数据。
+    /// </summary>
+    private static List<string> ReassembleFilterParts(string[] rawParts)
+    {
+        var result = new List<string>(rawParts.Length);
+
+        foreach (var part in rawParts)
+        {
+            if (result.Count > 0 && !IsFilterStarter(part))
+            {
+                result[^1] = result[^1] + "," + part;
+            }
+            else
+            {
+                result.Add(part);
+            }
+        }
+
+        return result;
+    }
+
+    private static bool IsFilterStarter(string part)
+    {
+        return StartsWithAny(part,
+            "tag:", "-tag:",
+            "circle:", "-circle:",
+            "va:", "-va:",
+            "duration:", "-duration:",
+            "rate:", "-rate:",
+            "price:", "-price:",
+            "sell:", "-sell:",
+            "age:", "-age:",
+            "lang:", "-lang:");
     }
 
     private static SearchPageOptions ParsePageOptions(string input, SearchPageOptions defaults)
