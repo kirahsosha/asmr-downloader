@@ -194,6 +194,7 @@ public class MetadataSyncServiceTests
 
         Assert.Equal(0, result.InsertedCount);
         Assert.Equal(1, result.ProcessedWorkCount);
+        Assert.Equal(1, result.ProcessedPageCount);
         Assert.Contains("过期刷新完成", result.Message, StringComparison.Ordinal);
         Assert.Equal([(1, 1, false), (1, 1, true), (1, 100, false)], apiClient.Calls);
         Assert.Equal("Updated Title 401", refreshed["RJ401"].Title);

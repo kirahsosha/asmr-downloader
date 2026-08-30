@@ -36,7 +36,7 @@ public static class SyncStatusTextBuilder
         if (string.Equals(metadataProgress.Status, SyncProgressStatuses.Completed, StringComparison.Ordinal)
             && metadataProgress.TotalPageCount > 0)
         {
-            return BuildMetadataActionStatus($"元数据同步已完成：共处理 {metadataProgress.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{metadataProgress.TotalPageCount.ToString(CultureInfo.InvariantCulture)} 页，累计处理 {metadataProgress.ProcessedWorkCount.ToString(CultureInfo.InvariantCulture)} 条，本地现有 {metadataProgress.LocalTotalCount.ToString(CultureInfo.InvariantCulture)} 条。");
+            return BuildMetadataActionStatus($"元数据同步已完成：累计处理 {metadataProgress.ProcessedWorkCount.ToString(CultureInfo.InvariantCulture)} 条，本地现有 {metadataProgress.LocalTotalCount.ToString(CultureInfo.InvariantCulture)} 条。");
         }
 
         return BuildMetadataActionStatus("已刷新本地元数据统计与进度。");

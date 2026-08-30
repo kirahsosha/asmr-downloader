@@ -33,6 +33,10 @@ public class LibraryViewXamlTests
         Assert.Contains("Content=\"载入/切换文件\"", content, StringComparison.Ordinal);
         Assert.Contains("Content=\"播放\"", content, StringComparison.Ordinal);
         Assert.Contains("Content=\"清空上下文\"", content, StringComparison.Ordinal);
+        Assert.Contains("Content=\"在浏览器打开\"", content, StringComparison.Ordinal);
+        Assert.Contains("Content=\"打开作品目录\"", content, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnOpenWorkPageClicked\"", content, StringComparison.Ordinal);
+        Assert.Contains("Click=\"OnOpenWorkDirectoryClicked\"", content, StringComparison.Ordinal);
         Assert.Contains("Text=\"作品详情\"", content, StringComparison.Ordinal);
         Assert.Contains("Text=\"文件树与播放上下文\"", content, StringComparison.Ordinal);
         Assert.Contains("Text=\"当前选择\"", content, StringComparison.Ordinal);

@@ -147,11 +147,11 @@
                                   SelectionChanged="OnOrderChanged"
                                   SelectedIndex="0">
                             <ComboBoxItem Tag="release"
-                                          Content="日期"/>
+                                                        Content="发售日期"/>
                             <ComboBoxItem Tag="dl_count"
                                           Content="销量"/>
                             <ComboBoxItem Tag="create_date"
-                                          Content="创建时间"/>
+                                                        Content="收录日期"/>
                             <ComboBoxItem Tag="price"
                                           Content="价格"/>
                             <ComboBoxItem Tag="rate_average_2dp"

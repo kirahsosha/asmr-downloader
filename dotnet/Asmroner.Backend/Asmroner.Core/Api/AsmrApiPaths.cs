@@ -8,12 +8,12 @@ public static class AsmrApiPaths
     public const string Tracks = "/api/tracks/";
     public const string Search = "/api/search/";
     public const string Popular = "/api/recommender/popular";
-    public const string Works = "/api/works?order=release&sort=desc&page=1&pageSize=1";
+    public const string Works = "/api/works?order=create_date&sort=asc&page=1&pageSize=1&subtitle=0&includeTranslationWorks=true";
 
     public static string BuildWorksQuery(int page, int pageSize, bool subtitleOnly = false)
     {
         return subtitleOnly
-            ? $"/api/works?order=release&sort=desc&page={page}&pageSize={pageSize}&subtitle=1"
-            : $"/api/works?order=release&sort=desc&page={page}&pageSize={pageSize}";
+            ? $"/api/works?order=create_date&sort=asc&page={page}&pageSize={pageSize}&subtitle=1&includeTranslationWorks=true"
+            : $"/api/works?order=create_date&sort=asc&page={page}&pageSize={pageSize}&subtitle=0&includeTranslationWorks=true";
     }
 }

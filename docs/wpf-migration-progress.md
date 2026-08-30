@@ -1,6 +1,6 @@
 ﻿# asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.7.6
+当前跟踪版本：v0.7.7
 
 AI约束策略：变更与验证记录统一维护于 `docs/wpf-migration-history.md` 的 `§1`，单元测试清单统一维护于 `docs/wpf-migration-tests.md` 的 `§1`。
 
@@ -205,7 +205,8 @@ AI约束策略：变更与验证记录统一维护于 `docs/wpf-migration-histor
 | 2026-06-19 | 已提交 | v0.7.3: harden message priority and fix Settings reinit status              | 1. Update runtime/docs version to v0.7.3.<br>2. Fix overwriting Settings status message after save-and-reinit.<br>3. Add message priority in UiMessageService.<br>4. Expand ShellStatusRelayPolicy placeholder filtering with known busy messages.<br>5. Add/extend tests for message priority and placeholder filtering.<br>6. Update regression tests and progress documentation.                                                | ff1c0c7    |
 | 2026-06-20 | 已提交 | v0.7.4: align SyncView styles with shared shell resources                   | 1. Update runtime/docs version to v0.7.4.<br>2. Align SyncView.xaml styles with shared shell resources (ShellBackgroundBrush, shared card styles).<br>3. Clean up SyncView banner text from internal iteration copy.<br>4. Add/extend WPF tests for SyncView style alignment.<br>5. Update regression tests and progress documentation.                                                                                            | 314e353    |
 | 2026-06-20 | 已提交 | v0.7.5: align DownloadView styles with shared shell resources               | 1. Update runtime/docs version to v0.7.5.<br>2. Align DownloadView styles with shared shell resources.<br>3. Add shared ShellDataGridColumnHeaderBaseStyle to ShellResources and align column headers in Views.<br>4. Wrap SyncView DetailsTextBox in styled container.<br>5. Update regression tests and progress documentation.                                                                                                  | 2f1fbc1    |
-| 2026-06-21 | 待提交 | v0.7.6: add Sync filter checkboxes and update stage 7 UI                    | 1. Update runtime/docs version to v0.7.6.<br>2. Add SyncUiState persistence and Sync download filter options.<br>3. Add two Sync page checkboxes for Search/Download filter reuse.<br>4. Wire Search filters and Download file filters into Sync download flow.<br>5. Add/extend regression tests for Sync filters and SyncUiState.<br>6. Update regression tests and progress documentation.                                      | -          |
+| 2026-06-21 | 已提交 | v0.7.6: add Sync filter checkboxes and update stage 7 UI                    | 1. Update runtime/docs version to v0.7.6.<br>2. Add SyncUiState persistence and Sync download filter options.<br>3. Add two Sync page checkboxes for Search/Download filter reuse.<br>4. Wire Search filters and Download file filters into Sync download flow.<br>5. Add/extend regression tests for Sync filters and SyncUiState.<br>6. Update regression tests and progress documentation.                                      | 1af3acb    |
+| 2026-08-30 | 待提交 | v0.7.7: refine library detail actions and sync metadata refresh flow        | 1. Update runtime/docs version to v0.7.7.<br>2. Update Search page sort labels.<br>3. Update Library page detail actions.<br>4. Update Sync page process logic and display text.<br>5. Remove misleading hints from Sync status/detail text and keep the persisted detail rendering consistent.<br>6. Update regression tests and progress documentation.                                                                          | -          |
 
 ---
 
@@ -236,14 +237,14 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] “测试连接”应通过 `GET /api/health?cache=false` 完成候选探测；当旧探测端点不可用但 health API 可达时，仍能选中可用 BaseUrl。
 - [x] 当发布页正文直接提供 `asmr-300/200/100/one` 最新域名时，“测试连接”会按正文顺序补齐候选列表并写回 SQLite `ApiCandidateUrls`；随后再次“保存并重新初始化”不会把新候选覆盖回旧值。
 - [x] 当发布页 discovery 仅返回部分新候选时，若与已保存候选集合合并后的总数更大，“测试连接”会保留旧候选并把合并后的 `ApiCandidateUrls` 写回 SQLite。
-- [ ] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.7.6。
+- [ ] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.7.7。
 
 ### 3.2 Search 功能
 
 - [x] 仅输入基础关键词即可成功搜索，并展示结果列表（含标签列）、总数和页码信息。
 - [x] Search 结果列表列头应显示完整边框；首列标题显示“作品ID”；字幕列与日期列宽保持 `42/75` 且不可拖拽改宽，拖拽仅改变列顺序；当标题或标签过宽时可通过横向滚动查看完整数据。
 - [x] 高级筛选 `tag/circle/va/duration/rate/price/sell/age/lang` 可单独或组合生效，`反选` 语义正确。
-- [x] Search 的排序、方向、字幕、“包含翻译作品”“加入翻译作品”等选项生效，翻页后条件保持不丢失。
+- [ ] Search 的排序、方向、字幕、“包含翻译作品”“加入翻译作品”等选项生效，翻页后条件保持不丢失。
 - [x] 上一页、下一页、跳页、页大小切换均可用，分页结果与页码信息正确。
 - [x] “查询热门作品”可返回结果并展示到结果列表，日期、字幕、标签信息正确。
 - [x] “清空”可重置关键词、排序选项、分页状态和当前结果，同时保留高级筛选输入与反选状态。
@@ -320,12 +321,12 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 元数据同步主按钮在空闲态显示“开始同步元数据”，点击后会切换为“停止同步元数据”。
 - [x] 点击元数据同步主按钮开始同步后，可成功拉取网站元数据并写入 SQLite `MetadataWork` 表。
 - [x] 当网站总量与本地一致且不存在过期元数据时，Sync 页面会提示“无需同步”，且不会重复写入数据。
-- [x] 当上次元数据同步状态为已完成且存在超过“元数据有效期”的本地记录时，再次点击“开始同步元数据”会执行过期刷新，并在摘要中显示过期刷新结果。
+- [ ] 当上次元数据同步状态为已完成且存在超过“元数据有效期”的本地记录时，再次点击“开始同步元数据”会执行过期刷新，并在摘要中显示过期刷新结果。
 - [x] 当 SQLite `UiState` 中存在未完成元数据同步进度时，再次点击元数据同步主按钮会从记录页码继续执行，而不是从第一页重新开始。
 - [x] 点击元数据同步主按钮发出 stop request 后，按钮会切换为“正在停止元数据...”，并在当前页完成后恢复为空闲态。
 - [x] 元数据同步开始后的 1 秒内连续双击主按钮时，第二次点击会被防抖忽略，按钮保持“停止同步元数据”，不会误切到“正在停止元数据...”。
 - [x] 元数据同步进行中时，点击“刷新统计”后，顶部“本地元数据”摘要、状态文本与详情区会显示当前已持久化的本地总量、字幕量、累计处理条数与累计新增数。
-- [x] 同步完成后，页面摘要与详情区会显示网站总量、本地总量、累计处理条数、累计新增数量与分页处理结果。
+- [ ] 同步完成后，页面摘要与详情区会显示网站总量、本地总量、累计处理条数、累计新增数量与分页处理结果。
 - [x] 下载同步主按钮在空闲态显示“开始同步下载”，点击后会切换为“停止同步下载”。
 - [x] 点击下载同步主按钮开始同步后，可按 `SyncWantedSize` 逐项处理待同步作品、下载真实媒体文件，并将 `WorkSyncInfo` 写为 `COMPLETED/FAILED`。
 - [ ] 当累计落盘大小达到 `SyncWantedSize` 后，Sync 页面会提示已达到容量上限，且停止后续候选作品处理。
@@ -360,14 +361,14 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] Library 页的关键字筛选、“仅显示带字幕作品”“仅显示含音频作品”与上一页/下一页/跳页/page size 切换均可正确更新列表结果。
 - [x] 选中作品后，右侧独立“作品详情”区与文件树会同步更新；选中文件后点击“载入/切换文件”可更新当前打开目标；点击“清空上下文”会清除当前播放器状态，并按当前保留的作品/文件选择显示对应提示。
 - [x] Library 作品列表首列标题显示“作品ID”；当标题、路径或结果较多时可通过横向与纵向滚动条查看完整内容，不会把显示内容撑出窗口范围。
-- [x] Library 页面支持上一页、下一页、跳页与 page size 切换，页码输入、结果数量与页码信息保持一致。
+- [ ] Library 页面支持上一页、下一页、跳页与 page size 切换，页码输入、结果数量与页码信息保持一致。
 - [x] 手动拉高窗口时，左侧作品列表与右侧文件树会随可用高度同步扩展，下边沿保持对齐，不再因固定高度出现错位。
 - [x] 手动压低窗口时，作品列表、详情区、文件树与上下文文本都保持在窗口范围内显示，超出部分通过各自滚动区域承载。
 - [x] 当资源库无结果时，Library 页面会显示统一空态文案；刷新恢复到有结果后，空态会自动隐藏。
 - [x] 仅选中作品但未选中文件时，Library 页会提示当前作品是否包含可播放媒体文件，并给出首个候选路径或“未发现可播放媒体文件”的明确说明。
 - [x] 当在文件树中选中目录、不可播放文件、缺失媒体文件与可播放媒体文件时，Library 页会分别显示明确提示，并正确更新“载入/切换文件”“播放”按钮可用性。
 - [x] 当作品文件使用大小写混合的支持扩展名（如 `.FLAC`、`.OpUs`）时，Library 页仍会识别为可播放媒体文件，并允许后续载入与播放。
-- [x] 显式选中可播放媒体文件后，Library 页可点击“播放”调用系统默认关联程序打开；未选中文件时“播放”不可点击。
+- [ ] 显式选中可播放媒体文件后，Library 页可点击“播放”调用系统默认关联程序打开；未选中文件时“播放”不可点击。
 - [x] 当选中文件缺失或系统默认关联程序打开失败时，Library 页会显示明确失败提示，不导致应用崩溃。
 - [x] 当系统默认关联程序已成功拉起但底层 Shell 调用返回 `null` 时，Library 页不应误报“打开失败”。
 - [x] Library 页不再显示“暂停 / 停止”按钮和时间进度文本；“当前选择”与“当前已载入上下文”会分开展示，且已载入区会显示状态、作品、当前文件与最近一次打开结果。

@@ -31,7 +31,7 @@ public class AsmrApiClientTests
         var result = await sut.GetMetadataWorksAsync(page: 2, pageSize: 50, subtitleOnly: true);
 
         Assert.NotNull(capturedRequest?.RequestUri);
-        Assert.Equal("/api/works?order=release&sort=desc&page=2&pageSize=50&subtitle=1", capturedRequest!.RequestUri!.PathAndQuery);
+        Assert.Equal("/api/works?order=create_date&sort=asc&page=2&pageSize=50&subtitle=1&includeTranslationWorks=true", capturedRequest!.RequestUri!.PathAndQuery);
         Assert.Equal(120, result.Pagination.TotalCount);
         Assert.Equal("RJ501", Assert.Single(result.Works).SourceId);
     }

@@ -191,6 +191,7 @@
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
@@ -198,7 +199,19 @@
                                    Style="{StaticResource SectionTitleStyle}"
                                    Text="作品详情"/>
 
-                        <ScrollViewer Grid.Row="1"
+                        <WrapPanel Grid.Row="1"
+                                   Margin="0,4,0,8">
+                            <Button x:Name="OpenWorkPageButton"
+                                    Style="{StaticResource LightActionButtonStyle}"
+                                    Click="OnOpenWorkPageClicked"
+                                    Content="在浏览器打开"/>
+                            <Button x:Name="OpenWorkDirectoryButton"
+                                    Style="{StaticResource LightActionButtonStyle}"
+                                    Click="OnOpenWorkDirectoryClicked"
+                                    Content="打开作品目录"/>
+                        </WrapPanel>
+
+                        <ScrollViewer Grid.Row="2"
                                       HorizontalScrollBarVisibility="Disabled"
                                       VerticalScrollBarVisibility="Auto">
                             <TextBlock x:Name="WorkDetailsTextBlock"

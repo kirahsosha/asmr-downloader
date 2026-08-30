@@ -9,7 +9,7 @@
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-06-21 的解决方案级回归（待验证），本轮受影响回归为 2026-06-21 的 `Asmroner.Infrastructure.Tests` / `Asmroner.Wpf.Tests`。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-08-30 的解决方案级回归（`rtk dotnet test dotnet/Asmroner.sln --no-restore`，429/429 通过）。
 
 维护规则：
 
@@ -138,7 +138,7 @@
 | [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldInsertAllPages_WhenRemoteHasNewWorks`                    | 网站元数据总量 `101`、本地为空，分页返回 `100 + 1` 条元数据   | 顺序请求总量页与 2 个同步分页，新增 101 条，本地总量追平到 101 条，并把完成态进度写为本地总量 `101` / 字幕 `1`                      |
 | [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldTrackProcessedWorks_WhenExistingPagesContainOnlyUpdates` | 第 1 页 100 条均为本地已存在记录，第 2 页新增 1 条元数据      | 本次累计处理 `101` 条、累计新增 `1` 条；已有页更新会写入 SQLite，完成态进度保留累计处理条数                                         |
 | [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldSkip_WhenRemoteCountMatchesLocalCount`                   | 网站总量与本地总量相同，且不存在过期元数据                    | 仅查询网站总量，不执行分页同步，返回“无需同步”                                                                                      |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldRefreshExpiredMetadata_WhenPreviousRunCompleted`         | 上次进度为 `COMPLETED`，且本地存在超过元数据有效期的元数据    | 再次执行时触发过期刷新，并更新本地 `MetadataWork` 摘要                                                                              |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldRefreshExpiredMetadata_WhenPreviousRunCompleted`         | 上次进度为 `COMPLETED`，且本地存在超过元数据有效期的元数据    | 再次执行时触发过期刷新，并通过分页扫描仅刷新命中过期集合的记录，同时更新本地 `MetadataWork` 摘要                                         |
 | [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldReport_WhenLocalCountExceedsRemoteCount`                 | 本地元数据数量大于网站                                        | 不执行分页同步，返回“本地元数据数量高于网站，未执行同步”                                                                            |
 | [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldResumeFromSavedProgress_WhenStateIsUnfinished`           | 已保存 `STOPPED` 元数据进度，`NextPage=2`，本地已有第一页数据 | 只从第二页继续同步，结果标记 `ResumedFromProgress=true`，最终进度写成 `COMPLETED`，并保留本地总量 `101` / 字幕 `1` / 累计处理 `101` |
 | [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldStopAfterCurrentPage_WhenStopRequested`                  | 两页元数据同步，第一页写回后触发 stop request                 | 当前页完成后停止，结果标记 `WasStopped=true`，UiState `NextPage=2`，并保留当前本地总量 `100` / 字幕 `1` / 累计处理 `100`            |
@@ -269,7 +269,7 @@
 | [x]    | [x]    | 阶段 4  | `AsmrApiClient_ShouldDeserializeTranslationMetadata_OnWorkInfoResponse`                    | 含 `translation_info`、`language_editions`、`other_language_editions_in_db` 的作品详情响应 | 正确反序列化当前语言、关联翻译版本与原作标记，供入队优先级选择复用                                |
 | [x]    | [x]    | 阶段 4  | `AsmrApiClient_ShouldResolveNonNumericSourceId_ToNumericWorkEndpointPath`                  | 输入 `BJ02370869` 这类 `source_id` 调用 `GetWorkInfoAsync`                                 | 先通过搜索结果解析数值 `workId`，再请求 `/api/work/{numericId}`                                   |
 | [x]    | [x]    | 阶段 4  | `AsmrApiClient_GetTracksAsync_ShouldResolveNonNumericSourceId_ToNumericTracksEndpointPath` | 输入 `BJ02370869` 这类 `source_id` 调用 `GetTracksAsync`，且 tracks 响应包含 `size` 字段   | 先通过搜索结果解析数值 `workId`，再请求 `/api/tracks/{numericId}`，并正确反序列化 `TrackDto.Size` |
-| [x]    | [x]    | 阶段 5  | `GetMetadataWorksAsync_ShouldUseWorksEndpoint_AndSubtitleFlag`                             | 调用 `/api/works` 元数据分页接口，`page=2`、`pageSize=50`、`subtitle=1`                    | 请求路径保留分页与字幕参数，并正确反序列化元数据分页结果                                          |
+| [x]    | [x]    | 阶段 5  | `GetMetadataWorksAsync_ShouldUseWorksEndpoint_AndSubtitleFlag`                             | 调用 `/api/works` 元数据分页接口，`page=2`、`pageSize=50`、`subtitle=1`                    | 请求路径使用 `order=create_date&sort=asc&subtitle=1&includeTranslationWorks=true` 并正确反序列化元数据分页结果                        |
 | [x]    | [x]    | 阶段 4+ | `DownloadFileAsync_ShouldWriteResponseBody_ToDestinationPath`                              | 传入绝对 `mediaDownloadUrl` 与嵌套目标路径                                                 | 以流式方式写入响应体、自动创建目标目录，并保留授权请求头                                          |
 
 #### 1.3.3 AuthServiceTests.cs
@@ -455,7 +455,7 @@
 | 已创建 | 已通过 | 阶段   | 样例名                                                                     | 输入                            | 期望输出                                                                                                                           |
 | ------ | ------ | ------ | -------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldContainUnifiedCardStyles_AndCoreControls`            | 解析 `SearchView.xaml` 文本/XML | 卡片化样式资源、核心控件、“导出到文件”“收藏作品”按钮、统一状态面板样式与共享 `PageStatePresenterTemplate` 存在，且 XAML 可被解析。 |
-| [x]    | [x]    | 阶段 7 | `SearchViewXaml_ShouldUseAlignedComboBoxStyles`                            | 解析 `SearchView.xaml` 文本/XML | 下拉框与选项项样式基于共享壳层 `ComboBox`/`ComboBoxItem` 样式，且 XAML 可被解析。                                                  |
+| [x]    | [x]    | 阶段 7 | `SearchViewXaml_ShouldUseAlignedComboBoxStyles`                            | 解析 `SearchView.xaml` 文本/XML | 下拉框与选项项样式基于共享壳层 `ComboBox`/`ComboBoxItem` 样式，并校验排序文案使用“发售日期/收录日期”，且 XAML 可被解析。              |
 | [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldNotContainStagePrefixText`                           | 解析 `SearchView.xaml` 文本     | 页面不再包含“阶段 ”前缀文案。                                                                                                      |
 | [x]    | [x]    | 阶段 4 | `SearchViewXaml_ShouldUseHeaderBorders_AndLockSubtitleAndDateColumnWidths` | 解析 `SearchView.xaml` 文本/XML | 结果列表列头显示边框；首列标题使用本地化“作品ID”；字幕/日期列宽保持 `42/75` 且不可拖拽改宽；数据过宽时支持横向滚动与列重排。       |
 | [x]    | [x]    | 阶段 3 | `SearchViewXaml_ShouldUseSearchViewClassName`                              | 解析 `SearchView.xaml` 文本     | `x:Class` 为 `Asmroner.Wpf.Views.SearchView`，且根元素命名为 `Root`。                                                              |
@@ -745,14 +745,14 @@
 | 已创建 | 已通过 | 阶段   | 样例名                                                                    | 输入                                          | 期望输出                                                                 |
 | ------ | ------ | ------ | ------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------ |
 | [x]    | [x]    | 阶段 5 | `BuildRetryPendingDetails_ShouldDescribeRetryInFlight`                    | “重试失败项”刚进入执行态                      | 返回“正在重试失败同步下载，完成后这里会显示本次重试结果。”占位详情文本   |
-| [x]    | [x]    | 阶段 5 | `BuildPersistedProgressDetails_ShouldDescribeMetadataAndDownloadProgress` | 已持久化的元数据进度 + 已持久化的同步下载进度 | 返回包含元数据与同步下载两组累计状态、容量与最近更新时间的详情区文本     |
+| [x]    | [x]    | 阶段 5 | `BuildPersistedProgressDetails_ShouldDescribeMetadataAndDownloadProgress` | 已持久化的元数据进度 + 已持久化的同步下载进度 | 返回包含元数据与同步下载两组累计状态、容量与最近更新时间的详情区文本（不再展示“元数据下次页码”） |
 | [x]    | [x]    | 阶段 5 | `BuildRetryRefreshDetails_ShouldDescribeCurrentRetrySnapshot`             | 重试运行中的报表快照                          | 返回当前重试态摘要，保留下载状态上下文，不再回退为旧的持久化下载进度详情 |
 
 #### 1.5.39 LibraryViewXamlTests.cs
 
 | 已创建 | 已通过 | 阶段   | 样例名                                                                 | 输入                             | 期望输出                                                                                                                                                                                          |
 | ------ | ------ | ------ | ---------------------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 6 | `LibraryViewXaml_ShouldContainCoreLibraryControls_AndStatusBlocks`     | 解析 `LibraryView.xaml` 文本/XML | `Library` 页包含当前副标题文案、关键筛选控件、上一页/下一页/跳页/page size 控件、独立“作品详情”区、文件树、系统打开区、状态区、共享 `PageStatePresenterTemplate` 与播放主按钮，且 XAML 可被解析。 |
+| [x]    | [x]    | 阶段 6 | `LibraryViewXaml_ShouldContainCoreLibraryControls_AndStatusBlocks`     | 解析 `LibraryView.xaml` 文本/XML | `Library` 页包含当前副标题文案、关键筛选控件、上一页/下一页/跳页/page size 控件、独立“作品详情”区（含“在浏览器打开/打开作品目录”按钮）、文件树、系统打开区、状态区、共享 `PageStatePresenterTemplate` 与播放主按钮，且 XAML 可被解析。 |
 | [x]    | [x]    | 阶段 6 | `LibraryViewXaml_ShouldContainExpectedGridColumns_AndFileTreeTemplate` | 解析 `LibraryView.xaml` 文本/XML | 作品表格包含本地化列头 `作品ID/标题/日期/字幕/音频/文件`，且文件树使用 `LibraryFileItem` 层级模板。                                                                                               |
 | [x]    | [x]    | 阶段 6 | `LibraryViewXaml_ShouldUseScrollableLayout_ForPagingAndRightPane`      | 解析 `LibraryView.xaml` 文本/XML | 右侧详情/文件树/上下文区采用受限高度与内部滚动布局，`FileTreeView` 不再固定 `220` 高度，且跳页/page size 事件绑定存在。                                                                           |
 

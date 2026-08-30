@@ -18,7 +18,6 @@ public static class SyncProgressDetailsBuilder
         [
             $"元数据进度状态：{FormatProgressStatus(metadataProgress.Status)}",
             $"元数据停止请求：{(metadataProgress.StopRequested ? "是" : "否")}",
-            $"元数据下次页码：{metadataProgress.NextPage.ToString(CultureInfo.InvariantCulture)}",
             $"元数据已处理分页：{metadataProgress.ProcessedPageCount.ToString(CultureInfo.InvariantCulture)}/{metadataProgress.TotalPageCount.ToString(CultureInfo.InvariantCulture)}",
             $"元数据当前本地总量：{metadataProgress.LocalTotalCount.ToString(CultureInfo.InvariantCulture)}",
             $"元数据当前本地字幕量：{metadataProgress.LocalSubtitleCount.ToString(CultureInfo.InvariantCulture)}",

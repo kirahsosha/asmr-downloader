@@ -38,6 +38,8 @@ public class SearchViewXamlTests
         Assert.Contains("BasedOn=\"{StaticResource ShellFieldComboBoxBaseStyle}\"", content, StringComparison.Ordinal);
         Assert.Contains("<Style TargetType=\"ComboBoxItem\"", content, StringComparison.Ordinal);
         Assert.Contains("BasedOn=\"{StaticResource ShellComboBoxItemStyle}\"", content, StringComparison.Ordinal);
+        Assert.Contains("Content=\"发售日期\"", content, StringComparison.Ordinal);
+        Assert.Contains("Content=\"收录日期\"", content, StringComparison.Ordinal);
 
         var doc = XDocument.Parse(content);
         Assert.NotNull(doc.Root);

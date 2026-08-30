@@ -1201,7 +1201,11 @@ AI约束策略：禁止将章节 1.1 到 1.104 的文本加入分析上下文。
 4. DoD 判定：否。阶段 7 的 Sync 页面筛选功能与自动化覆盖已扩展，UI 冒烟与手工回归仍待用户执行并回填。
 5. 下次计划：由用户执行章节 3.5 与 3.7 的受影响手工回归，重点验证 `v0.7.6` 版本文案、Sync 页面两个筛选复选框的显示/持久化/恢复/对同步下载的筛选效果、以及 Settings 页面版本文案更新。
 
+### 1.121 2026-08-30，v0.7.7：补齐 Library 详情操作并收口 Sync 元数据过期刷新与文案
 
-
-
+1. 本次变更摘要：运行时与 README 版本统一升级到 `v0.7.7`；Search 排序文案将“日期/创建时间”更新为“发售日期/收录日期”；Library 详情区新增“在浏览器打开”“打开作品目录”两个按钮并接入可用态控制与事件处理；`AsmrApiPaths` 元数据 works 查询统一改为 `order=create_date&sort=asc&subtitle={0|1}&includeTranslationWorks=true`；`MetadataSyncService` 在已完成且存在过期元数据场景改为“按页扫描并仅刷新命中过期集合”而非全量重复写入；Sync 状态文本与详情文本移除完成态误导性“下次页码”表达。
+2. 关键修改文件：`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SearchView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/LibraryView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/LibraryView.xaml.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/SyncStatusTextBuilder.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/ViewModels/SyncProgressDetailsBuilder.cs`、`dotnet/Asmroner.Backend/Asmroner.Core/Api/AsmrApiPaths.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/MetadataSyncService.cs`、`dotnet/tests/Asmroner.Wpf.Tests/SearchViewXamlTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/LibraryViewXamlTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/SyncStatusTextBuilderTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/SyncProgressDetailsBuilderTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/AsmrApiClientTests.cs`、`dotnet/tests/Asmroner.Application.Tests/MetadataSyncServiceTests.cs`、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`、`docs/wpf-migration-tests.md`、`docs/wpf-migration-history.md`。
+3. 构建与测试结果：`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --filter "LibraryViewXamlTests|SearchViewXamlTests|SyncStatusTextBuilderTests|SyncProgressDetailsBuilderTests"` 通过（227/227）；`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --filter MetadataSyncServiceTests` 通过（101/101）；`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --filter AsmrApiClientTests` 通过（79/79）。
+4. DoD 判定：否。阶段 7 本轮代码与定向自动化回归已通过，但解决方案级全量回归与受影响手工回归项仍待用户执行并回填。
+5. 下次计划：由用户执行章节 3.2/3.5/3.6/3.7 的受影响手工回归，重点验证 `v0.7.7` 版本文案、Search 排序文案更新、Library 两个新增详情按钮行为，以及 Sync 过期刷新完成态文案与详情区展示一致性。
 

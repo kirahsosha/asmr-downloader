@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -5,6 +7,7 @@ using Asmroner.Core.Interfaces;
 using Asmroner.Core.Library;
 using Asmroner.Core.Playback;
 using Asmroner.Wpf.Services;
+using Asmroner.Wpf.ViewModels;
 
 namespace Asmroner.Wpf.Views;
 
@@ -12,6 +15,7 @@ public partial class LibraryView : UserControl
 {
     private const int DefaultPageSize = 20;
 
+    private readonly IConfigurationService _configurationService;
     private readonly ILibraryQueryService _libraryQueryService;
     private readonly IPlayerService _playerService;
     private readonly IUiMessageService _uiMessageService;
@@ -32,11 +36,13 @@ public partial class LibraryView : UserControl
     public LibraryView(
         ILibraryQueryService libraryQueryService,
         IPlayerService playerService,
+        IConfigurationService configurationService,
         IPageLoadStateService pageLoadStateService,
         IUiMessageService uiMessageService)
     {
         _libraryQueryService = libraryQueryService;
         _playerService = playerService;
+        _configurationService = configurationService;
         _uiMessageService = uiMessageService;
         PageState = pageLoadStateService.Create("Library");
 
@@ -147,6 +153,70 @@ public partial class LibraryView : UserControl
         _playerService.LoadContext(_selectedWork, _selectedFile);
         UpdatePlaybackContext();
         UpdateCommandAvailability();
+    }
+
+    private async void OnOpenWorkPageClicked(object sender, RoutedEventArgs e)
+    {
+        if (_selectedWork is null)
+        {
+            StatusTextBlock.Text = "请先选择作品后再打开页面。";
+            return;
+        }
+
+        try
+        {
+            var config = await _configurationService.LoadAsync();
+            var template = config?.Downloader.WorkPageUrlTemplate;
+            if (!SearchWorkPageUrlPolicy.TryBuild(template, _selectedWork.SourceId, _selectedWork.WorkId, out var url, out var errorMessage))
+            {
+                StatusTextBlock.Text = errorMessage;
+                return;
+            }
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = url,
+                UseShellExecute = true,
+            });
+
+            StatusTextBlock.Text = $"已在浏览器打开：{url}";
+        }
+        catch (Exception ex)
+        {
+            StatusTextBlock.Text = $"打开浏览器失败：{ex.Message}";
+        }
+    }
+
+    private void OnOpenWorkDirectoryClicked(object sender, RoutedEventArgs e)
+    {
+        if (_selectedWork is null)
+        {
+            StatusTextBlock.Text = "请先选择作品后再打开目录。";
+            return;
+        }
+
+        try
+        {
+            var path = _selectedWork.RootDirectory;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                StatusTextBlock.Text = "当前作品目录无效，无法打开。";
+                return;
+            }
+
+            Directory.CreateDirectory(path);
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = path,
+                UseShellExecute = true,
+            });
+
+            StatusTextBlock.Text = $"已打开作品目录：{path}";
+        }
+        catch (Exception ex)
+        {
+            StatusTextBlock.Text = $"打开作品目录失败：{ex.Message}";
+        }
     }
 
     private void OnPlayClicked(object sender, RoutedEventArgs e)
@@ -290,6 +360,8 @@ public partial class LibraryView : UserControl
         GoPageButton.IsEnabled = !_isRefreshing && canJump;
         CurrentPageTextBox.IsEnabled = !_isRefreshing && canJump;
         PageSizeComboBox.IsEnabled = !_isRefreshing;
+        OpenWorkPageButton.IsEnabled = !_isRefreshing && _selectedWork is not null;
+        OpenWorkDirectoryButton.IsEnabled = !_isRefreshing && _selectedWork is not null;
         LoadContextButton.IsEnabled = !_isRefreshing && hasSelectedPlayableTarget;
         PlayButton.IsEnabled = !_isRefreshing && hasSelectedPlayableTarget;
         ClearContextButton.IsEnabled = !_isRefreshing && context.Work is not null;

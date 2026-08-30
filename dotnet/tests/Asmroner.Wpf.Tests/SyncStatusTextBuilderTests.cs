@@ -40,6 +40,23 @@ public class SyncStatusTextBuilderTests
     }
 
     [Fact]
+    public void BuildMetadataStatus_ShouldDescribeCompletedProgressWithoutNextPageHint()
+    {
+        var progress = new MetadataSyncProgressState
+        {
+            Status = SyncProgressStatuses.Completed,
+            ProcessedPageCount = 10,
+            TotalPageCount = 10,
+            ProcessedWorkCount = 640,
+            LocalTotalCount = 640,
+        };
+
+        var text = SyncStatusTextBuilder.BuildMetadataStatus(progress);
+
+        Assert.Equal("同步状态：元数据同步已完成：累计处理 640 条，本地现有 640 条。", text);
+    }
+
+    [Fact]
     public void BuildDownloadStatus_ShouldDescribeStoppingProgress()
     {
         var progress = new SyncDownloadProgressState

@@ -75,7 +75,19 @@ public sealed class MetadataSyncService
             ? progress.StartedAt ?? DateTime.UtcNow
             : DateTime.UtcNow;
 
-        if (!resumedFromProgress && !shouldRefreshExpiredMetadata && remoteTotalCount == before.LocalTotalCount)
+        if (shouldRefreshExpiredMetadata)
+        {
+            return await RefreshExpiredMetadataAsync(
+                before,
+                config,
+                remoteTotalCount,
+                remoteSubtitleCount,
+                expiredMetadataCount,
+                startedAt,
+                cancellationToken);
+        }
+
+        if (!resumedFromProgress && remoteTotalCount == before.LocalTotalCount)
         {
             await _uiStateStore.SaveMetadataSyncProgressAsync(
                 BuildProgressState(
@@ -102,7 +114,7 @@ public sealed class MetadataSyncService
                 resumedFromProgress: false);
         }
 
-        if (!resumedFromProgress && !shouldRefreshExpiredMetadata && remoteTotalCount < before.LocalTotalCount)
+        if (!resumedFromProgress && remoteTotalCount < before.LocalTotalCount)
         {
             await _uiStateStore.SaveMetadataSyncProgressAsync(
                 BuildProgressState(
@@ -218,9 +230,7 @@ public sealed class MetadataSyncService
                         ProcessedPageCount = processedPageCountOverall,
                         TotalPageCount = totalPages,
                         NextPage = page + 1,
-                        Message = shouldRefreshExpiredMetadata
-                            ? $"元数据过期刷新已按请求停止：已处理 {processedPageCountOverall}/{totalPages} 页，共处理 {processedWorkCount} 条，本地现有 {currentSnapshot.LocalTotalCount} 条。"
-                            : $"元数据同步已按请求停止：已处理 {processedPageCountOverall}/{totalPages} 页，共处理 {processedWorkCount} 条，本地现有 {currentSnapshot.LocalTotalCount} 条。",
+                        Message = $"元数据同步已按请求停止：已处理 {processedPageCountOverall}/{totalPages} 页，共处理 {processedWorkCount} 条，本地现有 {currentSnapshot.LocalTotalCount} 条。",
                         IsUpToDate = currentSnapshot.LocalTotalCount == remoteTotalCount,
                         WasStopped = true,
                         ResumedFromProgress = resumedFromProgress,
@@ -261,14 +271,146 @@ public sealed class MetadataSyncService
             ProcessedPageCount = processedPageCountOverall,
             TotalPageCount = totalPages,
             NextPage = 1,
-            Message = shouldRefreshExpiredMetadata
-                ? BuildExpiredRefreshCompletionMessage(processedWorkCount, insertedCount, expiredMetadataCount, after.LocalTotalCount, remoteTotalCount, isUpToDate)
-                : isUpToDate
-                    ? $"元数据同步完成：本次处理 {processedWorkCount} 条，新增 {insertedCount} 条，本地现有 {after.LocalTotalCount} 条。"
-                    : $"元数据同步完成：本次处理 {processedWorkCount} 条，新增 {insertedCount} 条，但本地数量仍为 {after.LocalTotalCount}，未完全追平网站的 {remoteTotalCount} 条。",
+            Message = isUpToDate
+                ? $"元数据同步完成：本次处理 {processedWorkCount} 条，新增 {insertedCount} 条，本地现有 {after.LocalTotalCount} 条。"
+                : $"元数据同步完成：本次处理 {processedWorkCount} 条，新增 {insertedCount} 条，但本地数量仍为 {after.LocalTotalCount}，未完全追平网站的 {remoteTotalCount} 条。",
             IsUpToDate = isUpToDate,
             WasStopped = false,
             ResumedFromProgress = resumedFromProgress,
+        };
+    }
+
+    private async Task<MetadataSyncRunResult> RefreshExpiredMetadataAsync(
+        MetadataSyncSnapshot before,
+        AppConfig config,
+        int remoteTotalCount,
+        int remoteSubtitleCount,
+        int expiredMetadataCount,
+        DateTime startedAt,
+        CancellationToken cancellationToken)
+    {
+        var allWorks = await _metadataSyncStore.GetAllMetadataWorksAsync(cancellationToken);
+        var validDays = Math.Max(1, config.Downloader.MetadataValidityDays);
+        var updatedBefore = DateTime.UtcNow.AddDays(-validDays);
+        var expiredSourceIds = allWorks
+            .Where(work => work.UpdatedAt < updatedBefore)
+            .Select(work => work.SourceId)
+            .Where(sourceId => !string.IsNullOrWhiteSpace(sourceId))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        await _uiStateStore.SaveMetadataSyncProgressAsync(
+            BuildProgressState(
+                SyncProgressStatuses.Running,
+                nextPage: 1,
+                processedPageCount: 0,
+                totalPageCount: 1,
+                remoteTotalCount,
+                remoteSubtitleCount,
+                localTotalCount: before.LocalTotalCount,
+                localSubtitleCount: before.LocalSubtitleCount,
+                insertedCount: 0,
+                processedWorkCount: 0,
+                startedAt,
+                updatedAt: DateTime.UtcNow),
+            cancellationToken);
+
+        if (expiredSourceIds.Count == 0)
+        {
+            await _uiStateStore.SaveMetadataSyncProgressAsync(
+                BuildProgressState(
+                    SyncProgressStatuses.Completed,
+                    nextPage: 1,
+                    processedPageCount: 1,
+                    totalPageCount: 1,
+                    remoteTotalCount,
+                    remoteSubtitleCount,
+                    localTotalCount: before.LocalTotalCount,
+                    localSubtitleCount: before.LocalSubtitleCount,
+                    insertedCount: 0,
+                    processedWorkCount: 0,
+                    startedAt,
+                    updatedAt: DateTime.UtcNow),
+                cancellationToken);
+
+            return BuildNoOpResult(
+                remoteTotalCount,
+                remoteSubtitleCount,
+                before,
+                message: "元数据过期刷新完成：没有检测到需要刷新的过期记录。",
+                isUpToDate: before.LocalTotalCount == remoteTotalCount,
+                resumedFromProgress: false);
+        }
+
+        var totalPages = Math.Max(1, (int)Math.Ceiling(remoteTotalCount / (double)SyncPageSize));
+        var refreshedWorks = new List<MetadataWorkItem>(expiredSourceIds.Count);
+        var scannedPageCount = 0;
+
+        for (var page = 1; page <= totalPages; page++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var pageResult = await GetMetadataWorksAsync(page, SyncPageSize, subtitleOnly: false, config, cancellationToken);
+            scannedPageCount = page;
+            var updatedAt = DateTime.UtcNow;
+            foreach (var candidate in pageResult.Works)
+            {
+                if (!expiredSourceIds.Remove(candidate.SourceId))
+                {
+                    continue;
+                }
+
+                refreshedWorks.Add(candidate.ToMetadataWorkItem(updatedAt));
+            }
+
+            if (expiredSourceIds.Count == 0)
+            {
+                break;
+            }
+        }
+
+        var insertedCount = 0;
+        if (refreshedWorks.Count > 0)
+        {
+            insertedCount = await _metadataSyncStore.UpsertMetadataWorksAsync(refreshedWorks, cancellationToken);
+        }
+
+        var after = await _metadataSyncStore.GetMetadataSnapshotAsync(cancellationToken);
+        var isUpToDate = after.LocalTotalCount == remoteTotalCount;
+        var processedWorkCount = refreshedWorks.Count;
+
+        await _uiStateStore.SaveMetadataSyncProgressAsync(
+            BuildProgressState(
+                SyncProgressStatuses.Completed,
+                nextPage: 1,
+                processedPageCount: scannedPageCount,
+                totalPageCount: totalPages,
+                remoteTotalCount,
+                remoteSubtitleCount,
+                localTotalCount: after.LocalTotalCount,
+                localSubtitleCount: after.LocalSubtitleCount,
+                insertedCount,
+                processedWorkCount,
+                startedAt,
+                updatedAt: DateTime.UtcNow),
+            cancellationToken);
+
+        return new MetadataSyncRunResult
+        {
+            RemoteTotalCount = remoteTotalCount,
+            RemoteSubtitleCount = remoteSubtitleCount,
+            LocalTotalCountBefore = before.LocalTotalCount,
+            LocalSubtitleCountBefore = before.LocalSubtitleCount,
+            LocalTotalCountAfter = after.LocalTotalCount,
+            LocalSubtitleCountAfter = after.LocalSubtitleCount,
+            InsertedCount = insertedCount,
+            ProcessedWorkCount = processedWorkCount,
+            ProcessedPageCount = scannedPageCount,
+            TotalPageCount = totalPages,
+            NextPage = 1,
+            Message = BuildExpiredRefreshCompletionMessage(processedWorkCount, insertedCount, expiredMetadataCount, after.LocalTotalCount, remoteTotalCount, isUpToDate),
+            IsUpToDate = isUpToDate,
+            WasStopped = false,
+            ResumedFromProgress = false,
         };
     }
 
