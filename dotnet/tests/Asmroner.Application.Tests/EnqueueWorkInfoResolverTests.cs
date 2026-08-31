@@ -1,5 +1,6 @@
 using Asmroner.Application.Services;
 using Asmroner.Core.Api;
+using Asmroner.Core.Configuration;
 using Asmroner.Core.Interfaces;
 using Asmroner.Core.Sync;
 
@@ -32,7 +33,7 @@ public class EnqueueWorkInfoResolverTests
                 ],
             },
         ]);
-        var sut = new EnqueueWorkInfoResolver(apiClient, new NoopMetadataSyncStore());
+        var sut = new EnqueueWorkInfoResolver(apiClient, new StubConfigurationService(), new NoopMetadataSyncStore());
 
         var result = await sut.ResolvePreferTranslatedAsync([
             new EnqueueWorkInfoRequest { SourceId = "RJ2001" },
@@ -80,7 +81,7 @@ public class EnqueueWorkInfoResolverTests
                 },
             },
         ]);
-        var sut = new EnqueueWorkInfoResolver(apiClient, new NoopMetadataSyncStore());
+        var sut = new EnqueueWorkInfoResolver(apiClient, new StubConfigurationService(), new NoopMetadataSyncStore());
 
         var result = await sut.ResolvePreferTranslatedAsync([
             new EnqueueWorkInfoRequest { SourceId = "RJ2101" },
@@ -111,7 +112,7 @@ public class EnqueueWorkInfoResolverTests
                     },
                 },
             ]);
-        var sut = new EnqueueWorkInfoResolver(apiClient, new NoopMetadataSyncStore());
+        var sut = new EnqueueWorkInfoResolver(apiClient, new StubConfigurationService(), new NoopMetadataSyncStore());
 
         var result = await sut.ResolvePreferTranslatedAsync([
             new EnqueueWorkInfoRequest { SourceId = "RJ2201" },
@@ -140,7 +141,7 @@ public class EnqueueWorkInfoResolverTests
                 },
             },
         ]);
-        var sut = new EnqueueWorkInfoResolver(apiClient, new NoopMetadataSyncStore());
+        var sut = new EnqueueWorkInfoResolver(apiClient, new StubConfigurationService(), new NoopMetadataSyncStore());
 
         var result = await sut.ResolvePreferTranslatedAsync([
             new EnqueueWorkInfoRequest { SourceId = "BJ02370869", WorkId = 100000062 },
@@ -151,6 +152,39 @@ public class EnqueueWorkInfoResolverTests
         Assert.Equal(100000062, resolved.Value.Id);
         Assert.Empty(result.FailedSourceIds);
         Assert.Equal(0, result.SwitchedSourceCount);
+    }
+
+    [Fact]
+    public async Task ResolvePreferTranslatedAsync_ShouldUseConfiguredPreferredLanguages()
+    {
+        var apiClient = new ScriptedApiClient(workInfos:
+        [
+            new WorkInfoDto
+            {
+                SourceId = "RJ2301",
+                Title = "日文原版",
+                TranslationInfo = new WorkTranslationInfoDto
+                {
+                    IsOriginal = true,
+                },
+                OtherLanguageEditionsInDb =
+                [
+                    new WorkOtherLanguageEditionDto { SourceId = "RJ2302", Lang = "简体中文", Title = "简中版" },
+                    new WorkOtherLanguageEditionDto { SourceId = "RJ2303", Lang = "繁体中文", Title = "繁中版" },
+                ],
+            },
+        ]);
+        var configService = new StubConfigurationService("繁体中文,简体中文");
+        var sut = new EnqueueWorkInfoResolver(apiClient, configService, new NoopMetadataSyncStore());
+
+        var result = await sut.ResolvePreferTranslatedAsync([
+            new EnqueueWorkInfoRequest { SourceId = "RJ2301" },
+        ], TestContext.Current.CancellationToken);
+
+        var resolved = Assert.Single(result.WorkInfos);
+        Assert.Equal("RJ2303", resolved.Key);
+        Assert.Equal("繁中版", resolved.Value.Title);
+        Assert.Equal(1, result.SwitchedSourceCount);
     }
 
     private sealed class NoopMetadataSyncStore : IMetadataSyncStore
@@ -220,6 +254,42 @@ public class EnqueueWorkInfoResolverTests
         public Task UpdateWorkSyncInfoAsync(WorkSyncInfoItem item, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class StubConfigurationService : IConfigurationService
+    {
+        private readonly string _preferredLanguages;
+
+        public StubConfigurationService(string preferredLanguages = "简体中文,繁体中文,日本語")
+        {
+            _preferredLanguages = preferredLanguages;
+        }
+
+        public Task<AppConfig?> LoadAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<AppConfig?>(new AppConfig
+            {
+                Downloader = new DownloaderOptions
+                {
+                    PreferredLanguages = _preferredLanguages,
+                },
+            });
+        }
+
+        public Task SaveAsync(AppConfig config, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public IReadOnlyList<string> Validate(AppConfig config)
+        {
+            return Array.Empty<string>();
+        }
+
+        public bool Exists()
+        {
+            return true;
         }
     }
 }

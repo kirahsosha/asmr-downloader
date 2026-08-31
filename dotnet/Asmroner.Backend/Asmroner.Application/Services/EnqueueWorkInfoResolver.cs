@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using Asmroner.Core.Api;
+using Asmroner.Core.Configuration;
 using Asmroner.Core.Constants;
 using Asmroner.Core.Interfaces;
 using Asmroner.Core.Utils;
@@ -10,11 +11,16 @@ namespace Asmroner.Application.Services;
 public sealed class EnqueueWorkInfoResolver : IEnqueueWorkInfoResolver
 {
     private readonly IAsmrApiClient _asmrApiClient;
+    private readonly IConfigurationService _configurationService;
     private readonly IMetadataSyncStore _metadataSyncStore;
 
-    public EnqueueWorkInfoResolver(IAsmrApiClient asmrApiClient, IMetadataSyncStore metadataSyncStore)
+    public EnqueueWorkInfoResolver(
+        IAsmrApiClient asmrApiClient,
+        IConfigurationService configurationService,
+        IMetadataSyncStore metadataSyncStore)
     {
         _asmrApiClient = asmrApiClient;
+        _configurationService = configurationService;
         _metadataSyncStore = metadataSyncStore;
     }
 
@@ -42,6 +48,7 @@ public sealed class EnqueueWorkInfoResolver : IEnqueueWorkInfoResolver
 
         var failedSourceIds = new ConcurrentBag<string>();
         var fetchedWorkInfos = await FetchWorkInfosAsync(normalizedRequests, failedSourceIds, cancellationToken);
+        var preferredLanguages = await LoadPreferredLanguagesAsync(cancellationToken);
         var resolvedWorkInfos = new Dictionary<string, WorkInfoDto>(StringComparer.OrdinalIgnoreCase);
         var switchedSourceCount = 0;
 
@@ -53,7 +60,7 @@ public sealed class EnqueueWorkInfoResolver : IEnqueueWorkInfoResolver
                 continue;
             }
 
-            var selected = WorkLanguageSelectionPolicy.SelectPreferredEdition(workInfo);
+            var selected = WorkLanguageSelectionPolicy.SelectPreferredEdition(workInfo, preferredLanguages);
             if (!string.Equals(selected.SelectedSourceId, sourceId, StringComparison.OrdinalIgnoreCase))
             {
                 switchedSourceCount++;
@@ -100,6 +107,19 @@ public sealed class EnqueueWorkInfoResolver : IEnqueueWorkInfoResolver
                 .ToArray(),
             SwitchedSourceCount = switchedSourceCount,
         };
+    }
+
+    private async Task<IReadOnlyList<string>> LoadPreferredLanguagesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var config = await _configurationService.LoadAsync(cancellationToken);
+            return LanguagePriorityOptions.ParseOrDefault(config?.Downloader.PreferredLanguages);
+        }
+        catch
+        {
+            return LanguagePriorityOptions.DefaultOrder;
+        }
     }
 
     private async Task<IReadOnlyDictionary<string, WorkInfoDto>> FetchWorkInfosAsync(

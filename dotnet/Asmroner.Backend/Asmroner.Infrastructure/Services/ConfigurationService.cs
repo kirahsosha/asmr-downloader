@@ -133,6 +133,12 @@ public sealed class ConfigurationService : IConfigurationService
             errors.Add("下载抖动最小值不能大于最大值。");
         }
 
+        var unsupportedPreferredLanguages = LanguagePriorityOptions.FindUnsupportedLanguages(config.Downloader.PreferredLanguages);
+        if (unsupportedPreferredLanguages.Count > 0)
+        {
+            errors.Add($"语言优先级包含不支持的项: {string.Join(", ", unsupportedPreferredLanguages)}。");
+        }
+
         return errors;
     }
 
@@ -334,6 +340,8 @@ public sealed class ConfigurationService : IConfigurationService
             normalized.Downloader.SyncDataFolder = string.Empty;
         }
 
+        normalized.Downloader.PreferredLanguages = BuildPreferredLanguagesForStorage(normalized.Downloader.PreferredLanguages);
+
         return normalized;
     }
 
@@ -360,6 +368,7 @@ public sealed class ConfigurationService : IConfigurationService
                 MetadataValidityDays = config.Downloader.MetadataValidityDays,
                 SyncWantedSize = config.Downloader.SyncWantedSize,
                 PreferFormats = config.Downloader.PreferFormats,
+                PreferredLanguages = BuildPreferredLanguagesForStorage(config.Downloader.PreferredLanguages),
                 HdAudioOnly = config.Downloader.HdAudioOnly,
             },
             Limit = new LimitOptions
@@ -402,6 +411,11 @@ public sealed class ConfigurationService : IConfigurationService
         {
             return false;
         }
+    }
+
+    private static string BuildPreferredLanguagesForStorage(string? preferredLanguages)
+    {
+        return string.Join(",", LanguagePriorityOptions.ParseOrDefault(preferredLanguages));
     }
 
     private static bool ShouldResetMigratedLegacyDirectoryFields(DownloaderOptions downloader)

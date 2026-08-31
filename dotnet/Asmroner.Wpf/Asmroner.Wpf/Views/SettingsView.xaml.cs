@@ -241,6 +241,7 @@ public partial class SettingsView : UserControl
                 MetadataValidityDays = metadataValidityDays,
                 SyncWantedSize = SyncWantedSizeTextBox.Text.Trim(),
                 PreferFormats = PreferFormatsTextBox.Text.Trim(),
+                PreferredLanguages = PreferredLanguagesTextBox.Text.Trim(),
             },
             Limit = new LimitOptions
             {
@@ -271,6 +272,7 @@ public partial class SettingsView : UserControl
         MetadataValidityDaysTextBox.Text = config.Downloader.MetadataValidityDays.ToString();
         SyncWantedSizeTextBox.Text = config.Downloader.SyncWantedSize;
         PreferFormatsTextBox.Text = BuildPreferFormatsForDisplay(config.Downloader);
+        PreferredLanguagesTextBox.Text = BuildPreferredLanguagesForDisplay(config.Downloader);
         SyncQpsTextBox.Text = config.Limit.SyncQps.ToString();
         SyncJitterMinTextBox.Text = config.Limit.SyncJitterMin.ToString();
         SyncJitterMaxTextBox.Text = config.Limit.SyncJitterMax.ToString();
@@ -295,5 +297,10 @@ public partial class SettingsView : UserControl
     private static string BuildPreferFormatsForDisplay(DownloaderOptions downloader)
     {
         return downloader.PreferFormats;
+    }
+
+    private static string BuildPreferredLanguagesForDisplay(DownloaderOptions downloader)
+    {
+        return downloader.PreferredLanguages;
     }
 }

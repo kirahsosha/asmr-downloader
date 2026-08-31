@@ -136,6 +136,12 @@
                                  Style="{StaticResource FieldTextBoxStyle}"
                                  ToolTip="示例：mp3,wav,flac,jpg,jpeg,png,gif,webp,mp4,mkv,avi,webm,txt,lrc,ass"/>
 
+                        <TextBlock Style="{StaticResource FieldLabelStyle}"
+                                   Text="翻译语言优先级（逗号或分号分隔）"/>
+                        <TextBox x:Name="PreferredLanguagesTextBox"
+                                 Style="{StaticResource FieldTextBoxStyle}"
+                                 ToolTip="示例：简体中文,繁体中文,日本語；留空或非法项会自动回退默认顺序"/>
+
                     </StackPanel>
                 </Border>
 

@@ -1,5 +1,6 @@
 using Asmroner.Application.Services;
 using Asmroner.Core.Api;
+using Asmroner.Core.Configuration;
 
 namespace Asmroner.Application.Tests;
 
@@ -94,5 +95,31 @@ public class WorkLanguageSelectionPolicyTests
         var result = WorkLanguageSelectionPolicy.ResolveCurrentWorkLanguage(workInfo);
 
         Assert.Equal("繁体中文", result);
+    }
+
+    [Fact]
+    public void SelectPreferredEdition_ShouldRespectConfiguredPreferredLanguageOrder()
+    {
+        var workInfo = new WorkInfoDto
+        {
+            SourceId = "RJ1401",
+            Title = "日文原版",
+            TranslationInfo = new WorkTranslationInfoDto
+            {
+                IsOriginal = true,
+            },
+            OtherLanguageEditionsInDb =
+            [
+                new WorkOtherLanguageEditionDto { SourceId = "RJ1402", Lang = "简体中文", Title = "简中版" },
+                new WorkOtherLanguageEditionDto { SourceId = "RJ1403", Lang = "繁体中文", Title = "繁中版" },
+            ],
+        };
+
+        var preferredLanguages = LanguagePriorityOptions.ParseOrDefault("繁体中文;简体中文");
+
+        var result = WorkLanguageSelectionPolicy.SelectPreferredEdition(workInfo, preferredLanguages);
+
+        Assert.Equal("RJ1403", result.SelectedSourceId);
+        Assert.Equal("繁体中文", result.SelectedLanguage);
     }
 }

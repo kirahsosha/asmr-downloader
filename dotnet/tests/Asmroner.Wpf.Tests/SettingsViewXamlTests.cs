@@ -19,6 +19,7 @@ public class SettingsViewXamlTests
         Assert.Contains("x:Name=\"DownloadDataFolderTextBox\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"SyncDataFolderTextBox\"", content, StringComparison.Ordinal);
         Assert.Contains("x:Name=\"MetadataValidityDaysTextBox\"", content, StringComparison.Ordinal);
+        Assert.Contains("x:Name=\"PreferredLanguagesTextBox\"", content, StringComparison.Ordinal);
         Assert.Contains("ContentTemplate=\"{StaticResource PageStatePresenterTemplate}\"", content, StringComparison.Ordinal);
         Assert.DoesNotContain("FileFilterTextBox", content, StringComparison.Ordinal);
         Assert.DoesNotContain("GlobalSearchRuleTextBox", content, StringComparison.Ordinal);

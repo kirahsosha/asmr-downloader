@@ -79,6 +79,7 @@ public class ConfigurationServiceTests
                     MaxWorkers = 8,
                     MaxRetries = 5,
                     PreferFormats = "mp3,m4a",
+                    PreferredLanguages = "繁体中文,简体中文",
                     HdAudioOnly = false,
                 },
                 Limit = new LimitOptions
@@ -103,6 +104,7 @@ public class ConfigurationServiceTests
             Assert.Equal(8, loaded.Downloader.MaxWorkers);
             Assert.Equal(5, loaded.Downloader.MaxRetries);
             Assert.Equal("mp3,m4a", loaded.Downloader.PreferFormats);
+            Assert.Equal("繁体中文,简体中文", loaded.Downloader.PreferredLanguages);
             Assert.False(loaded.Downloader.HdAudioOnly);
 
             var sectionCount = await CountSplitConfigSectionsAsync(pathService.DatabaseFilePath);
@@ -160,6 +162,78 @@ public class ConfigurationServiceTests
             Assert.Equal(7, loaded.Downloader.MaxWorkers);
             Assert.False(loaded.Downloader.HdAudioOnly);
             Assert.Equal(4, loaded.Limit.SyncQps);
+        }
+        finally
+        {
+            CleanupTempRoot(tempRoot);
+        }
+    }
+
+    [Fact]
+    public async Task ConfigurationService_ShouldNormalizeInvalidPreferredLanguages_ToDefaultOrder()
+    {
+        var tempRoot = CreateTempRoot();
+        try
+        {
+            var pathService = new AppPathService(tempRoot);
+            var sut = new ConfigurationService(pathService);
+            var config = new AppConfig
+            {
+                User = new UserOptions
+                {
+                    Account = "tester",
+                    Password = "secret",
+                },
+                Downloader = new DownloaderOptions
+                {
+                    PreferredLanguages = "英语,德语",
+                },
+            };
+
+            await sut.SaveAsync(config);
+            var loaded = await sut.LoadAsync();
+
+            Assert.NotNull(loaded);
+            Assert.Equal("简体中文,繁体中文,日本語", loaded!.Downloader.PreferredLanguages);
+        }
+        finally
+        {
+            CleanupTempRoot(tempRoot);
+        }
+    }
+
+    [Fact]
+    public void ConfigurationService_ShouldReturnValidationError_WhenPreferredLanguagesContainsUnsupportedValue()
+    {
+        var tempRoot = CreateTempRoot();
+        try
+        {
+            var sut = new ConfigurationService(new AppPathService(tempRoot));
+            var config = new AppConfig
+            {
+                User = new UserOptions
+                {
+                    Account = "tester",
+                    Password = "secret",
+                },
+                Downloader = new DownloaderOptions
+                {
+                    PreferredLanguages = "简体中文,English",
+                },
+                Limit = new LimitOptions
+                {
+                    SyncQps = 1,
+                    DownloadQps = 1,
+                    SyncJitterMin = 0,
+                    SyncJitterMax = 0,
+                    DownloadJitterMin = 0,
+                    DownloadJitterMax = 0,
+                },
+            };
+
+            var errors = sut.Validate(config);
+
+            Assert.Contains(errors, static message => message.Contains("语言优先级包含不支持的项", StringComparison.Ordinal));
         }
         finally
         {

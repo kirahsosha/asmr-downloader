@@ -1209,3 +1209,11 @@ AI约束策略：禁止将章节 1.1 到 1.104 的文本加入分析上下文。
 4. DoD 判定：否。阶段 7 本轮代码与定向自动化回归已通过，但解决方案级全量回归与受影响手工回归项仍待用户执行并回填。
 5. 下次计划：由用户执行章节 3.2/3.5/3.6/3.7 的受影响手工回归，重点验证 `v0.7.7` 版本文案、Search 排序文案更新、Library 两个新增详情按钮行为，以及 Sync 过期刷新完成态文案与详情区展示一致性。
 
+### 1.122 2026-08-31，v0.7.8：语言优先级改为 Settings 可配置并接入入队链路
+
+1. 本次变更摘要：运行时与 README 版本统一升级到 `v0.7.8`；新增 `DownloaderOptions.PreferredLanguages` 配置项并引入 `LanguagePriorityOptions` 统一解析/归一化规则；`ConfigurationService` 在加载、保存与校验阶段接入语言优先级持久化与非法项提示；`EnqueueWorkInfoResolver` 改为从配置读取语言优先级并驱动翻译版本选择，保留“未配置或非法配置回退默认顺序（简体中文 -> 繁体中文 -> 日本語）”；`SettingsView` 新增“翻译语言优先级”输入入口与文案说明。
+2. 关键修改文件：`dotnet/Asmroner.Backend/Asmroner.Core/Configuration/LanguagePriorityOptions.cs`（新建）、`dotnet/Asmroner.Backend/Asmroner.Core/Configuration/DownloaderOptions.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/WorkLanguageSelectionPolicy.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/EnqueueWorkInfoResolver.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/ConfigurationService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml.cs`、`dotnet/tests/Asmroner.Application.Tests/WorkLanguageSelectionPolicyTests.cs`、`dotnet/tests/Asmroner.Application.Tests/EnqueueWorkInfoResolverTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/ConfigurationServiceTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/SettingsViewXamlTests.cs`、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`、`docs/wpf-migration-tests.md`、`docs/wpf-migration-history.md`。
+3. 构建与测试结果：`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --nologo` 通过；`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --nologo` 通过；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --nologo` 通过；`rtk dotnet test dotnet/Asmroner.sln --no-restore --nologo` 通过（433/433）。
+4. DoD 判定：否。语言优先级配置化与定向自动化回归已完成，受影响手工回归项已在进度文档重置为未勾选，待用户执行并回填。
+5. 下次计划：由用户执行章节 3.1/3.2/3.3 的受影响手工回归，重点验证 Settings 新字段保存与回退、Search/Download 开启“加入翻译作品”后的配置化优先级生效，以及版本文案 `v0.7.8` 一致性。
+

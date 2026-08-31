@@ -1,18 +1,25 @@
 using Asmroner.Core.Api;
+using Asmroner.Core.Configuration;
 using Asmroner.Core.Utils;
 
 namespace Asmroner.Application.Services;
 
 public static class WorkLanguageSelectionPolicy
 {
-    private static readonly string[] PreferredLanguages = ["简体中文", "繁体中文", "日本語"];
+    public static readonly IReadOnlyList<string> DefaultPreferredLanguages = LanguagePriorityOptions.DefaultOrder;
 
     public static WorkLanguageSelectionResult SelectPreferredEdition(WorkInfoDto workInfo)
     {
+        return SelectPreferredEdition(workInfo, DefaultPreferredLanguages);
+    }
+
+    public static WorkLanguageSelectionResult SelectPreferredEdition(WorkInfoDto workInfo, IReadOnlyList<string>? preferredLanguages)
+    {
         ArgumentNullException.ThrowIfNull(workInfo);
 
+        var effectivePreferredLanguages = BuildEffectivePreferredLanguages(preferredLanguages);
         var candidates = BuildCandidates(workInfo);
-        foreach (var preferredLanguage in PreferredLanguages)
+        foreach (var preferredLanguage in effectivePreferredLanguages)
         {
             var preferredCandidate = candidates.FirstOrDefault(candidate => string.Equals(candidate.Language, preferredLanguage, StringComparison.Ordinal));
             if (preferredCandidate is not null)
@@ -51,7 +58,7 @@ public static class WorkLanguageSelectionPolicy
     {
         ArgumentNullException.ThrowIfNull(workInfo);
 
-        var translationInfoLanguage = NormalizeLanguage(workInfo.TranslationInfo.Lang);
+        var translationInfoLanguage = LanguagePriorityOptions.NormalizeLanguage(workInfo.TranslationInfo.Lang);
         if (!string.IsNullOrWhiteSpace(translationInfoLanguage))
         {
             return translationInfoLanguage;
@@ -73,20 +80,34 @@ public static class WorkLanguageSelectionPolicy
 
     public static string NormalizeLanguage(string? rawLanguage)
     {
-        if (string.IsNullOrWhiteSpace(rawLanguage))
+        return LanguagePriorityOptions.NormalizeLanguage(rawLanguage);
+    }
+
+    private static IReadOnlyList<string> BuildEffectivePreferredLanguages(IReadOnlyList<string>? preferredLanguages)
+    {
+        if (preferredLanguages is null || preferredLanguages.Count == 0)
         {
-            return string.Empty;
+            return DefaultPreferredLanguages;
         }
 
-        var normalized = rawLanguage.Trim().Replace('-', '_').ToUpperInvariant();
-
-        return normalized switch
+        var normalized = new List<string>();
+        foreach (var preferredLanguage in preferredLanguages)
         {
-            "简体中文" or "简中" or "ZH_CN" or "ZH_HANS" or "CHI_HANS" or "CHS" => "简体中文",
-            "繁体中文" or "繁中" or "ZH_TW" or "ZH_HANT" or "CHI_HANT" or "CHT" => "繁体中文",
-            "日本語" or "日语" or "日文" or "JA" or "JA_JP" or "JPN" => "日本語",
-            _ => string.Empty,
-        };
+            var language = LanguagePriorityOptions.NormalizeLanguage(preferredLanguage);
+            if (string.IsNullOrWhiteSpace(language))
+            {
+                continue;
+            }
+
+            if (normalized.Contains(language, StringComparer.Ordinal))
+            {
+                continue;
+            }
+
+            normalized.Add(language);
+        }
+
+        return normalized.Count == 0 ? DefaultPreferredLanguages : normalized;
     }
 
     private static IReadOnlyList<WorkLanguageEditionCandidate> BuildCandidates(WorkInfoDto workInfo)

@@ -44,6 +44,12 @@ public sealed class DownloaderOptions
     public string PreferFormats { get; set; } = "mp3,wav,flac,jpg,jpeg,png,gif,webp,mp4,mkv,avi,webm,txt,lrc,ass";
 
     /// <summary>
+    /// 翻译版本语言优先级（逗号或分号分隔）。
+    /// 示例：简体中文,繁体中文,日本語。
+    /// </summary>
+    public string PreferredLanguages { get; set; } = string.Join(",", LanguagePriorityOptions.DefaultOrder);
+
+    /// <summary>
     /// 是否仅下载高清音频。开启后在同时存在 wav/flac 与 mp3 的情况下会跳过 mp3。
     /// </summary>
     public bool HdAudioOnly { get; set; } = true;

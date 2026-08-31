@@ -1,6 +1,6 @@
 ﻿# asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.7.7
+当前跟踪版本：v0.7.8
 
 AI约束策略：变更与验证记录统一维护于 `docs/wpf-migration-history.md` 的 `§1`，单元测试清单统一维护于 `docs/wpf-migration-tests.md` 的 `§1`。
 
@@ -206,7 +206,8 @@ AI约束策略：变更与验证记录统一维护于 `docs/wpf-migration-histor
 | 2026-06-20 | 已提交 | v0.7.4: align SyncView styles with shared shell resources                   | 1. Update runtime/docs version to v0.7.4.<br>2. Align SyncView.xaml styles with shared shell resources (ShellBackgroundBrush, shared card styles).<br>3. Clean up SyncView banner text from internal iteration copy.<br>4. Add/extend WPF tests for SyncView style alignment.<br>5. Update regression tests and progress documentation.                                                                                            | 314e353    |
 | 2026-06-20 | 已提交 | v0.7.5: align DownloadView styles with shared shell resources               | 1. Update runtime/docs version to v0.7.5.<br>2. Align DownloadView styles with shared shell resources.<br>3. Add shared ShellDataGridColumnHeaderBaseStyle to ShellResources and align column headers in Views.<br>4. Wrap SyncView DetailsTextBox in styled container.<br>5. Update regression tests and progress documentation.                                                                                                  | 2f1fbc1    |
 | 2026-06-21 | 已提交 | v0.7.6: add Sync filter checkboxes and update stage 7 UI                    | 1. Update runtime/docs version to v0.7.6.<br>2. Add SyncUiState persistence and Sync download filter options.<br>3. Add two Sync page checkboxes for Search/Download filter reuse.<br>4. Wire Search filters and Download file filters into Sync download flow.<br>5. Add/extend regression tests for Sync filters and SyncUiState.<br>6. Update regression tests and progress documentation.                                      | 1af3acb    |
-| 2026-08-30 | 待提交 | v0.7.7: refine library detail actions and sync metadata refresh flow        | 1. Update runtime/docs version to v0.7.7.<br>2. Update Search page sort labels.<br>3. Update Library page detail actions.<br>4. Update Sync page process logic and display text.<br>5. Remove misleading hints from Sync status/detail text and keep the persisted detail rendering consistent.<br>6. Update regression tests and progress documentation.                                                                          | -          |
+| 2026-08-30 | 已提交 | v0.7.7: refine library detail actions and sync metadata refresh flow        | 1. Update runtime/docs version to v0.7.7.<br>2. Update Search page sort labels.<br>3. Update Library page detail actions.<br>4. Update Sync page process logic and display text.<br>5. Remove misleading hints from Sync status/detail text and keep the persisted detail rendering consistent.<br>6. Update regression tests and progress documentation.                                                                          | a90a7df    |
+| 2026-08-31 | 待提交 | v0.7.8: make language priority configurable in Settings                     | 1. Update runtime/docs version to v0.7.8.<br>2. Add configurable language priority setting in Downloader options and persist it through SQLite/config loading.<br>3. Apply configured language order to translated enqueue resolution with default fallback preserved.<br>4. Add/extend Application/Infrastructure/WPF regression tests and sync migration documentation.                                                          | -          |
 
 ---
 
@@ -225,10 +226,10 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 ### 3.1 启动、配置与连接
 
 - [x] 应用可正常启动，主窗口可显示 Search、Download、Library、Sync、Settings 五个页签，且启动过程不因站点发现流程长时间阻塞。
-- [x] Settings 页面可正确加载现有配置；下载目录、同步下载目录、元数据有效期与格式优先级等字段显示完整。
+- [ ] Settings 页面可正确加载现有配置；下载目录、同步下载目录、元数据有效期、格式优先级与翻译语言优先级等字段显示完整。
 - [x] 程序目录 `config.json` 可作为默认配置来源；当 SQLite 中无配置记录时，应用可读取该默认配置并完成设置页加载。
 - [x] 在 Settings 页面修改有效配置后，“保存并重新初始化”可成功完成，状态提示明确，应用进入可用状态。
-- [x] Settings 页面可分别编辑下载目录、同步下载目录与元数据有效期，并在“保存并重新初始化”后生效。
+- [ ] Settings 页面可分别编辑下载目录、同步下载目录、元数据有效期与翻译语言优先级，并在“保存并重新初始化”后生效。
 - [x] 在 Settings 页面点击“保存并重新初始化”后，当前页应保持在 Settings，不应自动跳转到 Search。
 - [x] Settings 页面输入无效配置（含非法 `SyncWantedSize`）时，可给出可读错误提示，且应用不崩溃。
 - [x] “测试连接”可完成站点发现与登录校验；成功时回填当前 BaseUrl 并显示延迟与鉴权结果，失败时显示明确原因。
@@ -237,7 +238,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] “测试连接”应通过 `GET /api/health?cache=false` 完成候选探测；当旧探测端点不可用但 health API 可达时，仍能选中可用 BaseUrl。
 - [x] 当发布页正文直接提供 `asmr-300/200/100/one` 最新域名时，“测试连接”会按正文顺序补齐候选列表并写回 SQLite `ApiCandidateUrls`；随后再次“保存并重新初始化”不会把新候选覆盖回旧值。
 - [x] 当发布页 discovery 仅返回部分新候选时，若与已保存候选集合合并后的总数更大，“测试连接”会保留旧候选并把合并后的 `ApiCandidateUrls` 写回 SQLite。
-- [ ] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.7.7。
+- [ ] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.7.8。
 
 ### 3.2 Search 功能
 
@@ -253,11 +254,11 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 选中部分结果点击“加入下载队列”时，仅将选中项入队；未选中任何结果时，可按当前结果集批量入队。
 - [x] Search 页面未开启“加入翻译作品”时，入队会优先复用未过期 `MetadataWork`；当元数据缺失或超过元数据有效期时，会自动补拉 API 后继续入队。
 - [x] 已存在于下载列表中的作品不会重复入队，页面提示中会明确说明新增数量、跳过数量与翻译切换数量（如适用）。
-- [x] Search 页面开启“加入翻译作品”后，选中入队与当前结果批量入队都会按“简体中文 -> 繁体中文 -> 日本語”选择最终版本；关闭后保持当前结果的原始 `SourceId`。
+- [ ] Search 页面开启“加入翻译作品”后，选中入队与当前结果批量入队会按 Settings 中配置的“翻译语言优先级”选择最终版本；未配置或非法配置时回退“简体中文 -> 繁体中文 -> 日本語”；关闭后保持当前结果的原始 `SourceId`。
 - [x] Search 页面开启“加入翻译作品”且实际切换语言版本时，选中入队与当前结果批量入队的状态提示会显示“其中 X 项已切换为翻译作品”。
 - [x] Search 页面在未选中任何结果时点击“收藏作品”，左下角应提示“请先选择需要加入收藏的作品”。
 - [x] Search 页面“收藏作品”弹窗可选择现有收藏夹，也可输入新的收藏夹标题并保存到本地 SQLite。
-- [x] Search 页面开启“加入翻译作品”后保存收藏时，应按“简体中文 -> 繁体中文 -> 日本語”保存最终版本；关闭后保持当前结果的原始 `SourceId`。
+- [ ] Search 页面开启“加入翻译作品”后保存收藏时，应按 Settings 中配置的“翻译语言优先级”保存最终版本；未配置或非法配置时回退“简体中文 -> 繁体中文 -> 日本語”；关闭后保持当前结果的原始 `SourceId`。
 - [x] Search 页面“导出到文件”可成功导出全部任务到 CSV 与 JSON，导出文件内容可正常打开且关键字段完整，导出后自动打开文件夹。
 - [x] Search 页面在选中行存在时可通过“导出到文件”导出选中任务到 CSV 与 JSON；无选中行时会回退导出全部任务。
 - [x] Search 任务列表支持右键菜单，且包含“加入下载队列 / 导出全部任务到文件 / 导出选中任务到文件 / 在浏览器打开”四项操作；两个导出入口均可继续选择 CSV 或 JSON。
@@ -292,7 +293,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] Search 页面加入下载队列后，若未切换至 Download 页面即退出并重启，未完成队列仍可恢复。
 - [x] 文件筛选规则可生效；开启“只下载高清音频”后，在同时存在 flac/wav 与 mp3 的场景下不会重复下载 mp3。
 - [x] 新启动的失败任务不会从列表中消失；失败、取消、完成后的任务状态可被稳定追踪。
-- [x] Download 页面开启“加入翻译作品”后，单个入队、批量入队、从文件导入（CSV/JSON）三条入口都会按“简体中文 -> 繁体中文 -> 日本語”选择最终版本；关闭后保持输入或导入文件中的原始 `SourceId`。
+- [ ] Download 页面开启“加入翻译作品”后，单个入队、批量入队、从文件导入（CSV/JSON）三条入口都会按 Settings 中配置的“翻译语言优先级”选择最终版本；未配置或非法配置时回退“简体中文 -> 繁体中文 -> 日本語”；关闭后保持输入或导入文件中的原始 `SourceId`。
 - [x] Download 页面开启“加入翻译作品”且实际切换语言版本时，单个入队、批量入队、从文件导入（CSV/JSON）的状态提示会显示“其中 X 项已切换为翻译作品”。
 - [x] 启动后台补拉结束后，Download 页状态提示统一使用“作品信息更新完成/失败”文案，不再出现“启动补拉完成/失败”。
 - [x] 当轨道标题已自带扩展名时，下载落地文件名不会出现 `.mp3.mp3`、`.png.png` 等重复后缀；无扩展名标题仍会补齐正确后缀。
