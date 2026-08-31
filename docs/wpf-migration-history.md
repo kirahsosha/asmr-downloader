@@ -1215,5 +1215,12 @@ AI约束策略：禁止将章节 1.1 到 1.104 的文本加入分析上下文。
 2. 关键修改文件：`dotnet/Asmroner.Backend/Asmroner.Core/Configuration/LanguagePriorityOptions.cs`（新建）、`dotnet/Asmroner.Backend/Asmroner.Core/Configuration/DownloaderOptions.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/WorkLanguageSelectionPolicy.cs`、`dotnet/Asmroner.Backend/Asmroner.Application/Services/EnqueueWorkInfoResolver.cs`、`dotnet/Asmroner.Backend/Asmroner.Infrastructure/Services/ConfigurationService.cs`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml`、`dotnet/Asmroner.Wpf/Asmroner.Wpf/Views/SettingsView.xaml.cs`、`dotnet/tests/Asmroner.Application.Tests/WorkLanguageSelectionPolicyTests.cs`、`dotnet/tests/Asmroner.Application.Tests/EnqueueWorkInfoResolverTests.cs`、`dotnet/tests/Asmroner.Infrastructure.Tests/ConfigurationServiceTests.cs`、`dotnet/tests/Asmroner.Wpf.Tests/SettingsViewXamlTests.cs`、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`、`docs/wpf-migration-tests.md`、`docs/wpf-migration-history.md`。
 3. 构建与测试结果：`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj --nologo` 通过；`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj --nologo` 通过；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj --nologo` 通过；`rtk dotnet test dotnet/Asmroner.sln --no-restore --nologo` 通过（433/433）。
 4. DoD 判定：否。语言优先级配置化与定向自动化回归已完成，受影响手工回归项已在进度文档重置为未勾选，待用户执行并回填。
-5. 下次计划：由用户执行章节 3.1/3.2/3.3 的受影响手工回归，重点验证 Settings 新字段保存与回退、Search/Download 开启“加入翻译作品”后的配置化优先级生效，以及版本文案 `v0.7.8` 一致性。
+5. 下次计划：由用户执行章节 3.1/3.2/3.3 的受影响手工回归，重点验证 Settings 新字段保存与回退、Search/Download 开启“加入翻译作品”后的配置化优先级生效，以及版本文案 `
+### 1.123 2026-08-31，v0.7.9：重构元数据同步主流程并收口过期刷新/停止语义
+
+1. 本次变更摘要：运行时与 README 版本统一升级到 `v0.7.9`；将 `MetadataSyncService` 的元数据同步主流程拆分为“初始化上下文、分支判定、分页执行、结果汇总”四段职责，并通过内部上下文/结果记录类型降低长方法耦合；同时统一过期刷新优先级、停止请求在末页场景下的完成态收口，以及恢复同步页码越界时的归一化行为。
+2. 关键修改文件：`dotnet/Asmroner.Backend/Asmroner.Application/Services/MetadataSyncService.cs`、`dotnet/tests/Asmroner.Application.Tests/MetadataSyncServiceTests.cs`、四个运行时 `.csproj`、`README.md`、`docs/wpf-migration-progress.md`、`docs/wpf-migration-tests.md`、`docs/wpf-migration-history.md`。
+3. 构建与测试结果：`rtk dotnet test dotnet/tests/Asmroner.Application.Tests/Asmroner.Application.Tests.csproj -c Release` 通过（107/107）；`rtk dotnet test dotnet/tests/Asmroner.Infrastructure.Tests/Asmroner.Infrastructure.Tests.csproj -c Release` 通过（81/81）；`rtk dotnet test dotnet/tests/Asmroner.Wpf.Tests/Asmroner.Wpf.Tests.csproj -c Release` 通过（227/227）；`rtk dotnet test dotnet/Asmroner.sln --no-restore --nologo` 通过（437/437）。
+4. DoD 判定：否。主流程重构与自动化回归已完成；受影响手工回归项已在进度文档重置为未勾选，待用户执行并回填。
+5. 下次计划：由用户执行章节 3.5 的受影响手工回归，重点验证“过期刷新优先于无需同步”“末页 stop request 按完成态收口”“同步结果摘要与详情区统计一致”三项行为。
 

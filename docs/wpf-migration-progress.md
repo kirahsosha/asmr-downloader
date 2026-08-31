@@ -1,6 +1,6 @@
 ﻿# asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.7.8
+当前跟踪版本：v0.7.9
 
 AI约束策略：变更与验证记录统一维护于 `docs/wpf-migration-history.md` 的 `§1`，单元测试清单统一维护于 `docs/wpf-migration-tests.md` 的 `§1`。
 
@@ -207,7 +207,8 @@ AI约束策略：变更与验证记录统一维护于 `docs/wpf-migration-histor
 | 2026-06-20 | 已提交 | v0.7.5: align DownloadView styles with shared shell resources               | 1. Update runtime/docs version to v0.7.5.<br>2. Align DownloadView styles with shared shell resources.<br>3. Add shared ShellDataGridColumnHeaderBaseStyle to ShellResources and align column headers in Views.<br>4. Wrap SyncView DetailsTextBox in styled container.<br>5. Update regression tests and progress documentation.                                                                                                  | 2f1fbc1    |
 | 2026-06-21 | 已提交 | v0.7.6: add Sync filter checkboxes and update stage 7 UI                    | 1. Update runtime/docs version to v0.7.6.<br>2. Add SyncUiState persistence and Sync download filter options.<br>3. Add two Sync page checkboxes for Search/Download filter reuse.<br>4. Wire Search filters and Download file filters into Sync download flow.<br>5. Add/extend regression tests for Sync filters and SyncUiState.<br>6. Update regression tests and progress documentation.                                      | 1af3acb    |
 | 2026-08-30 | 已提交 | v0.7.7: refine library detail actions and sync metadata refresh flow        | 1. Update runtime/docs version to v0.7.7.<br>2. Update Search page sort labels.<br>3. Update Library page detail actions.<br>4. Update Sync page process logic and display text.<br>5. Remove misleading hints from Sync status/detail text and keep the persisted detail rendering consistent.<br>6. Update regression tests and progress documentation.                                                                          | a90a7df    |
-| 2026-08-31 | 待提交 | v0.7.8: make language priority configurable in Settings                     | 1. Update runtime/docs version to v0.7.8.<br>2. Add configurable language priority setting in Downloader options and persist it through SQLite/config loading.<br>3. Apply configured language order to translated enqueue resolution with default fallback preserved.<br>4. Add/extend Application/Infrastructure/WPF regression tests and sync migration documentation.                                                          | -          |
+| 2026-08-31 | 已提交 | v0.7.8: make language priority configurable in Settings                     | 1. Update runtime/docs version to v0.7.8.<br>2. Add configurable language priority setting in Downloader options and persist it through SQLite/config loading.<br>3. Apply configured language order to translated enqueue resolution with default fallback preserved.<br>4. Add/extend Application/Infrastructure/WPF regression tests and sync migration documentation.                                                          | e01dc49    |
+| 2026-08-31 | 待提交 | v0.7.9: refactor metadata sync mainflow and align stop/refresh behaviors    | 1. Update runtime/docs version to v0.7.9.<br>2. Refactor `MetadataSyncService` into clearer initialization, branching, paging, and finalization stages.<br>3. Align stop/refresh behavior, expired-refresh priority, and summary consistency.<br>4. Add regression tests for sync edge cases.                                                                                                                                      | -          |
 
 ---
 
@@ -238,7 +239,7 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] “测试连接”应通过 `GET /api/health?cache=false` 完成候选探测；当旧探测端点不可用但 health API 可达时，仍能选中可用 BaseUrl。
 - [x] 当发布页正文直接提供 `asmr-300/200/100/one` 最新域名时，“测试连接”会按正文顺序补齐候选列表并写回 SQLite `ApiCandidateUrls`；随后再次“保存并重新初始化”不会把新候选覆盖回旧值。
 - [x] 当发布页 discovery 仅返回部分新候选时，若与已保存候选集合合并后的总数更大，“测试连接”会保留旧候选并把合并后的 `ApiCandidateUrls` 写回 SQLite。
-- [ ] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.7.8。
+- [ ] 主窗口标题不显示版本号，Settings 页面版本文案应显示 v0.7.9。
 
 ### 3.2 Search 功能
 
@@ -323,11 +324,13 @@ AI约束：每次进行功能开发、缺陷修复或任何可能影响用户可
 - [x] 点击元数据同步主按钮开始同步后，可成功拉取网站元数据并写入 SQLite `MetadataWork` 表。
 - [x] 当网站总量与本地一致且不存在过期元数据时，Sync 页面会提示“无需同步”，且不会重复写入数据。
 - [ ] 当上次元数据同步状态为已完成且存在超过“元数据有效期”的本地记录时，再次点击“开始同步元数据”会执行过期刷新，并在摘要中显示过期刷新结果。
-- [x] 当 SQLite `UiState` 中存在未完成元数据同步进度时，再次点击元数据同步主按钮会从记录页码继续执行，而不是从第一页重新开始。
-- [x] 点击元数据同步主按钮发出 stop request 后，按钮会切换为“正在停止元数据...”，并在当前页完成后恢复为空闲态。
+- [ ] 当 SQLite `UiState` 中存在未完成元数据同步进度时，再次点击元数据同步主按钮会从记录页码继续执行，而不是从第一页重新开始。
+- [ ] 点击元数据同步主按钮发出 stop request 后，按钮会切换为“正在停止元数据...”，并在当前页完成后恢复为空闲态。
 - [x] 元数据同步开始后的 1 秒内连续双击主按钮时，第二次点击会被防抖忽略，按钮保持“停止同步元数据”，不会误切到“正在停止元数据...”。
 - [x] 元数据同步进行中时，点击“刷新统计”后，顶部“本地元数据”摘要、状态文本与详情区会显示当前已持久化的本地总量、字幕量、累计处理条数与累计新增数。
 - [ ] 同步完成后，页面摘要与详情区会显示网站总量、本地总量、累计处理条数、累计新增数量与分页处理结果。
+- [ ] 当上次元数据同步状态为 `COMPLETED` 且存在过期记录时，再次开始同步应优先进入过期刷新分支；即使网站总量与本地总量相同，也不会提前走“无需同步”分支。
+- [ ] 当 stop request 发生在最后一页处理完成后，元数据同步应以完成态收口（`IsCompleted=true`、`WasStopped=false`），并将 `NextPage` 重置为 `1`。
 - [x] 下载同步主按钮在空闲态显示“开始同步下载”，点击后会切换为“停止同步下载”。
 - [x] 点击下载同步主按钮开始同步后，可按 `SyncWantedSize` 逐项处理待同步作品、下载真实媒体文件，并将 `WorkSyncInfo` 写为 `COMPLETED/FAILED`。
 - [ ] 当累计落盘大小达到 `SyncWantedSize` 后，Sync 页面会提示已达到容量上限，且停止后续候选作品处理。

@@ -9,7 +9,7 @@
 说明：
 
 - `已创建`：测试样例已存在于仓库。
-- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-08-31 的解决方案级回归（`rtk dotnet test dotnet/Asmroner.sln --no-restore --nologo`，433/433 通过）。
+- `已通过`：样例在最近一次可执行验证中通过；当前全量回归基线为 2026-08-31 的解决方案级回归（`rtk dotnet test dotnet/Asmroner.sln --no-restore --nologo`，437/437 通过）。
 
 维护规则：
 
@@ -135,15 +135,19 @@
 
 #### 1.1.10 MetadataSyncServiceTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                                            | 输入                                                          | 期望输出                                                                                                                            |
-| ------ | ------ | ------ | --------------------------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldInsertAllPages_WhenRemoteHasNewWorks`                    | 网站元数据总量 `101`、本地为空，分页返回 `100 + 1` 条元数据   | 顺序请求总量页与 2 个同步分页，新增 101 条，本地总量追平到 101 条，并把完成态进度写为本地总量 `101` / 字幕 `1`                      |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldTrackProcessedWorks_WhenExistingPagesContainOnlyUpdates` | 第 1 页 100 条均为本地已存在记录，第 2 页新增 1 条元数据      | 本次累计处理 `101` 条、累计新增 `1` 条；已有页更新会写入 SQLite，完成态进度保留累计处理条数                                         |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldSkip_WhenRemoteCountMatchesLocalCount`                   | 网站总量与本地总量相同，且不存在过期元数据                    | 仅查询网站总量，不执行分页同步，返回“无需同步”                                                                                      |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldRefreshExpiredMetadata_WhenPreviousRunCompleted`         | 上次进度为 `COMPLETED`，且本地存在超过元数据有效期的元数据    | 再次执行时触发过期刷新，并通过分页扫描仅刷新命中过期集合的记录，同时更新本地 `MetadataWork` 摘要                                    |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldReport_WhenLocalCountExceedsRemoteCount`                 | 本地元数据数量大于网站                                        | 不执行分页同步，返回“本地元数据数量高于网站，未执行同步”                                                                            |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldResumeFromSavedProgress_WhenStateIsUnfinished`           | 已保存 `STOPPED` 元数据进度，`NextPage=2`，本地已有第一页数据 | 只从第二页继续同步，结果标记 `ResumedFromProgress=true`，最终进度写成 `COMPLETED`，并保留本地总量 `101` / 字幕 `1` / 累计处理 `101` |
-| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldStopAfterCurrentPage_WhenStopRequested`                  | 两页元数据同步，第一页写回后触发 stop request                 | 当前页完成后停止，结果标记 `WasStopped=true`，UiState `NextPage=2`，并保留当前本地总量 `100` / 字幕 `1` / 累计处理 `100`            |
+| 已创建 | 已通过 | 阶段   | 样例名                                                                                | 输入                                                          | 期望输出                                                                                                                            |
+| ------ | ------ | ------ | ------------------------------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldInsertAllPages_WhenRemoteHasNewWorks`                        | 网站元数据总量 `101`、本地为空，分页返回 `100 + 1` 条元数据   | 顺序请求总量页与 2 个同步分页，新增 101 条，本地总量追平到 101 条，并把完成态进度写为本地总量 `101` / 字幕 `1`                      |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldTrackProcessedWorks_WhenExistingPagesContainOnlyUpdates`     | 第 1 页 100 条均为本地已存在记录，第 2 页新增 1 条元数据      | 本次累计处理 `101` 条、累计新增 `1` 条；已有页更新会写入 SQLite，完成态进度保留累计处理条数                                         |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldSkip_WhenRemoteCountMatchesLocalCount`                       | 网站总量与本地总量相同，且不存在过期元数据                    | 仅查询网站总量，不执行分页同步，返回“无需同步”                                                                                      |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldRefreshExpiredMetadata_WhenPreviousRunCompleted`             | 上次进度为 `COMPLETED`，且本地存在超过元数据有效期的元数据    | 再次执行时触发过期刷新，并通过分页扫描仅刷新命中过期集合的记录，同时更新本地 `MetadataWork` 摘要                                    |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldReport_WhenLocalCountExceedsRemoteCount`                     | 本地元数据数量大于网站                                        | 不执行分页同步，返回“本地元数据数量高于网站，未执行同步”                                                                            |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldResumeFromSavedProgress_WhenStateIsUnfinished`               | 已保存 `STOPPED` 元数据进度，`NextPage=2`，本地已有第一页数据 | 只从第二页继续同步，结果标记 `ResumedFromProgress=true`，最终进度写成 `COMPLETED`，并保留本地总量 `101` / 字幕 `1` / 累计处理 `101` |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldStopAfterCurrentPage_WhenStopRequested`                      | 两页元数据同步，第一页写回后触发 stop request                 | 当前页完成后停止，结果标记 `WasStopped=true`，UiState `NextPage=2`，并保留当前本地总量 `100` / 字幕 `1` / 累计处理 `100`            |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldComplete_WhenStopRequestedOnLastPage`                        | 两页元数据同步，末页写回后触发 stop request                   | stop request 命中末页时以完成态收口，结果 `IsCompleted=true`、`WasStopped=false`，`NextPage=1`                                      |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldNormalizeResumedNextPage_WhenSavedNextPageExceedsTotalPages` | 已保存 `STOPPED` 且 `NextPage` 超过当前总页数                 | 恢复同步时自动归一化起始页码，避免越界页请求，并保持结果汇总一致                                                                    |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldFilterInvalidWorks_WhenPageContainsInvalidItems`             | 分页结果中混入无效 sourceId/workId 记录                       | 无效项被过滤，累计处理/新增统计仅基于有效作品                                                                                       |
+| [x]    | [x]    | 阶段 5 | `SyncMetadataAsync_ShouldHandlePartialLastPage_WhenRemoteTotalNotAlignedToPageSize`   | 网站总量与页大小不整除，末页为部分数据                        | 分页循环与最终汇总可正确覆盖部分末页，不出现越界或重复计数                                                                          |
 
 #### 1.1.11 SyncDownloadServiceTests.cs
 

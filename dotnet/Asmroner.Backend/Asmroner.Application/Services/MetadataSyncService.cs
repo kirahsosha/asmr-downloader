@@ -45,12 +45,82 @@ public sealed class MetadataSyncService
 
     public async Task<MetadataSyncRunResult> SyncMetadataAsync(CancellationToken cancellationToken = default)
     {
+        var context = await ResolveInitializationContextAsync(cancellationToken);
+        var decision = DetermineSyncBranch(context);
+
+        if (decision == MetadataSyncBranch.RefreshExpired)
+        {
+            return await RefreshExpiredMetadataAsync(
+                context.Before,
+                context.Config,
+                context.RemoteTotalCount,
+                context.RemoteSubtitleCount,
+                context.ExpiredMetadataCount,
+                context.StartedAt,
+                cancellationToken);
+        }
+
+        if (decision == MetadataSyncBranch.SkipUpToDate)
+        {
+            await SaveProgressAsync(
+                SyncProgressStatuses.Completed,
+                nextPage: 1,
+                processedPageCount: 0,
+                totalPageCount: context.TotalPages,
+                context.RemoteTotalCount,
+                context.RemoteSubtitleCount,
+                localTotalCount: context.Before.LocalTotalCount,
+                localSubtitleCount: context.Before.LocalSubtitleCount,
+                insertedCount: 0,
+                processedWorkCount: 0,
+                context.StartedAt,
+                cancellationToken);
+
+            return BuildNoOpResult(
+                context.RemoteTotalCount,
+                context.RemoteSubtitleCount,
+                context.Before,
+                message: "网站元数据与本地一致，无需同步。",
+                isUpToDate: true,
+                resumedFromProgress: false);
+        }
+
+        if (decision == MetadataSyncBranch.SkipLocalAhead)
+        {
+            await SaveProgressAsync(
+                SyncProgressStatuses.Completed,
+                nextPage: 1,
+                processedPageCount: 0,
+                totalPageCount: context.TotalPages,
+                context.RemoteTotalCount,
+                context.RemoteSubtitleCount,
+                localTotalCount: context.Before.LocalTotalCount,
+                localSubtitleCount: context.Before.LocalSubtitleCount,
+                insertedCount: 0,
+                processedWorkCount: 0,
+                context.StartedAt,
+                cancellationToken);
+
+            return BuildNoOpResult(
+                context.RemoteTotalCount,
+                context.RemoteSubtitleCount,
+                context.Before,
+                message: "本地元数据数量高于网站，未执行同步。",
+                isUpToDate: false,
+                resumedFromProgress: false);
+        }
+
+        var pageSyncState = await ExecutePagedSyncAsync(context, cancellationToken);
+        return await BuildFinalResultAsync(context, pageSyncState, cancellationToken);
+    }
+
+    private async Task<MetadataSyncInitializationContext> ResolveInitializationContextAsync(CancellationToken cancellationToken)
+    {
         var progress = await _uiStateStore.LoadMetadataSyncProgressAsync(cancellationToken);
         var resumedFromProgress = ShouldResume(progress);
         var config = await _configurationService.LoadAsync(cancellationToken) ?? new AppConfig();
         var before = await _metadataSyncStore.GetMetadataSnapshotAsync(cancellationToken);
         var expiredMetadataCount = await CountExpiredMetadataAsync(progress, resumedFromProgress, config, cancellationToken);
-        var shouldRefreshExpiredMetadata = expiredMetadataCount > 0;
 
         var remoteFirstPage = await GetMetadataWorksAsync(page: 1, pageSize: 1, subtitleOnly: false, config, cancellationToken);
         var remoteSubtitlePage = await GetMetadataWorksAsync(page: 1, pageSize: 1, subtitleOnly: true, config, cancellationToken);
@@ -61,118 +131,82 @@ public sealed class MetadataSyncService
         var startPage = resumedFromProgress
             ? NormalizeNextPage(progress.NextPage, totalPages)
             : 1;
-        var processedPageCountOverall = resumedFromProgress
-            ? Math.Max(0, startPage - 1)
-            : 0;
-        var cumulativeInsertedCount = resumedFromProgress
-            ? Math.Max(0, progress.InsertedCount)
-            : 0;
-        var cumulativeProcessedWorkCount = resumedFromProgress
-            ? Math.Max(0, progress.ProcessedWorkCount > 0 ? progress.ProcessedWorkCount : progress.InsertedCount)
-            : 0;
-        var currentSnapshot = before;
-        var startedAt = resumedFromProgress
-            ? progress.StartedAt ?? DateTime.UtcNow
-            : DateTime.UtcNow;
 
-        if (shouldRefreshExpiredMetadata)
+        return new MetadataSyncInitializationContext(
+            progress,
+            resumedFromProgress,
+            config,
+            before,
+            expiredMetadataCount,
+            remoteTotalCount,
+            remoteSubtitleCount,
+            totalPages,
+            startPage,
+            resumedFromProgress ? Math.Max(0, startPage - 1) : 0,
+            resumedFromProgress ? Math.Max(0, progress.InsertedCount) : 0,
+            resumedFromProgress ? Math.Max(0, progress.ProcessedWorkCount > 0 ? progress.ProcessedWorkCount : progress.InsertedCount) : 0,
+            resumedFromProgress ? progress.StartedAt ?? DateTime.UtcNow : DateTime.UtcNow);
+    }
+
+    private static MetadataSyncBranch DetermineSyncBranch(MetadataSyncInitializationContext context)
+    {
+        if (context.ExpiredMetadataCount > 0)
         {
-            return await RefreshExpiredMetadataAsync(
-                before,
-                config,
-                remoteTotalCount,
-                remoteSubtitleCount,
-                expiredMetadataCount,
-                startedAt,
-                cancellationToken);
+            return MetadataSyncBranch.RefreshExpired;
         }
 
-        if (!resumedFromProgress && remoteTotalCount == before.LocalTotalCount)
+        if (!context.ResumedFromProgress && context.RemoteTotalCount == context.Before.LocalTotalCount)
         {
-            await _uiStateStore.SaveMetadataSyncProgressAsync(
-                BuildProgressState(
-                    SyncProgressStatuses.Completed,
-                    nextPage: 1,
-                    processedPageCount: 0,
-                    totalPageCount: totalPages,
-                    remoteTotalCount,
-                    remoteSubtitleCount,
-                    localTotalCount: before.LocalTotalCount,
-                    localSubtitleCount: before.LocalSubtitleCount,
-                    insertedCount: 0,
-                    processedWorkCount: 0,
-                    startedAt,
-                    updatedAt: DateTime.UtcNow),
-                cancellationToken);
-
-            return BuildNoOpResult(
-                remoteTotalCount,
-                remoteSubtitleCount,
-                before,
-                message: "网站元数据与本地一致，无需同步。",
-                isUpToDate: true,
-                resumedFromProgress: false);
+            return MetadataSyncBranch.SkipUpToDate;
         }
 
-        if (!resumedFromProgress && remoteTotalCount < before.LocalTotalCount)
+        if (!context.ResumedFromProgress && context.RemoteTotalCount < context.Before.LocalTotalCount)
         {
-            await _uiStateStore.SaveMetadataSyncProgressAsync(
-                BuildProgressState(
-                    SyncProgressStatuses.Completed,
-                    nextPage: 1,
-                    processedPageCount: 0,
-                    totalPageCount: totalPages,
-                    remoteTotalCount,
-                    remoteSubtitleCount,
-                    localTotalCount: before.LocalTotalCount,
-                    localSubtitleCount: before.LocalSubtitleCount,
-                    insertedCount: 0,
-                    processedWorkCount: 0,
-                    startedAt,
-                    updatedAt: DateTime.UtcNow),
-                cancellationToken);
-
-            return BuildNoOpResult(
-                remoteTotalCount,
-                remoteSubtitleCount,
-                before,
-                message: "本地元数据数量高于网站，未执行同步。",
-                isUpToDate: false,
-                resumedFromProgress: false);
+            return MetadataSyncBranch.SkipLocalAhead;
         }
 
-        await _uiStateStore.SaveMetadataSyncProgressAsync(
-            BuildProgressState(
-                SyncProgressStatuses.Running,
-                nextPage: startPage,
-                processedPageCount: processedPageCountOverall,
-                totalPageCount: totalPages,
-                remoteTotalCount,
-                remoteSubtitleCount,
-                localTotalCount: before.LocalTotalCount,
-                localSubtitleCount: before.LocalSubtitleCount,
-                insertedCount: cumulativeInsertedCount,
-                processedWorkCount: cumulativeProcessedWorkCount,
-                startedAt,
-                updatedAt: DateTime.UtcNow),
-            cancellationToken);
+        return MetadataSyncBranch.Proceed;
+    }
 
+    private async Task<MetadataSyncPagedResult> ExecutePagedSyncAsync(
+        MetadataSyncInitializationContext context,
+        CancellationToken cancellationToken)
+    {
+        var processedPageCountOverall = context.InitialProcessedPageCount;
+        var cumulativeInsertedCount = context.InitialCumulativeInsertedCount;
+        var cumulativeProcessedWorkCount = context.InitialCumulativeProcessedWorkCount;
         var insertedCount = 0;
         var processedWorkCount = 0;
+        var currentSnapshot = context.Before;
 
-        for (var page = startPage; page <= totalPages; page++)
+        await SaveProgressAsync(
+            SyncProgressStatuses.Running,
+            nextPage: context.StartPage,
+            processedPageCount: processedPageCountOverall,
+            totalPageCount: context.TotalPages,
+            context.RemoteTotalCount,
+            context.RemoteSubtitleCount,
+            localTotalCount: context.Before.LocalTotalCount,
+            localSubtitleCount: context.Before.LocalSubtitleCount,
+            insertedCount: cumulativeInsertedCount,
+            processedWorkCount: cumulativeProcessedWorkCount,
+            context.StartedAt,
+            cancellationToken);
+
+        for (var page = context.StartPage; page <= context.TotalPages; page++)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var pageResult = await GetMetadataWorksAsync(page, SyncPageSize, subtitleOnly: false, config, cancellationToken);
+            var pageResult = await GetMetadataWorksAsync(page, SyncPageSize, subtitleOnly: false, context.Config, cancellationToken);
             var updatedAt = DateTime.UtcNow;
             var works = pageResult.Works
                 .Select(work => work.ToMetadataWorkItem(updatedAt))
                 .Where(static work => work.Id > 0 && !string.IsNullOrWhiteSpace(work.SourceId))
                 .ToArray();
-            var processedThisPage = works.Length;
 
+            var processedThisPage = works.Length;
             var insertedThisPage = await _metadataSyncStore.UpsertMetadataWorksAsync(works, cancellationToken);
+
             insertedCount += insertedThisPage;
             cumulativeInsertedCount += insertedThisPage;
             processedWorkCount += processedThisPage;
@@ -180,104 +214,161 @@ public sealed class MetadataSyncService
             processedPageCountOverall = page;
             currentSnapshot = await _metadataSyncStore.GetMetadataSnapshotAsync(cancellationToken);
 
-            if (page < totalPages)
+            if (page >= context.TotalPages)
             {
-                await _uiStateStore.SaveMetadataSyncProgressAsync(
-                    BuildProgressState(
-                        SyncProgressStatuses.Running,
-                        nextPage: page + 1,
-                        processedPageCount: processedPageCountOverall,
-                        totalPageCount: totalPages,
-                        remoteTotalCount,
-                        remoteSubtitleCount,
-                        localTotalCount: currentSnapshot.LocalTotalCount,
-                        localSubtitleCount: currentSnapshot.LocalSubtitleCount,
-                        insertedCount: cumulativeInsertedCount,
-                        processedWorkCount: cumulativeProcessedWorkCount,
-                        startedAt,
-                        updatedAt: DateTime.UtcNow),
-                    cancellationToken);
-
-                var currentProgress = await _uiStateStore.LoadMetadataSyncProgressAsync(cancellationToken);
-                if (currentProgress.StopRequested)
-                {
-                    await _uiStateStore.SaveMetadataSyncProgressAsync(
-                        BuildProgressState(
-                            SyncProgressStatuses.Stopped,
-                            nextPage: page + 1,
-                            processedPageCount: processedPageCountOverall,
-                            totalPageCount: totalPages,
-                            remoteTotalCount,
-                            remoteSubtitleCount,
-                            localTotalCount: currentSnapshot.LocalTotalCount,
-                            localSubtitleCount: currentSnapshot.LocalSubtitleCount,
-                            insertedCount: cumulativeInsertedCount,
-                            processedWorkCount: cumulativeProcessedWorkCount,
-                            startedAt,
-                            updatedAt: DateTime.UtcNow),
-                        cancellationToken);
-
-                    return new MetadataSyncRunResult
-                    {
-                        RemoteTotalCount = remoteTotalCount,
-                        RemoteSubtitleCount = remoteSubtitleCount,
-                        LocalTotalCountBefore = before.LocalTotalCount,
-                        LocalSubtitleCountBefore = before.LocalSubtitleCount,
-                        LocalTotalCountAfter = currentSnapshot.LocalTotalCount,
-                        LocalSubtitleCountAfter = currentSnapshot.LocalSubtitleCount,
-                        InsertedCount = insertedCount,
-                        ProcessedWorkCount = processedWorkCount,
-                        ProcessedPageCount = processedPageCountOverall,
-                        TotalPageCount = totalPages,
-                        NextPage = page + 1,
-                        Message = $"元数据同步已按请求停止：已处理 {processedPageCountOverall}/{totalPages} 页，共处理 {processedWorkCount} 条，本地现有 {currentSnapshot.LocalTotalCount} 条。",
-                        IsUpToDate = currentSnapshot.LocalTotalCount == remoteTotalCount,
-                        WasStopped = true,
-                        ResumedFromProgress = resumedFromProgress,
-                    };
-                }
+                continue;
             }
-        }
 
-        var after = currentSnapshot;
-        var isUpToDate = after.LocalTotalCount == remoteTotalCount;
-
-        await _uiStateStore.SaveMetadataSyncProgressAsync(
-            BuildProgressState(
-                SyncProgressStatuses.Completed,
-                nextPage: 1,
+            await SaveProgressAsync(
+                SyncProgressStatuses.Running,
+                nextPage: page + 1,
                 processedPageCount: processedPageCountOverall,
-                totalPageCount: totalPages,
-                remoteTotalCount,
-                remoteSubtitleCount,
-                localTotalCount: after.LocalTotalCount,
-                localSubtitleCount: after.LocalSubtitleCount,
+                totalPageCount: context.TotalPages,
+                context.RemoteTotalCount,
+                context.RemoteSubtitleCount,
+                localTotalCount: currentSnapshot.LocalTotalCount,
+                localSubtitleCount: currentSnapshot.LocalSubtitleCount,
                 insertedCount: cumulativeInsertedCount,
                 processedWorkCount: cumulativeProcessedWorkCount,
-                startedAt,
-                updatedAt: DateTime.UtcNow),
+                context.StartedAt,
+                cancellationToken);
+
+            var currentProgress = await _uiStateStore.LoadMetadataSyncProgressAsync(cancellationToken);
+            if (!currentProgress.StopRequested)
+            {
+                continue;
+            }
+
+            await SaveProgressAsync(
+                SyncProgressStatuses.Stopped,
+                nextPage: page + 1,
+                processedPageCount: processedPageCountOverall,
+                totalPageCount: context.TotalPages,
+                context.RemoteTotalCount,
+                context.RemoteSubtitleCount,
+                localTotalCount: currentSnapshot.LocalTotalCount,
+                localSubtitleCount: currentSnapshot.LocalSubtitleCount,
+                insertedCount: cumulativeInsertedCount,
+                processedWorkCount: cumulativeProcessedWorkCount,
+                context.StartedAt,
+                cancellationToken);
+
+            return new MetadataSyncPagedResult(
+                insertedCount,
+                processedWorkCount,
+                processedPageCountOverall,
+                page + 1,
+                currentSnapshot,
+                currentSnapshot.LocalTotalCount == context.RemoteTotalCount,
+                WasStopped: true,
+                cumulativeInsertedCount,
+                cumulativeProcessedWorkCount);
+        }
+
+        return new MetadataSyncPagedResult(
+            insertedCount,
+            processedWorkCount,
+            processedPageCountOverall,
+            NextPage: 1,
+            currentSnapshot,
+            currentSnapshot.LocalTotalCount == context.RemoteTotalCount,
+            WasStopped: false,
+            cumulativeInsertedCount,
+            cumulativeProcessedWorkCount);
+    }
+
+    private async Task<MetadataSyncRunResult> BuildFinalResultAsync(
+        MetadataSyncInitializationContext context,
+        MetadataSyncPagedResult paged,
+        CancellationToken cancellationToken)
+    {
+        if (paged.WasStopped)
+        {
+            return new MetadataSyncRunResult
+            {
+                RemoteTotalCount = context.RemoteTotalCount,
+                RemoteSubtitleCount = context.RemoteSubtitleCount,
+                LocalTotalCountBefore = context.Before.LocalTotalCount,
+                LocalSubtitleCountBefore = context.Before.LocalSubtitleCount,
+                LocalTotalCountAfter = paged.Snapshot.LocalTotalCount,
+                LocalSubtitleCountAfter = paged.Snapshot.LocalSubtitleCount,
+                InsertedCount = paged.InsertedCount,
+                ProcessedWorkCount = paged.ProcessedWorkCount,
+                ProcessedPageCount = paged.ProcessedPageCount,
+                TotalPageCount = context.TotalPages,
+                NextPage = paged.NextPage,
+                Message = $"元数据同步已按请求停止：已处理 {paged.ProcessedPageCount}/{context.TotalPages} 页，共处理 {paged.ProcessedWorkCount} 条，本地现有 {paged.Snapshot.LocalTotalCount} 条。",
+                IsUpToDate = paged.IsUpToDate,
+                WasStopped = true,
+                ResumedFromProgress = context.ResumedFromProgress,
+            };
+        }
+
+        await SaveProgressAsync(
+            SyncProgressStatuses.Completed,
+            nextPage: 1,
+            processedPageCount: paged.ProcessedPageCount,
+            totalPageCount: context.TotalPages,
+            context.RemoteTotalCount,
+            context.RemoteSubtitleCount,
+            localTotalCount: paged.Snapshot.LocalTotalCount,
+            localSubtitleCount: paged.Snapshot.LocalSubtitleCount,
+            insertedCount: paged.CumulativeInsertedCount,
+            processedWorkCount: paged.CumulativeProcessedWorkCount,
+            context.StartedAt,
             cancellationToken);
 
         return new MetadataSyncRunResult
         {
-            RemoteTotalCount = remoteTotalCount,
-            RemoteSubtitleCount = remoteSubtitleCount,
-            LocalTotalCountBefore = before.LocalTotalCount,
-            LocalSubtitleCountBefore = before.LocalSubtitleCount,
-            LocalTotalCountAfter = after.LocalTotalCount,
-            LocalSubtitleCountAfter = after.LocalSubtitleCount,
-            InsertedCount = insertedCount,
-            ProcessedWorkCount = processedWorkCount,
-            ProcessedPageCount = processedPageCountOverall,
-            TotalPageCount = totalPages,
+            RemoteTotalCount = context.RemoteTotalCount,
+            RemoteSubtitleCount = context.RemoteSubtitleCount,
+            LocalTotalCountBefore = context.Before.LocalTotalCount,
+            LocalSubtitleCountBefore = context.Before.LocalSubtitleCount,
+            LocalTotalCountAfter = paged.Snapshot.LocalTotalCount,
+            LocalSubtitleCountAfter = paged.Snapshot.LocalSubtitleCount,
+            InsertedCount = paged.InsertedCount,
+            ProcessedWorkCount = paged.ProcessedWorkCount,
+            ProcessedPageCount = paged.ProcessedPageCount,
+            TotalPageCount = context.TotalPages,
             NextPage = 1,
-            Message = isUpToDate
-                ? $"元数据同步完成：本次处理 {processedWorkCount} 条，新增 {insertedCount} 条，本地现有 {after.LocalTotalCount} 条。"
-                : $"元数据同步完成：本次处理 {processedWorkCount} 条，新增 {insertedCount} 条，但本地数量仍为 {after.LocalTotalCount}，未完全追平网站的 {remoteTotalCount} 条。",
-            IsUpToDate = isUpToDate,
+            Message = paged.IsUpToDate
+                ? $"元数据同步完成：本次处理 {paged.ProcessedWorkCount} 条，新增 {paged.InsertedCount} 条，本地现有 {paged.Snapshot.LocalTotalCount} 条。"
+                : $"元数据同步完成：本次处理 {paged.ProcessedWorkCount} 条，新增 {paged.InsertedCount} 条，但本地数量仍为 {paged.Snapshot.LocalTotalCount}，未完全追平网站的 {context.RemoteTotalCount} 条。",
+            IsUpToDate = paged.IsUpToDate,
             WasStopped = false,
-            ResumedFromProgress = resumedFromProgress,
+            ResumedFromProgress = context.ResumedFromProgress,
         };
+    }
+
+    private async Task SaveProgressAsync(
+        string status,
+        int nextPage,
+        int processedPageCount,
+        int totalPageCount,
+        int remoteTotalCount,
+        int remoteSubtitleCount,
+        int localTotalCount,
+        int localSubtitleCount,
+        int insertedCount,
+        int processedWorkCount,
+        DateTime startedAt,
+        CancellationToken cancellationToken)
+    {
+        await _uiStateStore.SaveMetadataSyncProgressAsync(
+            BuildProgressState(
+                status,
+                nextPage,
+                processedPageCount,
+                totalPageCount,
+                remoteTotalCount,
+                remoteSubtitleCount,
+                localTotalCount,
+                localSubtitleCount,
+                insertedCount,
+                processedWorkCount,
+                startedAt,
+                DateTime.UtcNow),
+            cancellationToken);
     }
 
     private async Task<MetadataSyncRunResult> RefreshExpiredMetadataAsync(
@@ -523,5 +614,39 @@ public sealed class MetadataSyncService
             StartedAt = startedAt,
             UpdatedAt = updatedAt,
         };
+    }
+
+    private sealed record MetadataSyncInitializationContext(
+        MetadataSyncProgressState Progress,
+        bool ResumedFromProgress,
+        AppConfig Config,
+        MetadataSyncSnapshot Before,
+        int ExpiredMetadataCount,
+        int RemoteTotalCount,
+        int RemoteSubtitleCount,
+        int TotalPages,
+        int StartPage,
+        int InitialProcessedPageCount,
+        int InitialCumulativeInsertedCount,
+        int InitialCumulativeProcessedWorkCount,
+        DateTime StartedAt);
+
+    private sealed record MetadataSyncPagedResult(
+        int InsertedCount,
+        int ProcessedWorkCount,
+        int ProcessedPageCount,
+        int NextPage,
+        MetadataSyncSnapshot Snapshot,
+        bool IsUpToDate,
+        bool WasStopped,
+        int CumulativeInsertedCount,
+        int CumulativeProcessedWorkCount);
+
+    private enum MetadataSyncBranch
+    {
+        RefreshExpired,
+        SkipUpToDate,
+        SkipLocalAhead,
+        Proceed,
     }
 }

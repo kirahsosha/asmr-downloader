@@ -351,6 +351,169 @@ public class MetadataSyncServiceTests
         Assert.Equal([(1, 1, false), (1, 1, true), (1, 100, false)], apiClient.Calls);
     }
 
+    [Fact]
+    public async Task SyncMetadataAsync_ShouldComplete_WhenStopRequestedOnLastPage()
+    {
+        var uiStateStore = new InMemoryUiStateStore();
+        var apiClient = new RecordingMetadataApiClient
+        {
+            RemoteTotalCount = 101,
+            RemoteSubtitleCount = 1,
+            Pages =
+            {
+                [1] = BuildPage(startId: 101, count: 100, subtitleIndex: 0),
+                [2] =
+                [
+                    CreateWork(201, "RJ201", "Title 201"),
+                ],
+            },
+        };
+
+        var store = new InMemoryMetadataSyncStore();
+        store.OnUpsertAsync = async insertedCount =>
+        {
+            if (insertedCount > 0)
+            {
+                var progress = await uiStateStore.LoadMetadataSyncProgressAsync();
+                if (progress.NextPage == 2)
+                {
+                    await uiStateStore.RequestStopMetadataSyncAsync();
+                }
+            }
+        };
+
+        var sut = new MetadataSyncService(
+            apiClient,
+            new TestConfigurationService(Path.GetTempPath()),
+            store,
+            new NoopRateLimiterService(),
+            uiStateStore);
+
+        var result = await sut.SyncMetadataAsync();
+        var progressAfter = await uiStateStore.LoadMetadataSyncProgressAsync();
+
+        Assert.False(result.WasStopped);
+        Assert.True(result.IsUpToDate);
+        Assert.Equal(101, result.InsertedCount);
+        Assert.Equal(101, result.ProcessedWorkCount);
+        Assert.Equal(2, result.ProcessedPageCount);
+        Assert.Equal(1, result.NextPage);
+        Assert.Equal(SyncProgressStatuses.Completed, progressAfter.Status);
+        Assert.Equal(1, progressAfter.NextPage);
+        Assert.Equal(101, progressAfter.LocalTotalCount);
+    }
+
+    [Fact]
+    public async Task SyncMetadataAsync_ShouldNormalizeResumedNextPage_WhenSavedNextPageExceedsTotalPages()
+    {
+        var uiStateStore = new InMemoryUiStateStore();
+        await uiStateStore.SaveMetadataSyncProgressAsync(new MetadataSyncProgressState
+        {
+            Status = SyncProgressStatuses.Stopped,
+            NextPage = 9,
+            ProcessedPageCount = 0,
+            TotalPageCount = 1,
+            RemoteTotalCount = 0,
+            RemoteSubtitleCount = 0,
+            InsertedCount = 0,
+            ProcessedWorkCount = 0,
+            StartedAt = DateTime.UtcNow.AddMinutes(-5),
+            UpdatedAt = DateTime.UtcNow.AddMinutes(-1),
+        });
+
+        var apiClient = new RecordingMetadataApiClient
+        {
+            RemoteTotalCount = 20,
+            RemoteSubtitleCount = 0,
+            Pages =
+            {
+                [1] = BuildPage(startId: 1001, count: 20, subtitleIndex: -1),
+            },
+        };
+
+        var store = new InMemoryMetadataSyncStore();
+        var sut = new MetadataSyncService(
+            apiClient,
+            new TestConfigurationService(Path.GetTempPath()),
+            store,
+            new NoopRateLimiterService(),
+            uiStateStore);
+
+        var result = await sut.SyncMetadataAsync();
+
+        Assert.True(result.ResumedFromProgress);
+        Assert.False(result.WasStopped);
+        Assert.Equal(1, result.ProcessedPageCount);
+        Assert.Equal(20, result.InsertedCount);
+        Assert.Equal([(1, 1, false), (1, 1, true), (1, 100, false)], apiClient.Calls);
+    }
+
+    [Fact]
+    public async Task SyncMetadataAsync_ShouldFilterInvalidWorks_WhenPageContainsInvalidItems()
+    {
+        var uiStateStore = new InMemoryUiStateStore();
+        var apiClient = new RecordingMetadataApiClient
+        {
+            RemoteTotalCount = 3,
+            RemoteSubtitleCount = 0,
+            Pages =
+            {
+                [1] =
+                [
+                    CreateWork(0, "RJ0", "Invalid Id"),
+                    CreateWork(2102, string.Empty, "Invalid Source"),
+                    CreateWork(2103, "RJ2103", "Valid Work"),
+                ],
+            },
+        };
+        var store = new InMemoryMetadataSyncStore();
+        var sut = new MetadataSyncService(
+            apiClient,
+            new TestConfigurationService(Path.GetTempPath()),
+            store,
+            new NoopRateLimiterService(),
+            uiStateStore);
+
+        var result = await sut.SyncMetadataAsync();
+        var snapshot = await sut.GetMetadataSnapshotAsync();
+
+        Assert.Equal(1, result.InsertedCount);
+        Assert.Equal(1, result.ProcessedWorkCount);
+        Assert.Equal(1, snapshot.LocalTotalCount);
+    }
+
+    [Fact]
+    public async Task SyncMetadataAsync_ShouldHandlePartialLastPage_WhenRemoteTotalNotAlignedToPageSize()
+    {
+        var uiStateStore = new InMemoryUiStateStore();
+        var apiClient = new RecordingMetadataApiClient
+        {
+            RemoteTotalCount = 205,
+            RemoteSubtitleCount = 1,
+            Pages =
+            {
+                [1] = BuildPage(startId: 3001, count: 100, subtitleIndex: 0),
+                [2] = BuildPage(startId: 3101, count: 100, subtitleIndex: -1),
+                [3] = BuildPage(startId: 3201, count: 5, subtitleIndex: -1),
+            },
+        };
+        var store = new InMemoryMetadataSyncStore();
+        var sut = new MetadataSyncService(
+            apiClient,
+            new TestConfigurationService(Path.GetTempPath()),
+            store,
+            new NoopRateLimiterService(),
+            uiStateStore);
+
+        var result = await sut.SyncMetadataAsync();
+
+        Assert.True(result.IsUpToDate);
+        Assert.Equal(205, result.InsertedCount);
+        Assert.Equal(205, result.ProcessedWorkCount);
+        Assert.Equal(3, result.ProcessedPageCount);
+        Assert.Equal([(1, 1, false), (1, 1, true), (1, 100, false), (2, 100, false), (3, 100, false)], apiClient.Calls);
+    }
+
     private static MetadataSyncWorkDto CreateWork(int id, string sourceId, string title, bool hasSubtitle = false)
     {
         return new MetadataSyncWorkDto
