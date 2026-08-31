@@ -1,6 +1,6 @@
 ﻿# asmr-downloader WPF 项目进度跟踪
 
-当前跟踪版本：v0.7.9
+当前跟踪版本：v0.7.10
 
 AI约束策略：变更与验证记录统一维护于 `docs/wpf-migration-history.md` 的 `§1`，单元测试清单统一维护于 `docs/wpf-migration-tests.md` 的 `§1`。
 
@@ -208,7 +208,8 @@ AI约束策略：变更与验证记录统一维护于 `docs/wpf-migration-histor
 | 2026-06-21 | 已提交 | v0.7.6: add Sync filter checkboxes and update stage 7 UI                    | 1. Update runtime/docs version to v0.7.6.<br>2. Add SyncUiState persistence and Sync download filter options.<br>3. Add two Sync page checkboxes for Search/Download filter reuse.<br>4. Wire Search filters and Download file filters into Sync download flow.<br>5. Add/extend regression tests for Sync filters and SyncUiState.<br>6. Update regression tests and progress documentation.                                      | 1af3acb    |
 | 2026-08-30 | 已提交 | v0.7.7: refine library detail actions and sync metadata refresh flow        | 1. Update runtime/docs version to v0.7.7.<br>2. Update Search page sort labels.<br>3. Update Library page detail actions.<br>4. Update Sync page process logic and display text.<br>5. Remove misleading hints from Sync status/detail text and keep the persisted detail rendering consistent.<br>6. Update regression tests and progress documentation.                                                                          | a90a7df    |
 | 2026-08-31 | 已提交 | v0.7.8: make language priority configurable in Settings                     | 1. Update runtime/docs version to v0.7.8.<br>2. Add configurable language priority setting in Downloader options and persist it through SQLite/config loading.<br>3. Apply configured language order to translated enqueue resolution with default fallback preserved.<br>4. Add/extend Application/Infrastructure/WPF regression tests and sync migration documentation.                                                          | e01dc49    |
-| 2026-08-31 | 待提交 | v0.7.9: refactor metadata sync mainflow and align stop/refresh behaviors    | 1. Update runtime/docs version to v0.7.9.<br>2. Refactor `MetadataSyncService` into clearer initialization, branching, paging, and finalization stages.<br>3. Align stop/refresh behavior, expired-refresh priority, and summary consistency.<br>4. Add regression tests for sync edge cases.                                                                                                                                      | -          |
+| 2026-08-31 | 已提交 | v0.7.9: refactor metadata sync mainflow and align stop/refresh behaviors    | 1. Update runtime/docs version to v0.7.9.<br>2. Refactor `MetadataSyncService` into clearer initialization, branching, paging, and finalization stages.<br>3. Align stop/refresh behavior, expired-refresh priority, and summary consistency.<br>4. Add regression tests for sync edge cases.                                                                                                                                      | 9364ab7    |
+| 2026-08-31 | 待提交 | v0.7.10: unify API query generation and centralize shared query defaults    | 1. Update runtime/docs version to v0.7.10.<br>2. Centralize canonical API query generation in `AsmrApiPaths`.<br>3. Remove scattered hardcoded query construction and standardize `create_date`, `subtitle`, and `includeTranslationWorks` formatting.<br>4. Refresh regression tests and migration docs.                                                                                                                          | -          |
 
 ---
 

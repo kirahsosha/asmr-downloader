@@ -77,6 +77,17 @@ public class QueryParserServiceTests
     }
 
     [Fact]
+    public void QueryParser_ShouldBuildCanonicalQueryFormat_ForPageOptions()
+    {
+        var sut = new QueryParserService();
+        var parsed = sut.Parse("?order=create_date&sort=asc&page=2&pageSize=50&subtitle=1&includeTranslationWorks=true");
+
+        var rebuilt = sut.BuildAsmrQuery(parsed);
+
+        Assert.Equal("?order=create_date&sort=asc&page=2&pageSize=50&subtitle=1&includeTranslationWorks=true", rebuilt);
+    }
+
+    [Fact]
     public void QueryParser_ShouldPreserveCommaSeparatedValues_WithinSingleFilter()
     {
         var sut = new QueryParserService();

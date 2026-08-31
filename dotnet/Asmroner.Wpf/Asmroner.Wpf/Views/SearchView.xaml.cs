@@ -1086,8 +1086,17 @@ public partial class SearchView : UserControl
             return string.Empty;
         }
 
-        builder.Append($"?order={order}&sort={sort}&page={_currentPage}&pageSize={_pageSize}&subtitle={subtitle}&includeTranslationWorks={includeTranslation.ToString().ToLowerInvariant()}");
-        return builder.ToString();
+        var queryTail = AsmrApiPaths.BuildQuery(string.Empty, new Dictionary<string, object?>
+        {
+            ["order"] = order,
+            ["sort"] = sort,
+            ["page"] = _currentPage,
+            ["pageSize"] = _pageSize,
+            ["subtitle"] = subtitle,
+            ["includeTranslationWorks"] = includeTranslation,
+        });
+
+        return builder.ToString() + queryTail;
     }
 
     private List<string> BuildAdvancedFilterTokens()

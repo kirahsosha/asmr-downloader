@@ -1,4 +1,5 @@
 using System.Text;
+using Asmroner.Core.Api;
 using Asmroner.Core.Interfaces;
 using Asmroner.Core.Search;
 
@@ -88,7 +89,15 @@ public sealed class QueryParserService : IQueryParserService
         var encoded = Uri.EscapeDataString(builder.ToString());
 
         var page = query.PageOptions;
-        var queryTail = $"?order={page.Order}&sort={page.Sort}&page={page.Page}&pageSize={page.PageSize}&subtitle={page.Subtitle}&includeTranslationWorks={page.IncludeTranslationWorks.ToString().ToLowerInvariant()}";
+        var queryTail = AsmrApiPaths.BuildQuery(string.Empty, new Dictionary<string, object?>
+        {
+            ["order"] = page.Order,
+            ["sort"] = page.Sort,
+            ["page"] = page.Page,
+            ["pageSize"] = page.PageSize,
+            ["subtitle"] = page.Subtitle,
+            ["includeTranslationWorks"] = page.IncludeTranslationWorks,
+        });
 
         return encoded + queryTail;
     }

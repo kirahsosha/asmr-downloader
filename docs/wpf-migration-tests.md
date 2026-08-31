@@ -61,14 +61,16 @@
 
 #### 1.1.2 QueryParserServiceTests.cs
 
-| 已创建 | 已通过 | 阶段   | 样例名                                                              | 输入                                         | 期望输出                                           |
-| ------ | ------ | ------ | ------------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------- |
-| [x]    | [x]    | 阶段 3 | `QueryParser_ShouldParseAdvancedQuery`                              | 复杂高级检索语句（含负向条件+分页参数）      | 解析字段正确，重建 query 保留关键参数              |
-| [x]    | [x]    | 阶段 3 | `QueryParser_ShouldReturnReadableError_WhenSyntaxInvalid`           | 非法高级语法字符串                           | 返回可读解析错误                                   |
-| [x]    | [x]    | 阶段 4 | `QueryParser_ShouldNotApplyDefaultAge_WhenAgeMissing`               | 查询未显式提供 age 条件                      | 不自动注入 `age` 默认值                            |
-| [x]    | [x]    | 阶段 4 | `QueryParser_ShouldParseSemicolonSeparatedFilters`                  | 高级筛选使用分号分隔                         | 分号语法可正确映射到筛选字段                       |
-| [x]    | [x]    | 阶段 3 | `QueryParser_ShouldParseOptionOnlyQuery`                            | 仅包含分页/排序参数的查询串                  | 可正确解析为无关键词查询并保留页面参数             |
-| [x]    | [x]    | 阶段 3 | `QueryParser_ShouldPreserveCommaSeparatedValues_WithinSingleFilter` | `-tag:女性向,乙女向,记录片/体验谈 age:adult` | Tag 保留全部逗号分隔值，Age 正确解析为 `age:adult` |
+| 已创建 | 已通过 | 阶段   | 样例名                                                              | 输入                                                                                    | 期望输出                                                               |
+| ------ | ------ | ------ | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| [x]    | [x]    | 阶段 3 | `QueryParser_ShouldParseAdvancedQuery`                              | 复杂高级检索语句（含负向条件+分页参数）                                                 | 解析字段正确，重建 query 保留关键参数                                  |
+| [x]    | [x]    | 阶段 3 | `QueryParser_ShouldReturnReadableError_WhenSyntaxInvalid`           | 非法高级语法字符串                                                                      | 返回可读解析错误                                                       |
+| [x]    | [x]    | 阶段 4 | `QueryParser_ShouldNotApplyDefaultAge_WhenAgeMissing`               | 查询未显式提供 age 条件                                                                 | 不自动注入 `age` 默认值                                                |
+| [x]    | [x]    | 阶段 4 | `QueryParser_ShouldParseSemicolonSeparatedFilters`                  | 高级筛选使用分号分隔                                                                    | 分号语法可正确映射到筛选字段                                           |
+| [x]    | [x]    | 阶段 3 | `QueryParser_ShouldParseOptionOnlyQuery`                            | 仅包含分页/排序参数的查询串                                                             | 可正确解析为无关键词查询并保留页面参数                                 |
+| [x]    | [x]    | 阶段 3 | `QueryParser_ShouldPreserveCommaSeparatedValues_WithinSingleFilter` | `-tag:女性向,乙女向,记录片/体验谈 age:adult`                                            | Tag 保留全部逗号分隔值，Age 正确解析为 `age:adult`                     |
+| [x]    | [ ]    | 阶段 7 | `QueryParserService_ShouldUseCanonicalQueryFormat_ForPageOptions`   | `order=create_date&sort=asc&page=2&pageSize=50&subtitle=1&includeTranslationWorks=true` | 构建的 query 串保持固定参数顺序与统一 bool 文本格式                    |
+| [x]    | [ ]    | 阶段 7 | `AsmrApiPaths_BuildQuery_ShouldSerializeInCanonicalOrder`           | 直接构造 `/api/works` 参数字典                                                          | 输出顺序稳定，`includeTranslationWorks` 以 `true`/`false` 固定格式输出 |
 
 #### 1.1.3 SearchExportServiceTests.cs
 

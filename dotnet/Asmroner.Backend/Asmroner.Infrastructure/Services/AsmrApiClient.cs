@@ -220,9 +220,17 @@ public sealed class AsmrApiClient : IAsmrApiClient
             return numericId;
         }
 
-        var query = string.Create(
-            CultureInfo.InvariantCulture,
-            $"{Uri.EscapeDataString(sourceId)}?order=id&sort=desc&page=1&pageSize=20&subtitle=0&includeTranslationWorks=true");
+        var query = AsmrApiPaths.BuildQuery(
+            Uri.EscapeDataString(sourceId),
+            new Dictionary<string, object?>
+            {
+                ["order"] = "id",
+                ["sort"] = "desc",
+                ["page"] = 1,
+                ["pageSize"] = 20,
+                ["subtitle"] = 0,
+                ["includeTranslationWorks"] = true,
+            });
         var result = await SearchAsync(query, cancellationToken);
         var matched = result.Works.FirstOrDefault(work =>
             string.Equals(SourceIdNormalizer.Normalize(work.SourceId), sourceId, StringComparison.OrdinalIgnoreCase));

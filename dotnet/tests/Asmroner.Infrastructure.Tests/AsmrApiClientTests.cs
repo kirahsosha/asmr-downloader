@@ -9,6 +9,24 @@ namespace Asmroner.Infrastructure.Tests;
 public class AsmrApiClientTests
 {
     [Fact]
+    public void AsmrApiPaths_BuildQuery_ShouldSerializeInCanonicalOrder()
+    {
+        var query = AsmrApiPaths.BuildQuery(
+            "/api/works",
+            new Dictionary<string, string?>
+            {
+                ["order"] = "create_date",
+                ["sort"] = "asc",
+                ["page"] = "2",
+                ["pageSize"] = "50",
+                ["subtitle"] = "1",
+                ["includeTranslationWorks"] = "true",
+            });
+
+        Assert.Equal("/api/works?order=create_date&sort=asc&page=2&pageSize=50&subtitle=1&includeTranslationWorks=true", query);
+    }
+
+    [Fact]
     public async Task GetMetadataWorksAsync_ShouldUseWorksEndpoint_AndSubtitleFlag()
     {
         HttpRequestMessage? capturedRequest = null;
